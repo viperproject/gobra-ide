@@ -1,8 +1,12 @@
 package viper.gobraserver
 
-class VerifierConfig {
+class FileData {
     var filePath: String = ""
     var fileUri: String = ""
+}
+
+class VerifierConfig {
+    var fileData: FileData = null
 }
 
 class VerificationResult(

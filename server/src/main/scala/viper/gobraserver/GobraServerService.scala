@@ -81,9 +81,17 @@ class GobraServerService extends LanguageClientAware {
   def verifyFile(configJson: String): CompletableFuture[String] = {
     println("verifyFile")
     val config: VerifierConfig = gson.fromJson(configJson, classOf[VerifierConfig])
-//    this.verifierState.setConfig(config)
     CompletableFuture.completedFuture(gson.toJson(this.verifierState.verify(config)))
 
+  }
+
+
+  @JsonNotification("gobraServer/changeFile")
+  def changeFile(fileDataJson: String): Unit = {
+    val fileData: FileData = gson.fromJson(fileDataJson, classOf[FileData])
+    this.verifierState.resetDiagnostics()
+
+    this.verifierState.publishDiagnostics(fileData.fileUri)
   }
 
 

@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as net from 'net';
 import * as child_process from "child_process";
+import { FileData, VerifierConfig } from "./MessagePayloads";
 
 
 export class State {
@@ -12,9 +13,16 @@ export class State {
     public static disposableServer: vscode.Disposable;
     public static verificationRunning: boolean;
 
+    public static config: VerifierConfig;
+
+
 
     public static toggleVerificationRunning(): void {
         this.verificationRunning = !this.verificationRunning;
+    }
+
+    public static updateFileData(): void {
+        this.config.fileData = new FileData();
     }
 
 

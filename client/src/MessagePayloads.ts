@@ -1,13 +1,21 @@
 import { Helper } from "./Helper";
 
 
-export class VerifierConfig {
+export class FileData {
     filePath: string;
     fileUri: string;
 
     constructor() {
         this.filePath = Helper.getFilePath();
         this.fileUri = Helper.getFileUri();
+    }
+}
+
+export class VerifierConfig {
+    fileData: FileData;
+
+    constructor() {
+        this.fileData = new FileData();
     }
 }
 

@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { URI } from 'vscode-uri';
-import { VerifierConfig, VerificationResult } from "./MessagePayloads";
+import { VerifierConfig, VerificationResult, FileData } from "./MessagePayloads";
 
 
 export class Helper {
@@ -20,6 +20,10 @@ export class Helper {
         return JSON.stringify(config);
     }
 
+    public static fileDataToJson(fileData: FileData): string {
+        return JSON.stringify(fileData);
+    }
+
     public static jsonToResult(json: string): VerificationResult {
         return JSON.parse(json);
     }
@@ -28,8 +32,21 @@ export class Helper {
 // Defines the commands used for requests
 export class Commands {
     public static verifyFile = "gobraServer/verifyFile";
+    public static changeFile = "gobraServer/changeFile";
 }
 
+// Defines the texts in statusbars ...
+export class Texts {
+    public static helloGobra = "Hello from Gobra";
+    public static verificationSuccess = "Verification succeeded!";
+    public static verificationFailure = "Verification failed with: ";
+}
+
+export class Color {
+    public static green = "lightgreen";
+    public static white = "white";
+    public static red = "red";
+}
 
 
 

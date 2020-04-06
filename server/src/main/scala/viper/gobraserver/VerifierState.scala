@@ -31,7 +31,7 @@ class VerifierState {
          * and verify with this config. No need to store the config anywhere.
          */
 
-        val result = verifier.verify(new Config(Seq("--input", config.filePath)))
+        val result = verifier.verify(new Config(Seq("--input", config.fileData.filePath)))
 
         result match {
             case VerifierResult.Success => {
@@ -53,17 +53,20 @@ class VerifierState {
                 }
             }
         }
-
-        this.client match {
-            case Some(c) =>
-                val params = new PublishDiagnosticsParams(config.fileUri, this.diagnostics.asJava)
-                c.publishDiagnostics(params)
-            case _ =>
-        }
+        this.publishDiagnostics(config.fileData.fileUri)
 
         result match {
             case VerifierResult.Success => new VerificationResult(true, "")
             case VerifierResult.Failure(errors) => new VerificationResult(false, errors.head.id)
+        }
+    }
+
+    def publishDiagnostics(fileUri: String): Unit = {
+        this.client match {
+            case Some(c) =>
+                val params = new PublishDiagnosticsParams(fileUri, this.diagnostics.asJava)
+                c.publishDiagnostics(params)
+            case _ =>
         }
     }
 
