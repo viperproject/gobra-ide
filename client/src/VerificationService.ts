@@ -9,18 +9,17 @@ export class Verifier {
     // insert fields defining the verifier
     public static verifyItem: StatusBar;
 
-     public static initialize(): void {
+     public static initialize(verifierConfig: VerifierConfig): void {
         // Initialize Verification Button in Statusbar
         Verifier.verifyItem = new StatusBar(Texts.helloGobra, 10);
         Helper.registerCommand(Commands.verifyFile, Verifier.verifyFile, State.context);
         Verifier.verifyItem.setCommand(Commands.verifyFile, State.context);
         // add data of current file
-        State.config = new VerifierConfig();
+        State.verifierConfig = verifierConfig;
         // register file changed listener
         State.context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(Verifier.changeFile));
 
      }
-
 
     // verifies the file which is currently open in the editor
     public static verifyFile(): void {
@@ -28,10 +27,12 @@ export class Verifier {
             vscode.window.activeTextEditor && 
             vscode.window.activeTextEditor.document) {
             State.toggleVerificationRunning();
+            State.updateConfiguration();
+            Verifier.verifyItem.addHourGlass();
 
             vscode.window.activeTextEditor.document.save().then((saved: boolean) => {
                 console.log("sending verification request");
-                State.client.sendRequest(Commands.verifyFile, Helper.configToJson(State.config)).then((jsonRes: string) => {
+                State.client.sendRequest(Commands.verifyFile, Helper.configToJson(State.verifierConfig)).then((jsonRes: string) => {
                     Verifier.handleResult(jsonRes);
                 });
             });
@@ -52,8 +53,7 @@ export class Verifier {
     }
 
     public static changeFile(): void {
-        console.log("Changed textdocument, sending notification");
-        State.client.sendNotification(Commands.changeFile, Helper.fileDataToJson(State.config.fileData));
+        State.client.sendNotification(Commands.changeFile, Helper.fileDataToJson(State.verifierConfig.fileData));
         // setting filedata to currently open filedata
         State.updateFileData();
         // reset status bar item

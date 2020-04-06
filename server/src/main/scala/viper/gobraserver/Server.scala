@@ -1,6 +1,7 @@
 package viper.gobraserver
 
 import java.io.IOException
+import java.util.NoSuchElementException
 import java.net.Socket
 
 import org.eclipse.lsp4j.jsonrpc.Launcher
@@ -8,23 +9,24 @@ import org.eclipse.lsp4j.services.LanguageClient
 
 object Server {
   def main(args: Array[String]): Unit = {
-    if (args.length < 1) {
-      println("no port number provided")
-      sys.exit(1)
-      return
-    }
-    var port = -1
     try {
-      port = Integer.parseInt(args.head)
+      var port = Integer.parseInt(args.head)
+
+      runServer(port)
+
     } catch {
-      case _: Exception => {
-        println("invalid port number")
+      case e: NoSuchElementException => {
+        println("No port number provided")
+        sys.exit(1)
+        return
+      }
+
+      case e: NumberFormatException => {
+        println("Invalid port number")
         sys.exit(1)
         return
       }
     }
-
-    runServer(port)
   }
 
   def runServer(port: Int): Unit = {
@@ -37,9 +39,9 @@ object Server {
       val launcher = Launcher.createLauncher(server, classOf[LanguageClient], socket.getInputStream, socket.getOutputStream)
       server.connect(launcher.getRemoteProxy)
       // start listening on input stream in a new thread:
-      val fut = launcher.startListening()
+      val future = launcher.startListening()
       // wait until stream is closed again
-      fut.get()
+      future.get()
     } catch {
       case e: IOException => println(s"IOException occurred: ${e.toString}")
     }

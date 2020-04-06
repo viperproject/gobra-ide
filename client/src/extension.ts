@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 
 import { State } from './ExtensionState';
 import { Verifier } from './VerificationService';
+import { VerifierConfig } from './MessagePayloads';
 
 
 let fileSystemWatcher: vscode.FileSystemWatcher;
@@ -14,7 +15,8 @@ export function activate(context: vscode.ExtensionContext) {
 	// wait for server to start completely until next steps
 	State.client.onReady().then(() =>
 		{
-			Verifier.initialize();
+			let verifierConfig = new VerifierConfig();
+			Verifier.initialize(verifierConfig);
 		}
 	);
 

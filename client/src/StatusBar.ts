@@ -3,7 +3,7 @@ import * as vscode from "vscode";
 
 export class StatusBar{
     
-    private item: vscode.StatusBarItem;
+    public item: vscode.StatusBarItem;
 
     constructor(text: string, priority: number) {
         this.item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, priority);
@@ -26,8 +26,15 @@ export class StatusBar{
         this.updateItem();
     }
 
+    public addHourGlass() {
+        this.item.text = "\u231B " + this.item.text;
+        this.updateItem();
+    }
+
     public updateItem() {
-        if (vscode.window.activeTextEditor && vscode.window.activeTextEditor.document) {
+        if (vscode.window.activeTextEditor &&
+            vscode.window.activeTextEditor.document &&
+            vscode.window.activeTextEditor.document.languageId == "gobra") {
             this.item.show();
         } else {
             this.item.hide();

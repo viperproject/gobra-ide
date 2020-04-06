@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { URI } from 'vscode-uri';
-import { VerifierConfig, VerificationResult, FileData } from "./MessagePayloads";
+import { VerifierConfig, VerificationResult, FileData, Configuration } from "./MessagePayloads";
 
 
 export class Helper {
@@ -9,7 +9,11 @@ export class Helper {
     }
 
     public static getFilePath(): string {
-        return vscode.window.activeTextEditor.document.fileName;
+        if (vscode.window.activeTextEditor && vscode.window.activeTextEditor.document) {
+            return vscode.window.activeTextEditor.document.fileName;
+        } else {
+            return "";
+        }
     }
 
     public static getFileUri(): string {
@@ -26,6 +30,10 @@ export class Helper {
 
     public static jsonToResult(json: string): VerificationResult {
         return JSON.parse(json);
+    }
+
+    public static getGobraConfiguration(): vscode.WorkspaceConfiguration {
+        return vscode.workspace.getConfiguration("gobraSettings");
     }
 }
 

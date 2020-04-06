@@ -4,7 +4,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as net from 'net';
 import * as child_process from "child_process";
-import { FileData, VerifierConfig } from "./MessagePayloads";
+import { FileData, VerifierConfig, Configuration } from "./MessagePayloads";
+import { Helper } from "./Helper";
 
 
 export class State {
@@ -13,7 +14,7 @@ export class State {
     public static disposableServer: vscode.Disposable;
     public static verificationRunning: boolean;
 
-    public static config: VerifierConfig;
+    public static verifierConfig: VerifierConfig;
 
 
 
@@ -22,7 +23,12 @@ export class State {
     }
 
     public static updateFileData(): void {
-        this.config.fileData = new FileData();
+        this.verifierConfig.fileData = new FileData();
+    }
+
+    public static updateConfiguration(): void {
+        let config = Helper.getGobraConfiguration();
+        this.verifierConfig.config = new Configuration(config);
     }
 
 
@@ -72,7 +78,6 @@ export class State {
     
             }).on('error', (err) => {
                 console.log("Error in server creation.");
-                throw err;
             });
     
             // start Gobra Server given in binary

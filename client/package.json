@@ -50,18 +50,58 @@
     ],
     "configuration": {
       "type": "object",
-      "title": "Gobra configuration",
+      "title": "Gobra Configuration",
       "properties": {
-        "languageServerExample.trace.server": {
+        "gobraSettings.debug": {
+          "scope": "window",
+          "type": "boolean",
+          "default": false,
+          "description": "Output additional debug information."
+        },
+        "gobraSettings.eraseGhost": {
+          "scope": "window",
+          "type": "boolean",
+          "default": false,
+          "description": "Print the input program without ghost code."
+        },
+        "gobraSettings.unparse": {
+          "scope": "window",
+          "type": "boolean",
+          "default": false,
+          "description": "Print the parsed program."
+        },
+        "gobraSettings.printInternal": {
+          "scope": "window",
+          "type": "boolean",
+          "default": false,
+          "description": "Print the internal program representation."
+        },
+        "gobraSettings.printViper": {
+          "scope": "window",
+          "type": "boolean",
+          "default": false,
+          "description": "Print the encoded Viper program."
+        },
+        "gobraSettings.parseOnly": {
+          "scope": "window",
+          "type": "boolean",
+          "default": false,
+          "description": "Perform only the parsing step."
+        },
+        "gobraSettings.loglevel": {
           "scope": "window",
           "type": "string",
           "enum": [
-            "off",
-            "messages",
-            "verbose"
+            "Off",
+            "All",
+            "Trace",
+            "Debug",
+            "Info",
+            "Warn",
+            "Error"
           ],
-          "default": "off",
-          "description": "Traces the communication between VS Code and the language server."
+          "default": "Off",
+          "description": "One of the log levels ALL, TRACE, DEBUG, INFO, WARN, ERROR, OFF."
         }
       }
     }
