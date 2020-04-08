@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { URI } from 'vscode-uri';
-import { VerifierConfig, VerificationResult, FileData, Configuration } from "./MessagePayloads";
+import { VerifierConfig, VerificationResult, FileData } from "./MessagePayloads";
 
 
 export class Helper {

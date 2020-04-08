@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as net from 'net';
 import * as child_process from "child_process";
-import { FileData, VerifierConfig, Configuration } from "./MessagePayloads";
+import { FileData, VerifierConfig, ClientConfig } from "./MessagePayloads";
 import { Helper } from "./Helper";
 
 
@@ -28,7 +28,7 @@ export class State {
 
     public static updateConfiguration(): void {
         let config = Helper.getGobraConfiguration();
-        this.verifierConfig.config = new Configuration(config);
+        this.verifierConfig.clientConfig = new ClientConfig(config);
     }
 
 

@@ -1,15 +1,27 @@
 package viper.gobraserver
 
-class FileData {
-    var filePath: String = ""
-    var fileUri: String = ""
-}
+case class FileData (
+    filePath: String,
+    fileUri: String
+)
 
-class VerifierConfig {
-    var fileData: FileData = null
-}
+case class ClientConfig (
+    backend: String,
+    debug: Boolean,
+    eraseGhost: Boolean,
+    unparse: Boolean,
+    printInternal: Boolean,
+    printViper: Boolean,
+    parseOnly: Boolean,
+    logLevel: String
+)
 
-class VerificationResult(
+case class VerifierConfig (
+    fileData: FileData,
+    clientConfig: ClientConfig
+)
+
+case class VerificationResult(
     var success: Boolean,
     var error: String
 )

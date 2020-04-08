@@ -30,6 +30,8 @@ export class Verifier {
             State.updateConfiguration();
             Verifier.verifyItem.addHourGlass();
 
+//            console.log(Helper.configToJson(State.verifierConfig));
+
             vscode.window.activeTextEditor.document.save().then((saved: boolean) => {
                 console.log("sending verification request");
                 State.client.sendRequest(Commands.verifyFile, Helper.configToJson(State.verifierConfig)).then((jsonRes: string) => {

@@ -1,7 +1,6 @@
 package viper.gobraserver
 
-import viper.gobra.Gobra
-import viper.gobra.frontend.Config
+import viper.gobra.GobraFrontend
 import viper.gobra.reporting.VerifierResult
 
 import org.eclipse.lsp4j.{
@@ -16,22 +15,14 @@ import collection.JavaConverters._
 import org.eclipse.lsp4j.services.LanguageClient
 
 
-class VerifierState {
-    private val verifier: Gobra = new Gobra()
+class VerifierState extends GobraFrontend {
     private var diagnostics: List[Diagnostic] = Nil
     private var client: Option[LanguageClient] = None
 
-    def verify(config: VerifierConfig): VerificationResult = {
-
-        println("\nVerifying File\n")
-
-        /*
-         * When gobra can accept just a normal config which is not constructed with command
-         * line arguments, change this to just accept the config as an input to the jsonrequest
-         * and verify with this config. No need to store the config anywhere.
-         */
-
-        val result = verifier.verify(new Config(Seq("--input", config.fileData.filePath)))
+    def verify(verifierConfig: VerifierConfig): VerificationResult = {
+        val config = Helper.verifierConfigToConfig(verifierConfig)
+        val verifier = createVerifier(config)
+        val result = verifier.verify(config)
 
         result match {
             case VerifierResult.Success => {
@@ -42,18 +33,17 @@ class VerifierState {
                 for (error <- errors) {
                     //fill diagnostic list from errors
                     val startPos = new Position(error.position.start.line-1, error.position.start.column-1) /* why is off by 1? */
-                    val endPos =
-                        error.position.end match {
-                            case Some(pos) => new Position(pos.line-1, pos.column-1)
-                            case None      => startPos
-                        }
+                    val endPos = error.position.end match {
+                        case Some(pos) => new Position(pos.line-1, pos.column-1)
+                        case None      => startPos
+                    }
                     val diagnostic = new Diagnostic(new Range(startPos, endPos), error.message, DiagnosticSeverity.Error, "")
 
                     this.addDiagnostic(diagnostic)
                 }
             }
         }
-        this.publishDiagnostics(config.fileData.fileUri)
+        this.publishDiagnostics(verifierConfig.fileData.fileUri)
 
         result match {
             case VerifierResult.Success => new VerificationResult(true, "")

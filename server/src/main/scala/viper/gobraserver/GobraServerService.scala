@@ -15,8 +15,6 @@ import org.eclipse.lsp4j.{
   DidSaveTextDocumentParams,
   InitializeParams,
   InitializeResult,
-  MessageParams,
-  MessageType,
   ServerCapabilities,
   TextDocumentSyncKind
 }
@@ -45,36 +43,42 @@ class GobraServerService extends LanguageClientAware {
     CompletableFuture.completedFuture(null)
   }
 
+  @JsonNotification(value = "initialized")
+  def initialized(): Unit = {
+    println("Initialized Server")
+  }
+
   @JsonNotification(value = "exit")
   def exit(): Unit = {
     println("exit")
     sys.exit()
   }
 
+   /*
+   * Every time a setting is changed in the client, a setTraceNotification message
+   * is sent. At the moment this is not used for anything.
+   */
+  @JsonNotification("$/setTraceNotification")
+  def setTraceNotification(params: Any): Unit = {
+    println("Trace Notification arrived")
+  }
+
   @JsonNotification("textDocument/didOpen")
   def didOpen(params: DidOpenTextDocumentParams): Unit = {
     println("didOpen")
-    verifierState.getClient() match {
-      case Some(c) => c.showMessage(new MessageParams(MessageType.Log, "File got opened"))
-      case _ =>
-    }
   }
-
   
   @JsonNotification("textDocument/didChange")
   def didChange(params: DidChangeTextDocumentParams): Unit = {}
 
   @JsonNotification("textDocument/didClose")
-  def didClose(params: DidCloseTextDocumentParams): Unit = {}
-
+  def didClose(params: DidCloseTextDocumentParams): Unit = {
+    println("didClose")
+  }
 
   @JsonNotification("textDocument/didSave")
   def didSave(params: DidSaveTextDocumentParams): Unit = {
     println("didSave")
-    verifierState.getClient() match {
-      case Some(c) => c.showMessage(new MessageParams(MessageType.Info, "File got saved"))
-      case _ =>
-    }
   }
 
   @JsonRequest("gobraServer/verifyFile")
@@ -85,13 +89,15 @@ class GobraServerService extends LanguageClientAware {
 
   }
 
-
   @JsonNotification("gobraServer/changeFile")
   def changeFile(fileDataJson: String): Unit = {
+    println("changeFile")
     val fileData: FileData = gson.fromJson(fileDataJson, classOf[FileData])
     this.verifierState.resetDiagnostics()
 
-    this.verifierState.publishDiagnostics(fileData.fileUri)
+    fileData match {
+      case FileData(_, uri) => this.verifierState.publishDiagnostics(uri)
+    }
   }
 
 

@@ -11,7 +11,8 @@ export class FileData {
     }
 }
 
-export class Configuration {
+export class ClientConfig {
+    backend: string;
     debug: boolean;
     eraseGhost: boolean;
     unparse: boolean;
@@ -21,6 +22,7 @@ export class Configuration {
     logLevel: string;
 
     constructor(config: vscode.WorkspaceConfiguration) {
+        this.backend = config.get("backend");
         this.debug = config.get("debug");
         this.eraseGhost = config.get("eraseGhost");
         this.unparse = config.get("unparse");
@@ -33,16 +35,16 @@ export class Configuration {
 
 export class VerifierConfig {
     fileData: FileData;
-    config: Configuration;
+    clientConfig: ClientConfig;
 
     constructor() {
         this.fileData = new FileData();
-        this.config = new Configuration(Helper.getGobraConfiguration());
+        this.clientConfig = new ClientConfig(Helper.getGobraConfiguration());
     }
 
     private updateConfig(): void {
         let config = Helper.getGobraConfiguration();
-        this.config = new Configuration(config);
+        this.clientConfig = new ClientConfig(config);
     }
 }
 

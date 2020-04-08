@@ -92,16 +92,26 @@
           "scope": "window",
           "type": "string",
           "enum": [
-            "Off",
-            "All",
-            "Trace",
-            "Debug",
-            "Info",
-            "Warn",
-            "Error"
+            "OFF",
+            "ALL",
+            "TRACE",
+            "DEBUG",
+            "INFO",
+            "WARN",
+            "ERROR"
           ],
-          "default": "Off",
+          "default": "OFF",
           "description": "One of the log levels ALL, TRACE, DEBUG, INFO, WARN, ERROR, OFF."
+        },
+        "gobraSettings.backend": {
+          "scope": "window",
+          "type": "string",
+          "enum": [
+            "SILICON",
+            "CARBON"
+          ],
+          "default": "SILICON",
+          "description": "Specifies the used Viper backend, one of SILICON, CARBON."
         }
       }
     }
