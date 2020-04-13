@@ -10,13 +10,15 @@ import org.eclipse.lsp4j.{
     DiagnosticSeverity,
     PublishDiagnosticsParams
 }
+
+import scala.collection.mutable.ListBuffer
 import collection.JavaConverters._
 
 import org.eclipse.lsp4j.services.LanguageClient
 
 
-class VerifierState extends GobraFrontend {
-    private var diagnostics: List[Diagnostic] = Nil
+object VerifierState extends GobraFrontend {
+    private var diagnostics: ListBuffer[Diagnostic] = ListBuffer.empty[Diagnostic]
     private var client: Option[LanguageClient] = None
 
     def verify(verifierConfig: VerifierConfig): VerificationResult = {
@@ -54,7 +56,7 @@ class VerifierState extends GobraFrontend {
     def publishDiagnostics(fileUri: String): Unit = {
         this.client match {
             case Some(c) =>
-                val params = new PublishDiagnosticsParams(fileUri, this.diagnostics.asJava)
+                val params = new PublishDiagnosticsParams(fileUri, getDiagnostics())
                 c.publishDiagnostics(params)
             case _ =>
         }
@@ -66,11 +68,11 @@ class VerifierState extends GobraFrontend {
 
 
     def addDiagnostic(diagnostic: Diagnostic): Unit = {
-        this.diagnostics ::= diagnostic
+        this.diagnostics += diagnostic
     }
 
     def resetDiagnostics(): Unit = {
-        this.diagnostics = Nil
+        this.diagnostics = ListBuffer.empty[Diagnostic]
     }
 
     def setClient(client: LanguageClient): Unit = {

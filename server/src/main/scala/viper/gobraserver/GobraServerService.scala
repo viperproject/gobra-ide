@@ -24,7 +24,6 @@ import org.eclipse.lsp4j.services.{
 }
 
 class GobraServerService extends LanguageClientAware {
-  private val verifierState: VerifierState = new VerifierState()
   private val gson: Gson = new Gson()
 
 
@@ -85,7 +84,7 @@ class GobraServerService extends LanguageClientAware {
   def verifyFile(configJson: String): CompletableFuture[String] = {
     println("verifyFile")
     val config: VerifierConfig = gson.fromJson(configJson, classOf[VerifierConfig])
-    CompletableFuture.completedFuture(gson.toJson(this.verifierState.verify(config)))
+    CompletableFuture.completedFuture(gson.toJson(VerifierState.verify(config)))
 
   }
 
@@ -93,17 +92,17 @@ class GobraServerService extends LanguageClientAware {
   def changeFile(fileDataJson: String): Unit = {
     println("changeFile")
     val fileData: FileData = gson.fromJson(fileDataJson, classOf[FileData])
-    this.verifierState.resetDiagnostics()
+    VerifierState.resetDiagnostics()
 
     fileData match {
-      case FileData(_, uri) => this.verifierState.publishDiagnostics(uri)
+      case FileData(_, uri) => VerifierState.publishDiagnostics(uri)
     }
   }
 
 
   override def connect(client: LanguageClient): Unit = {
     println("client is connected")
-    this.verifierState.setClient(client)
+    VerifierState.setClient(client)
   }
 }
 
