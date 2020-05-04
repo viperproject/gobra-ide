@@ -8,7 +8,7 @@ import { VerifierConfig } from './MessagePayloads';
 let fileSystemWatcher: vscode.FileSystemWatcher;
 
 export function activate(context: vscode.ExtensionContext) {
-	// creating Gobra Server
+  // creating Gobra Server
 	fileSystemWatcher = vscode.workspace.createFileSystemWatcher("**/.gobra");
 	State.startLanguageServer(context, fileSystemWatcher);
 

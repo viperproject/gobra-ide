@@ -23,6 +23,8 @@ import org.eclipse.lsp4j.services.{
   LanguageClientAware
 }
 
+import viper.server.ViperConfig
+
 class GobraServerService extends LanguageClientAware {
   private val gson: Gson = new Gson()
 
@@ -33,6 +35,12 @@ class GobraServerService extends LanguageClientAware {
     val capabilities = new ServerCapabilities()
     // always send full text document for each notification:
     capabilities.setTextDocumentSync(TextDocumentSyncKind.Full)
+
+    // create and set vipercoreserver
+    var options: List[String] = List()
+    val viperConfig = new ViperConfig(options)
+    VerifierState.createViperServer(viperConfig)
+
     CompletableFuture.completedFuture(new InitializeResult(capabilities))
   }
 
@@ -50,6 +58,9 @@ class GobraServerService extends LanguageClientAware {
   @JsonNotification(value = "exit")
   def exit(): Unit = {
     println("exit")
+
+    VerifierState.deleteViperServer()
+
     sys.exit()
   }
 

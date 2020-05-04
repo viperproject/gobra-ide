@@ -11,10 +11,10 @@ ThisBuild / scalacOptions ++= Seq(
   "-Ypatmat-exhaust-depth", "40",     // Increase depth of pattern matching analysis
 )
 
-lazy val server = (project in file("gobra"))
+lazy val gobra = (project in file("gobra"))
 
 lazy val gobraServer = (project in file("."))
-  .dependsOn(server %"compile->compile;test->test")
+  .dependsOn(gobra %"compile->compile;test->test")
   .settings(
     name := "gobra-ide",
     description := "Server implementation for Gobra IDE",
@@ -23,6 +23,7 @@ lazy val gobraServer = (project in file("."))
 //    licenses := Seq("MPL-2.0 License" -> url("https://opensource.org/licenses/MPL-2.0")),
 
     libraryDependencies += "org.eclipse.lsp4j" % "org.eclipse.lsp4j" % "0.8.1", // Java implementation of language server protocol
+	libraryDependencies += "com.typesafe.akka" %% "akka-actor" % "2.5.22",
 
 	scalacOptions ++= Seq(
       "-Ypartial-unification",

@@ -52,6 +52,12 @@
       "type": "object",
       "title": "Gobra Configuration",
       "properties": {
+        "gobraSettings.serverMode": {
+          "scope": "window",
+          "type": "boolean",
+          "default": true,
+          "description": "Perform the verification with ViperServer as backend."
+        },
         "gobraSettings.debug": {
           "scope": "window",
           "type": "boolean",

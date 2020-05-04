@@ -4,56 +4,56 @@ import { VerifierConfig, VerificationResult, FileData } from "./MessagePayloads"
 
 
 export class Helper {
-    public static registerCommand(commandId: string, command: (...args: any[]) => any, context: vscode.ExtensionContext): void {
-        context.subscriptions.push(vscode.commands.registerCommand(commandId, command));
-    }
+  public static registerCommand(commandId: string, command: (...args: any[]) => any, context: vscode.ExtensionContext): void {
+    context.subscriptions.push(vscode.commands.registerCommand(commandId, command));
+  }
 
-    public static getFilePath(): string {
-        if (vscode.window.activeTextEditor && vscode.window.activeTextEditor.document) {
-            return vscode.window.activeTextEditor.document.fileName;
-        } else {
-            return "";
-        }
+  public static getFilePath(): string {
+    if (vscode.window.activeTextEditor && vscode.window.activeTextEditor.document) {
+      return vscode.window.activeTextEditor.document.fileName;
+    } else {
+      return "";
     }
+  }
 
-    public static getFileUri(): string {
-        return URI.file(Helper.getFilePath()).toString();
-    }
+  public static getFileUri(): string {
+    return URI.file(Helper.getFilePath()).toString();
+  }
 
-    public static configToJson(config: VerifierConfig): string {
-        return JSON.stringify(config);
-    }
+  public static configToJson(config: VerifierConfig): string {
+    return JSON.stringify(config);
+  }
 
-    public static fileDataToJson(fileData: FileData): string {
-        return JSON.stringify(fileData);
-    }
+  public static fileDataToJson(fileData: FileData): string {
+    return JSON.stringify(fileData);
+  }
 
-    public static jsonToResult(json: string): VerificationResult {
-        return JSON.parse(json);
-    }
+  public static jsonToResult(json: string): VerificationResult {
+    return JSON.parse(json);
+  }
 
-    public static getGobraConfiguration(): vscode.WorkspaceConfiguration {
-        return vscode.workspace.getConfiguration("gobraSettings");
-    }
+  public static getGobraConfiguration(): vscode.WorkspaceConfiguration {
+    return vscode.workspace.getConfiguration("gobraSettings");
+  }
 }
 
 // Defines the commands used for requests
 export class Commands {
-    public static verifyFile = "gobraServer/verifyFile";
-    public static changeFile = "gobraServer/changeFile";
+  public static verifyFile = "gobraServer/verifyFile";
+  public static changeFile = "gobraServer/changeFile";
 }
 
 // Defines the texts in statusbars ...
 export class Texts {
-    public static helloGobra = "Hello from Gobra";
-    public static verificationSuccess = "Verification succeeded!";
-    public static verificationFailure = "Verification failed with: ";
+  public static helloGobra = "Hello from Gobra";
+  public static verificationSuccess = "Verification succeeded!";
+  public static verificationFailure = "Verification failed with: ";
 }
 
 export class Color {
-    public static green = "lightgreen";
-    public static white = "white";
-    public static red = "red";
+  public static green = "lightgreen";
+  public static white = "white";
+  public static red = "red";
 }
 
 
