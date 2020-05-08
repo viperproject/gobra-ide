@@ -27,8 +27,15 @@ export class StatusBar{
   }
 
   public addHourGlass() {
-    this.item.text = "\u231B " + this.item.text;
+    this.item.text = "\u231B" + this.item.text;
     this.updateItem();
+  }
+
+  public removeHourGlass() {
+    if (this.item.text.charAt(0) == '\u231B') {
+      this.item.text = this.item.text.substring(1);
+      this.updateItem();
+    }
   }
 
   public updateItem() {

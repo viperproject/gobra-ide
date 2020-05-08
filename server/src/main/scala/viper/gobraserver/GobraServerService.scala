@@ -18,15 +18,14 @@ import org.eclipse.lsp4j.{
   ServerCapabilities,
   TextDocumentSyncKind
 }
-import org.eclipse.lsp4j.services.{
-  LanguageClient,
-  LanguageClientAware
-}
 
-import viper.server.ViperConfig
+import scala.util.{ Success, Failure }
+import scala.concurrent.ExecutionContext
 
-class GobraServerService extends LanguageClientAware {
+class GobraServerService extends IdeLanguageClientAware {
   private val gson: Gson = new Gson()
+
+  implicit val executionContext = ExecutionContext.global
 
 
   @JsonRequest(value = "initialize")
@@ -36,10 +35,9 @@ class GobraServerService extends LanguageClientAware {
     // always send full text document for each notification:
     capabilities.setTextDocumentSync(TextDocumentSyncKind.Full)
 
-    // create and set vipercoreserver
     var options: List[String] = List()
-    val viperConfig = new ViperConfig(options)
-    VerifierState.createViperServer(viperConfig)
+    GobraServer.init(options)
+    GobraServer.start()
 
     CompletableFuture.completedFuture(new InitializeResult(capabilities))
   }
@@ -47,6 +45,9 @@ class GobraServerService extends LanguageClientAware {
   @JsonRequest(value = "shutdown")
   def shutdown(): CompletableFuture[AnyRef] = {
     println("shutdown")
+
+    GobraServer.stop()
+
     CompletableFuture.completedFuture(null)
   }
 
@@ -59,15 +60,12 @@ class GobraServerService extends LanguageClientAware {
   def exit(): Unit = {
     println("exit")
 
-    VerifierState.deleteViperServer()
+    GobraServer.delete()
 
     sys.exit()
   }
 
-   /*
-   * Every time a setting is changed in the client, a setTraceNotification message
-   * is sent. At the moment this is not used for anything.
-   */
+  // This is received when a setting is changed.
   @JsonNotification("$/setTraceNotification")
   def setTraceNotification(params: Any): Unit = {
     println("Trace Notification arrived")
@@ -76,14 +74,20 @@ class GobraServerService extends LanguageClientAware {
   @JsonNotification("textDocument/didOpen")
   def didOpen(params: DidOpenTextDocumentParams): Unit = {
     println("didOpen")
+
+    VerifierState.openFileUri = params.getTextDocument().getUri()  
   }
   
   @JsonNotification("textDocument/didChange")
-  def didChange(params: DidChangeTextDocumentParams): Unit = {}
+  def didChange(params: DidChangeTextDocumentParams): Unit = {
+    println("DidChange")
+  }
 
   @JsonNotification("textDocument/didClose")
   def didClose(params: DidCloseTextDocumentParams): Unit = {
     println("didClose")
+
+    VerifierState.resetDiagnostics(params.getTextDocument().getUri())
   }
 
   @JsonNotification("textDocument/didSave")
@@ -91,27 +95,27 @@ class GobraServerService extends LanguageClientAware {
     println("didSave")
   }
 
-  @JsonRequest("gobraServer/verifyFile")
-  def verifyFile(configJson: String): CompletableFuture[String] = {
+  @JsonNotification("gobraServer/verifyFile")
+  def verifyFile(configJson: String): Unit = {
     println("verifyFile")
     val config: VerifierConfig = gson.fromJson(configJson, classOf[VerifierConfig])
-    CompletableFuture.completedFuture(gson.toJson(VerifierState.verify(config)))
 
+    GobraServer.verify(config)
   }
+
 
   @JsonNotification("gobraServer/changeFile")
   def changeFile(fileDataJson: String): Unit = {
     println("changeFile")
     val fileData: FileData = gson.fromJson(fileDataJson, classOf[FileData])
-    VerifierState.resetDiagnostics()
 
-    fileData match {
-      case FileData(_, uri) => VerifierState.publishDiagnostics(uri)
-    }
+    VerifierState.openFileUri = fileData.fileUri
+
+    VerifierState.publishDiagnostics(VerifierState.openFileUri)
+    VerifierState.sendOverallResult(VerifierState.openFileUri)
   }
 
-
-  override def connect(client: LanguageClient): Unit = {
+  override def connect(client: IdeLanguageClient): Unit = {
     println("client is connected")
     VerifierState.setClient(client)
   }

@@ -50,13 +50,13 @@ export class VerifierConfig {
   }
 }
 
-export class VerificationResult {
+export class OverallVerificationResult {
   success: boolean;
-  error: string;
+  message: string;
 
-  constructor(success: boolean, error: string) {
+  constructor(success: boolean, message: string) {
     this.success = success;
-    this.error = error;
+    this.message = message;
   }
     
 }

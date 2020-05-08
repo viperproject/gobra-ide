@@ -36,7 +36,7 @@ object Server {
       println(s"going to listen on port $port")
 
       val server: GobraServerService = new GobraServerService()
-      val launcher = Launcher.createLauncher(server, classOf[LanguageClient], socket.getInputStream, socket.getOutputStream)
+      val launcher = Launcher.createLauncher(server, classOf[IdeLanguageClient], socket.getInputStream, socket.getOutputStream)
       server.connect(launcher.getRemoteProxy)
       // start listening on input stream in a new thread:
       val future = launcher.startListening()
@@ -46,4 +46,6 @@ object Server {
       case e: IOException => println(s"IOException occurred: ${e.toString}")
     }
   }
+
+
 }

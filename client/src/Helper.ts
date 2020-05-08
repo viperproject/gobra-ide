@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { URI } from 'vscode-uri';
-import { VerifierConfig, VerificationResult, FileData } from "./MessagePayloads";
+import { VerifierConfig, OverallVerificationResult, FileData } from "./MessagePayloads";
 
 
 export class Helper {
@@ -28,12 +28,16 @@ export class Helper {
     return JSON.stringify(fileData);
   }
 
-  public static jsonToResult(json: string): VerificationResult {
+  public static jsonToOverallResult(json: string): OverallVerificationResult {
     return JSON.parse(json);
   }
 
   public static getGobraConfiguration(): vscode.WorkspaceConfiguration {
     return vscode.workspace.getConfiguration("gobraSettings");
+  }
+
+  public static isServerMode(): boolean {
+    return vscode.workspace.getConfiguration("gobraSettings").get("serverMode");
   }
 }
 
@@ -41,13 +45,14 @@ export class Helper {
 export class Commands {
   public static verifyFile = "gobraServer/verifyFile";
   public static changeFile = "gobraServer/changeFile";
+  public static overallResultNotification = "gobraServer/overallResultNotification";
+  public static noVerificationResult = "gobraServer/noVerificationResult";
+  public static finishedVerification = "gobraServer/finishedVerification";
 }
 
 // Defines the texts in statusbars ...
 export class Texts {
   public static helloGobra = "Hello from Gobra";
-  public static verificationSuccess = "Verification succeeded!";
-  public static verificationFailure = "Verification failed with: ";
 }
 
 export class Color {

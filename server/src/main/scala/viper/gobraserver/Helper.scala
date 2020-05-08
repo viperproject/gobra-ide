@@ -3,7 +3,7 @@ package viper.gobraserver
 import viper.gobra.frontend.Config
 import viper.gobra.backend.ViperBackends
 import viper.server.ViperBackendConfigs
-import viper.gobra.reporting.FileWriterReporter
+import viper.gobra.reporting.{ FileWriterReporter, VerifierResult, NoopReporter }
 
 import java.io.File
 
@@ -82,5 +82,28 @@ object Helper {
         )
       }
     }
+  }
+
+
+  def getOverallVerificationResult(result: VerifierResult, elapsedTime: Long): OverallVerificationResult = {
+    result match {
+      case VerifierResult.Success =>
+        OverallVerificationResult(
+          success = true,
+          message = "Verification succeeded in " + (elapsedTime/1000) + "." + (elapsedTime%1000)/10 + "s"
+        )
+      case VerifierResult.Failure(errors) =>
+        OverallVerificationResult(
+          success = false,
+          message = "Verification failed in " + (elapsedTime / 1000) + "." + (elapsedTime%1000)/10 + "s with: " + errors.head.id
+        )
+    }
+  }
+
+  def getOverallVerificationResult(e: Throwable): OverallVerificationResult = {
+    OverallVerificationResult(
+      success = false,
+      message = "An error occured during verification: " + e
+    )
   }
 }

@@ -12,15 +12,11 @@ export class State {
   public static client: LanguageClient;
   public static context: vscode.ExtensionContext;
   public static disposableServer: vscode.Disposable;
-  public static verificationRunning: boolean;
+  public static runningVerificationUri: string;
+
+  public static runningVerifications: Set<string>;
 
   public static verifierConfig: VerifierConfig;
-
-
-
-  public static toggleVerificationRunning(): void {
-    this.verificationRunning = !this.verificationRunning;
-  }
 
   public static updateFileData(): void {
     this.verifierConfig.fileData = new FileData();
@@ -35,7 +31,9 @@ export class State {
   // creates the language client and starts the server
   public static startLanguageServer(context: vscode.ExtensionContext, fileSystemWatcher: vscode.FileSystemWatcher): Promise<any> {
     this.context = context;
-    this.verificationRunning = false;
+    this.runningVerificationUri = null;
+
+    this.runningVerifications = new Set<string>();
 
     let serverBin = State.context.asAbsolutePath(path.join('../', 'server', 'target', 'scala-2.12', 'server.jar'));
 

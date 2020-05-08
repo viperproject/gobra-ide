@@ -22,7 +22,7 @@ case class VerifierConfig (
   clientConfig: ClientConfig
 )
 
-case class VerificationResult(
+case class OverallVerificationResult(
   var success: Boolean,
-  var error: String
+  var message: String
 )

@@ -1,7 +1,6 @@
 package viper.gobraserver
 
-import viper.gobra.GobraFrontend
-import viper.gobra.reporting.VerifierResult
+import com.google.gson.Gson
 
 import org.eclipse.lsp4j.{
     Diagnostic,
@@ -11,107 +10,78 @@ import org.eclipse.lsp4j.{
     PublishDiagnosticsParams
 }
 
+import scala.collection.mutable.Map
 import scala.collection.mutable.ListBuffer
 import collection.JavaConverters._
 
-import org.eclipse.lsp4j.services.LanguageClient
-
-import scala.concurrent.ExecutionContextExecutor
-import akka.actor.ActorSystem
-
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
-import scala.concurrent.ExecutionContextExecutor
-import akka.actor.ActorSystem
-
-import viper.server.{ ViperCoreServer, ViperConfig }
-import viper.gobra.backend.ViperBackends
 
 
-object VerifierState extends GobraFrontend {
-  private var diagnostics: ListBuffer[Diagnostic] = ListBuffer.empty[Diagnostic]
-  private var client: Option[LanguageClient] = None
+object VerifierState {
+  private val gson: Gson = new Gson()
 
-  implicit val system: ActorSystem = ActorSystem("Main")
-  implicit val executionContext: ExecutionContextExecutor = system.dispatcher
+  var openFileUri: String = _
 
-  private var server: ViperCoreServer = _
-  def createViperServer(config: ViperConfig) {
-    server = new ViperCoreServer(config)
-    server.start()
+  private var _client: Option[IdeLanguageClient] = None
+  def client: Option[IdeLanguageClient] = _client
 
-    ViperBackends.ViperServerBackend.setServer(server)
+  def setClient(client: IdeLanguageClient): Unit = {
+    _client = Some(client)
   }
+  
 
-  def deleteViperServer() {
-    ViperBackends.ViperServerBackend.resetServer()
-    server.stop()
-    server = null
-  }
+  // Diagnostics mapping from file uri to a list of diagnostics and overall verification results
+  private val _diagnostics = Map[String, (List[Diagnostic], OverallVerificationResult)]()
 
-  def verify(verifierConfig: VerifierConfig): VerificationResult = {
-    val config = Helper.configFromTask(verifierConfig)
-    val verifier = createVerifier(config)
-    val resultFuture = verifier.verify(config)
-
-    // the await is just for testing. Change to onComplete afterwards if possible
-    val result = Await.result(resultFuture, Duration.Inf)
-
-    result match {
-      case VerifierResult.Success => {
-        this.resetDiagnostics()
-      }
-      case VerifierResult.Failure(errors) => {
-        this.resetDiagnostics()
-        for (error <- errors) {
-          //fill diagnostic list from errors
-          val startPos = new Position(error.position.start.line-1, error.position.start.column-1) /* why is off by 1? */
-          val endPos = error.position.end match {
-            case Some(pos) => new Position(pos.line-1, pos.column-1)
-            case None      => startPos
-          }
-          val diagnostic = new Diagnostic(new Range(startPos, endPos), error.message, DiagnosticSeverity.Error, "")
-
-          this.addDiagnostic(diagnostic)
-        }
-      }
-    }
-    this.publishDiagnostics(verifierConfig.fileData.fileUri)
-
-    result match {
-      case VerifierResult.Success => new VerificationResult(true, "")
-      case VerifierResult.Failure(errors) => new VerificationResult(false, errors.head.id)
+  def getDiagnostics(fileUri: String): List[Diagnostic] = {
+    _diagnostics.get(fileUri) match {
+      case Some((diagnostics, _)) => diagnostics
+      case None => Nil
     }
   }
 
-  def publishDiagnostics(fileUri: String): Unit = {
-    this.client match {
+  def getOverallResult(fileUri: String): Option[OverallVerificationResult] = {
+    _diagnostics.get(fileUri) match {
+      case Some((_, overallResult)) => Some(overallResult)
+      case None => None
+    }
+  }
+
+  def resetDiagnostics(fileUri: String) {
+    _diagnostics.get(fileUri) match {
+      case Some(_) => _diagnostics.remove(fileUri)
+      case None =>
+    }
+  }
+
+  def addDiagnostics(fileUri: String, diagnostics: List[Diagnostic], overallResult: OverallVerificationResult) {
+    _diagnostics += (fileUri -> (diagnostics, overallResult))
+  }
+
+  def publishDiagnostics(fileUri: String) {
+    client match {
       case Some(c) =>
-        val params = new PublishDiagnosticsParams(fileUri, getDiagnostics())
+        val params = new PublishDiagnosticsParams(fileUri, getDiagnostics(fileUri).asJava)
         c.publishDiagnostics(params)
-      case _ =>
+      case None =>
     }
   }
 
-  def getDiagnostics(): java.util.List[Diagnostic] = {
-    this.diagnostics.asJava
+  def sendOverallResult(fileUri: String) {
+    client match {
+      case Some(c) =>
+        getOverallResult(fileUri) match {
+          case Some(overallResult) => c.overallResultNotification(gson.toJson(overallResult))
+          case None => c.noVerificationResult()
+        }
+    }
   }
 
-
-  def addDiagnostic(diagnostic: Diagnostic): Unit = {
-    this.diagnostics += diagnostic
+  def sendFinishedVerification(fileUri: String) {
+    client match {
+      case Some(c) => c.finishedVerification(fileUri)
+      case None =>
+    }
   }
-
-  def resetDiagnostics(): Unit = {
-    this.diagnostics = ListBuffer.empty[Diagnostic]
-  }
-
-  def setClient(client: LanguageClient): Unit = {
-    this.client = Some(client)
-  }
-
-  def getClient(): Option[LanguageClient] = {
-    this.client
-  }
-
 }

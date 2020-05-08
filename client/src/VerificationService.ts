@@ -2,7 +2,7 @@ import { State } from "./ExtensionState";
 import { Helper, Commands, Texts, Color } from "./Helper";
 import { StatusBar } from "./StatusBar";
 import * as vscode from 'vscode';
-import { VerifierConfig, VerificationResult, FileData } from "./MessagePayloads";
+import { VerifierConfig, OverallVerificationResult, FileData } from "./MessagePayloads";
 
 
 export class Verifier {
@@ -19,47 +19,72 @@ export class Verifier {
     // register file changed listener
     State.context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(Verifier.changeFile));
 
+    // register the handler for the overall verification result notification
+    State.client.onNotification(Commands.overallResultNotification, Verifier.handleOverallResultNotification)
+    // register the handler for the no verification result notification
+    State.client.onNotification(Commands.noVerificationResult, Verifier.handleNoResultNotification);
+    // register the handler for the finished verification notification
+    State.client.onNotification(Commands.finishedVerification, Verifier.handleFinishedVerificationNotification);
   }
 
   // verifies the file which is currently open in the editor
   public static verifyFile(): void {
-    if (!State.verificationRunning && 
-        vscode.window.activeTextEditor && 
-        vscode.window.activeTextEditor.document) {
-          State.toggleVerificationRunning();
-          State.updateConfiguration();
-          Verifier.verifyItem.addHourGlass();
+    if (vscode.window.activeTextEditor && vscode.window.activeTextEditor.document) {
+      let fileUri = Helper.getFileUri();
 
-//            console.log(Helper.configToJson(State.verifierConfig));
+      if ((!Helper.isServerMode() && State.runningVerifications.size == 0) ||
+         (Helper.isServerMode() && !State.runningVerifications.has(fileUri))) {
+      
+        State.runningVerifications.add(fileUri);
 
-          vscode.window.activeTextEditor.document.save().then((saved: boolean) => {
-            console.log("sending verification request");
-            State.client.sendRequest(Commands.verifyFile, Helper.configToJson(State.verifierConfig)).then((jsonRes: string) => {
-              Verifier.handleResult(jsonRes);
-            });
-          });
-            
-        }
+        State.updateConfiguration();
+        Verifier.verifyItem.addHourGlass();
+
+        vscode.window.activeTextEditor.document.save().then((saved: boolean) => {
+          console.log("sending verification request");
+          State.client.sendNotification(Commands.verifyFile, Helper.configToJson(State.verifierConfig))
+        });
+      }
+    }
   }
 
-  private static handleResult(jsonRes: string): void {
-    let res: VerificationResult = Helper.jsonToResult(jsonRes);
-    if (res.success) {
-      Verifier.verifyItem.setProperties(Texts.verificationSuccess, Color.green);
+
+  private static handleOverallResultNotification(jsonOverallResult: string): void {
+    let overallResult: OverallVerificationResult = Helper.jsonToOverallResult(jsonOverallResult);
+    if (overallResult.success) {
+      Verifier.verifyItem.setProperties(overallResult.message, Color.green);
     } else {
-      Verifier.verifyItem.setProperties(Texts.verificationFailure + res.error, Color.red);
+      Verifier.verifyItem.setProperties(overallResult.message, Color.red);
     }
 
-
-    State.toggleVerificationRunning();
+    let fileUri = Helper.getFileUri();
+    if (State.runningVerifications.has(fileUri)) {
+      Verifier.verifyItem.addHourGlass();
+    }
   }
 
+  private static handleNoResultNotification(): void {
+    Verifier.verifyItem.setProperties(Texts.helloGobra, Color.white);
+
+    let fileUri = Helper.getFileUri();
+    if (State.runningVerifications.has(fileUri)) {
+      Verifier.verifyItem.addHourGlass();
+    }
+  }
+
+  private static handleFinishedVerificationNotification(fileUri: string): void {
+    State.runningVerifications.delete(fileUri);
+
+    if (Helper.getFileUri() == fileUri) {
+      Verifier.verifyItem.removeHourGlass();
+    }
+  }
+
+
   public static changeFile(): void {
-    State.client.sendNotification(Commands.changeFile, Helper.fileDataToJson(State.verifierConfig.fileData));
     // setting filedata to currently open filedata
     State.updateFileData();
-    // reset status bar item
-    Verifier.verifyItem.setProperties(Texts.helloGobra, Color.white);
+    State.client.sendNotification(Commands.changeFile, Helper.fileDataToJson(State.verifierConfig.fileData));
   }
 
 
