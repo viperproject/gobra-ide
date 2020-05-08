@@ -35,7 +35,7 @@ object GobraServer extends GobraFrontend {
     _server.start()
   }
 
-  def verify(verifierConfig: VerifierConfig) {
+  def verify(verifierConfig: VerifierConfig): Future[VerifierResult] = {
     val fileUri = verifierConfig.fileData.fileUri
     val filePath = verifierConfig.fileData.filePath
     val startTime = System.currentTimeMillis()
@@ -81,6 +81,8 @@ object GobraServer extends GobraFrontend {
           case None =>
         }
     }
+
+    resultFuture
   }
 
   def stop() {

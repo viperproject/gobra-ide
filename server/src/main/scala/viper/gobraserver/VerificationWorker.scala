@@ -1,0 +1,28 @@
+package viper.gobraserver
+
+import scala.collection.mutable.Queue
+import scala.concurrent.{ Future, ExecutionContext }
+
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
+
+class VerificationWorker extends Runnable {
+  implicit val exectuionContext = ExecutionContext.global
+
+  private var verificationJob: VerifierConfig = null
+
+  def run() {
+    while(true) {
+      VerifierState.jobQueue.synchronized {
+        if (VerifierState.jobQueue.isEmpty) {
+          VerifierState.jobQueue.wait()
+        }
+        verificationJob = VerifierState.jobQueue.dequeue()
+      }
+
+      val resultFuture = GobraServer.verify(verificationJob)
+      Await.result(resultFuture, Duration.Inf)
+
+    }
+  }
+}

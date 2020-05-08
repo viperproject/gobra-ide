@@ -14,8 +14,6 @@ export class State {
   public static disposableServer: vscode.Disposable;
   public static runningVerificationUri: string;
 
-  public static MAX_VERIFICATION_JOBS = 3;
-
   public static runningVerifications: Set<string>;
 
   public static verifierConfig: VerifierConfig;

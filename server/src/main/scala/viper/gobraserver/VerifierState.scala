@@ -12,16 +12,19 @@ import org.eclipse.lsp4j.{
 
 import scala.collection.mutable.Map
 import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.Queue
 import collection.JavaConverters._
 
-import scala.concurrent.Await
-import scala.concurrent.duration.Duration
+
 
 
 object VerifierState {
   private val gson: Gson = new Gson()
 
   var openFileUri: String = _
+
+  private val _jobQueue = Queue[VerifierConfig]()
+  def jobQueue: Queue[VerifierConfig] = _jobQueue
 
   private var _client: Option[IdeLanguageClient] = None
   def client: Option[IdeLanguageClient] = _client

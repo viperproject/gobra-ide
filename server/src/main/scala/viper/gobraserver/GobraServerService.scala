@@ -25,6 +25,9 @@ import scala.concurrent.ExecutionContext
 class GobraServerService extends IdeLanguageClientAware {
   private val gson: Gson = new Gson()
 
+  // thread being responsible for dequeuing jobs and starting the verification.
+  private var verificationWorker: Thread = _
+
   implicit val executionContext = ExecutionContext.global
 
 
@@ -39,12 +42,19 @@ class GobraServerService extends IdeLanguageClientAware {
     GobraServer.init(options)
     GobraServer.start()
 
+    verificationWorker = new Thread(new VerificationWorker())
+    verificationWorker.start()
+
     CompletableFuture.completedFuture(new InitializeResult(capabilities))
   }
 
   @JsonRequest(value = "shutdown")
   def shutdown(): CompletableFuture[AnyRef] = {
     println("shutdown")
+
+    verificationWorker.interrupt()
+    verificationWorker.join()
+    verificationWorker = null
 
     GobraServer.stop()
 
@@ -81,6 +91,7 @@ class GobraServerService extends IdeLanguageClientAware {
   @JsonNotification("textDocument/didChange")
   def didChange(params: DidChangeTextDocumentParams): Unit = {
     println("DidChange")
+    println(params.getContentChanges())
   }
 
   @JsonNotification("textDocument/didClose")
@@ -93,6 +104,7 @@ class GobraServerService extends IdeLanguageClientAware {
   @JsonNotification("textDocument/didSave")
   def didSave(params: DidSaveTextDocumentParams): Unit = {
     println("didSave")
+
   }
 
   @JsonNotification("gobraServer/verifyFile")
@@ -100,7 +112,12 @@ class GobraServerService extends IdeLanguageClientAware {
     println("verifyFile")
     val config: VerifierConfig = gson.fromJson(configJson, classOf[VerifierConfig])
 
-    GobraServer.verify(config)
+    VerifierState.jobQueue.synchronized {
+      VerifierState.jobQueue.enqueue(config)
+      VerifierState.jobQueue.notify()
+    }
+
+    //GobraServer.verify(config)
   }
 
 

@@ -34,11 +34,6 @@ export class Verifier {
     if (vscode.window.activeTextEditor && vscode.window.activeTextEditor.document) {
       let fileUri = Helper.getFileUri();
 
-      if (Helper.isServerMode() && State.runningVerifications.size > State.MAX_VERIFICATION_JOBS) {
-        vscode.window.showInformationMessage("Maximum number of active verification jobs is reached (" + State.MAX_VERIFICATION_JOBS + ")");
-        return
-      }
-
       if ((!Helper.isServerMode() && State.runningVerifications.size == 0) ||
          (Helper.isServerMode() && !State.runningVerifications.has(fileUri))) {
       
