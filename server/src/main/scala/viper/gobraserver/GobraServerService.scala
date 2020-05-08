@@ -54,7 +54,6 @@ class GobraServerService extends IdeLanguageClientAware {
 
     verificationWorker.interrupt()
     verificationWorker.join()
-    verificationWorker = null
 
     GobraServer.stop()
 

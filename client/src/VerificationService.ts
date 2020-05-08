@@ -34,8 +34,7 @@ export class Verifier {
     if (vscode.window.activeTextEditor && vscode.window.activeTextEditor.document) {
       let fileUri = Helper.getFileUri();
 
-      if ((!Helper.isServerMode() && State.runningVerifications.size == 0) ||
-         (Helper.isServerMode() && !State.runningVerifications.has(fileUri))) {
+      if (!State.runningVerifications.has(fileUri)) {
       
         State.runningVerifications.add(fileUri);
 
