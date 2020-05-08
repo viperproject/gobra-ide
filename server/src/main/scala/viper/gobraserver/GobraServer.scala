@@ -10,7 +10,7 @@ import scala.concurrent.ExecutionContext
 import viper.server.{ ViperCoreServer, ViperConfig }
 import viper.gobra.backend.ViperBackends
 
-import org.eclipse.lsp4j.{ Diagnostic, Position, Range, DiagnosticSeverity, PublishDiagnosticsParams }
+import org.eclipse.lsp4j.{ Diagnostic, Position, Range, DiagnosticSeverity, PublishDiagnosticsParams, MessageParams, MessageType }
 
 import scala.concurrent.Future
 import scala.util.{ Success, Failure }
@@ -37,6 +37,7 @@ object GobraServer extends GobraFrontend {
 
   def verify(verifierConfig: VerifierConfig) {
     val fileUri = verifierConfig.fileData.fileUri
+    val filePath = verifierConfig.fileData.filePath
     val startTime = System.currentTimeMillis()
 
     val config = Helper.configFromTask(verifierConfig)
@@ -71,7 +72,14 @@ object GobraServer extends GobraFrontend {
         }
         VerifierState.sendFinishedVerification(fileUri)
 
-      case Failure(_) =>
+      case Failure(e) =>
+        println("Exception occured: " + e)
+        VerifierState.client match {
+          case Some(c) =>
+            c.showMessage(new MessageParams(MessageType.Error, "An exception occured during verification of " + filePath))
+            c.verificationException(fileUri)
+          case None =>
+        }
     }
   }
 

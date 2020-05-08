@@ -25,6 +25,8 @@ export class Verifier {
     State.client.onNotification(Commands.noVerificationResult, Verifier.handleNoResultNotification);
     // register the handler for the finished verification notification
     State.client.onNotification(Commands.finishedVerification, Verifier.handleFinishedVerificationNotification);
+    // register the handler for the verification exception notification
+    State.client.onNotification(Commands.verificationException, Verifier.handleFinishedVerificationNotification);
   }
 
   // verifies the file which is currently open in the editor

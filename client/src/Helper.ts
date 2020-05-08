@@ -48,6 +48,7 @@ export class Commands {
   public static overallResultNotification = "gobraServer/overallResultNotification";
   public static noVerificationResult = "gobraServer/noVerificationResult";
   public static finishedVerification = "gobraServer/finishedVerification";
+  public static verificationException = "gobraServer/verificationException";
 }
 
 // Defines the texts in statusbars ...

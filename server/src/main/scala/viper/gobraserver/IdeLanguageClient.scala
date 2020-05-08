@@ -13,4 +13,7 @@ trait IdeLanguageClient extends LanguageClient {
 
   @JsonNotification("gobraServer/noVerificationResult")
   def noVerificationResult(): Unit
+
+  @JsonNotification("gobraServer/verificationException")
+  def verificationException(fileUri: String): Unit
 }
