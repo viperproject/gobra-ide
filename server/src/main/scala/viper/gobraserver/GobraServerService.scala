@@ -89,8 +89,8 @@ class GobraServerService extends IdeLanguageClientAware {
   
   @JsonNotification("textDocument/didChange")
   def didChange(params: DidChangeTextDocumentParams): Unit = {
-    println("DidChange")
-    println(params.getContentChanges())
+    //println("DidChange")
+    //println(params.getContentChanges())
   }
 
   @JsonNotification("textDocument/didClose")
@@ -130,6 +130,16 @@ class GobraServerService extends IdeLanguageClientAware {
     VerifierState.publishDiagnostics(VerifierState.openFileUri)
     VerifierState.sendOverallResult(VerifierState.openFileUri)
   }
+
+
+  @JsonNotification("gobraServer/fileChanges")
+  def fileChanges(fileChangesJson: String): Unit = {
+    println("fileChanges")
+    val fileChanges: FileChanges = gson.fromJson(fileChangesJson, classOf[FileChanges])
+    VerifierState.updateDiagnostics(fileChanges)
+  }
+
+
 
   override def connect(client: IdeLanguageClient): Unit = {
     println("client is connected")

@@ -1,5 +1,7 @@
 package viper.gobraserver
 
+import org.eclipse.lsp4j.Position
+
 case class FileData (
   filePath: String,
   fileUri: String
@@ -23,6 +25,17 @@ case class VerifierConfig (
 )
 
 case class OverallVerificationResult(
-  var success: Boolean,
-  var message: String
+  success: Boolean,
+  message: String
+)
+
+case class ChangeRange (
+  startPos: Position,
+  endPos: Position,
+  text: String
+)
+
+case class FileChanges (
+  fileUri: String,
+  ranges: Array[ChangeRange]
 )
