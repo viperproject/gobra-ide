@@ -137,6 +137,7 @@ class GobraServerService extends IdeLanguageClientAware {
     println("fileChanges")
     val fileChanges: FileChanges = gson.fromJson(fileChangesJson, classOf[FileChanges])
     VerifierState.updateDiagnostics(fileChanges)
+    VerifierState.addFileChanges(fileChanges)
   }
 
 

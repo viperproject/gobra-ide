@@ -13,7 +13,7 @@ object Helper {
   def configFromTask(verifierConfig: VerifierConfig): Config = {
     verifierConfig match {
       case VerifierConfig(
-        FileData(path, _),
+        FileData(path, fileUri),
         ClientConfig(backendId, serverMode, debug, eraseGhost, unparse, printInternal, printViper, parseOnly, logLevel)
       ) => {
 
@@ -32,14 +32,16 @@ object Helper {
         )
 
         val backend =
-          if (serverMode)
+          if (serverMode) {
             ViperBackends.ViperServerBackend
-          else
+          } else {
+            VerifierState.resetFileChanges(fileUri)
             backendId match {
               case "SILICON" => ViperBackends.SiliconBackend
               case "CARBON" => ViperBackends.CarbonBackend
               case _ => ViperBackends.SiliconBackend
             }
+          }
 
         val backendConfig = 
           if (serverMode)

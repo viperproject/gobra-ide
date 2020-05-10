@@ -3,6 +3,7 @@ package viper.gobraserver
 import viper.gobra.Gobra
 import viper.gobra.GobraFrontend
 import viper.gobra.reporting.VerifierResult
+import viper.gobra.reporting.VerifierError
 
 import java.io.File
 
@@ -43,27 +44,34 @@ object GobraServer extends GobraFrontend {
     val config = Helper.configFromTask(verifierConfig)
     val resultFuture = verifier.verify(config)
 
+    //VerifierState.resetFileChanges(fileUri)
+
     resultFuture.onComplete {
       case Success(result) =>
         val endTime = System.currentTimeMillis()
+        val previousDiagnostics = VerifierState.getDiagnostics(fileUri)
+
         val diagnostics = result match {
-          case VerifierResult.Success => List()
+          case VerifierResult.Success => {
+            VerifierState.resetDiagnostics(fileUri)
+            List()
+          }
           case VerifierResult.Failure(errors) =>
-            errors.map({error =>
-              val startPos = new Position(error.position.start.line-1, error.position.start.column-1)
-              val endPos = error.position.end match {
-                case Some(pos) => new Position(pos.line-1, pos.column-1)
-                case None =>
-                  startPos
-              }
-              new Diagnostic(new Range(startPos, endPos), error.message, DiagnosticSeverity.Error, "")
-            }).toList
+            val fileChanges = VerifierState.getFileChanges(fileUri)
 
+            val diagnostics = errors.map(error => errorToDiagnostic(error)).toList
 
+            val newDiagnostics = diagnostics.filterNot(previousDiagnostics.toSet)
+            val oldDiagnostics = diagnostics.filterNot(newDiagnostics.toSet)
+
+            if (oldDiagnostics.isEmpty) VerifierState.resetDiagnostics(fileUri)
+            
+            oldDiagnostics ++ VerifierState.translateDiagnostics(fileChanges, newDiagnostics)
         }
         val overallResult = Helper.getOverallVerificationResult(result, endTime - startTime)
 
         VerifierState.addDiagnostics(fileUri, diagnostics, overallResult)
+
 
         // only send diagnostics after verification if same file is still open.
         if (fileUri == VerifierState.openFileUri) {
@@ -83,6 +91,15 @@ object GobraServer extends GobraFrontend {
     }
 
     resultFuture
+  }
+
+  def errorToDiagnostic(error: VerifierError): Diagnostic = {
+    val startPos = new Position(error.position.start.line-1, error.position.start.column-1)
+    val endPos = error.position.end match {
+      case Some(pos) => new Position(pos.line-1, pos.column-1)
+      case None => startPos
+    }
+    new Diagnostic(new Range(startPos, endPos), error.message, DiagnosticSeverity.Error, "")
   }
 
   def stop() {
