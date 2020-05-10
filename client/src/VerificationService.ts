@@ -101,7 +101,7 @@ export class Verifier {
 
     let fileChanges = new FileChanges(fileUri, ranges);
     State.client.sendNotification(Commands.fileChanges, Helper.fileChangesToJson(fileChanges));
-    console.log(Helper.fileChangesToJson(fileChanges));
+    //console.log(Helper.fileChangesToJson(fileChanges));
   }
 
 }
