@@ -59,15 +59,15 @@ object GobraServer extends GobraFrontend {
           case VerifierResult.Failure(errors) =>
             val fileChanges = VerifierState.getFileChanges(fileUri)
 
-            val diagnostics = errors.map(error => errorToDiagnostic(error)).toList
+            val cachedErrors = errors.filter(_.cached)
+            val nonCachedErrors = errors.filterNot(_.cached)
 
-            val translatedDiagnostics = previousDiagnostics.filter(_.getCode()!="translated")
-            val cachedDiagnostics = VerifierState.translateDiagnostics(fileChanges, diagnostics).filter(translatedDiagnostics.toSet)
+            val cachedDiagnostics = cachedErrors.map(error => errorToDiagnostic(error)).toList
+            if (cachedDiagnostics.isEmpty) VerifierState.resetDiagnostics(fileUri)
 
-            val newDiagnostics = diagnostics.filter(el => 
-              VerifierState.translateDiagnostics(fileChanges, List(el)).intersect(cachedDiagnostics).isEmpty)
+            val nonCachedDiagnostics = nonCachedErrors.map(error => errorToDiagnostic(error)).toList
 
-            cachedDiagnostics ++ newDiagnostics
+            nonCachedDiagnostics ++ VerifierState.translateDiagnostics(fileChanges, cachedDiagnostics)
         }
         val overallResult = Helper.getOverallVerificationResult(result, endTime - startTime)
 
@@ -100,7 +100,7 @@ object GobraServer extends GobraFrontend {
       case Some(pos) => new Position(pos.line-1, pos.column-1)
       case None => startPos
     }
-    new Diagnostic(new Range(startPos, endPos), error.message, DiagnosticSeverity.Error, "original")
+    new Diagnostic(new Range(startPos, endPos), error.message, DiagnosticSeverity.Error, "")
   }
 
   def stop() {

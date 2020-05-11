@@ -99,8 +99,6 @@ object VerifierState {
       val (cStartL, cStartC) = (range.startPos.getLine(), range.startPos.getCharacter())
       val (cEndL, cEndC) = (range.endPos.getLine(), range.endPos.getCharacter())
 
-      var translated = false
-
       newDiagnostics = range.text match {
         case "" =>
           // delete character case
@@ -116,29 +114,24 @@ object VerifierState {
                 startC = startC - deletedCharacters
 
                 if (cStartL < cEndL && cStartL < startL) startC = startC + cStartC
-                translated = true
             }
                
             if (cEndC <= endC && cEndL == endL) {
               endC = endC - deletedCharacters
 
               if (cStartL < cEndL) endC = endC + cStartC
-              translated = true
             }
 
             if (cEndL <= startL) {
               startL = startL - deletedLines
-              translated = true
             }
             if (cEndL <= endL) {
               endL = endL - deletedLines
-              translated = true
             }
 
             val startPos = new Position(startL, startC)
             val endPos = new Position(endL, endC)
-            val code = if (translated) "translated" else "original"
-            new Diagnostic(new Range(startPos, endPos), diagnostic.getMessage(), diagnostic.getSeverity(), code)
+            new Diagnostic(new Range(startPos, endPos), diagnostic.getMessage(), diagnostic.getSeverity(), "")
           })
         case text =>
           // add character case
@@ -152,7 +145,6 @@ object VerifierState {
 
             if (cEndL < startL || (cStartC <= startC && cEndL == startL)) {
               startL = startL + addedLines
-              translated = true
             }
 
 
@@ -162,7 +154,6 @@ object VerifierState {
               } else {
                 startC = startC + addedCharacters
               }
-              translated = true
             }
 
             if (cEndC <= endC && cEndL == endL) {
@@ -171,22 +162,19 @@ object VerifierState {
               } else {
                 endC = endC + addedCharacters
               }
-              translated = true
             }
 
             if (cEndL <= endL) {
               endL = endL + addedLines
-              translated = true
             }
             
 
             val startPos = new Position(startL, startC)
             val endPos = new Position(endL, endC)
-            val code = if (translated) "translated" else "original"
             if (startL < 0 || startC < 0 || endL < 0 || endC < 0) {
               null
             } else {
-              new Diagnostic(new Range(startPos, endPos), diagnostic.getMessage(), diagnostic.getSeverity(), code)
+              new Diagnostic(new Range(startPos, endPos), diagnostic.getMessage(), diagnostic.getSeverity(), "")
             }
           })
       }
