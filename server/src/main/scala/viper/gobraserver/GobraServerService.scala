@@ -13,6 +13,7 @@ import org.eclipse.lsp4j.{
   DidCloseTextDocumentParams,
   DidOpenTextDocumentParams,
   DidSaveTextDocumentParams,
+  DidChangeWatchedFilesParams,
   InitializeParams,
   InitializeResult,
   ServerCapabilities,
@@ -20,7 +21,7 @@ import org.eclipse.lsp4j.{
 }
 
 import scala.util.{ Success, Failure }
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
 class GobraServerService extends IdeLanguageClientAware {
   private val gson: Gson = new Gson()
@@ -87,17 +88,32 @@ class GobraServerService extends IdeLanguageClientAware {
     VerifierState.openFileUri = params.getTextDocument().getUri()  
   }
   
+  import collection.JavaConverters._
+  import scala.util.matching.Regex
+
   @JsonNotification("textDocument/didChange")
   def didChange(params: DidChangeTextDocumentParams): Unit = {
+    /*
+    Future {
+      val text = params.getContentChanges().asScala.map(_.getText())
+
+      val regex = new Regex("func(\\s)*")
+
+      text.map(t => println((regex findAllIn t).mkString(", ")))
+
+      //println(params.getContentChanges().asScala.map(_.getText()))
+    }
     //println("DidChange")
-    //println(params.getContentChanges())
+    //println(params.getContentChanges().asScala.map(_.getText()))
+    */
   }
 
   @JsonNotification("textDocument/didClose")
   def didClose(params: DidCloseTextDocumentParams): Unit = {
     println("didClose")
 
-    VerifierState.resetDiagnostics(params.getTextDocument().getUri())
+    val fileUri = params.getTextDocument().getUri()
+    VerifierState.removeDiagnostics(fileUri)
   }
 
   @JsonNotification("textDocument/didSave")
@@ -135,10 +151,21 @@ class GobraServerService extends IdeLanguageClientAware {
   @JsonNotification("gobraServer/fileChanges")
   def fileChanges(fileChangesJson: String): Unit = {
     println("fileChanges")
-    val fileChanges: FileChanges = gson.fromJson(fileChangesJson, classOf[FileChanges])
-    VerifierState.updateDiagnostics(fileChanges)
-    VerifierState.addFileChanges(fileChanges)
+    Future {
+      val fileChanges: FileChanges = gson.fromJson(fileChangesJson, classOf[FileChanges])
+      /*
+      val changes = Changes(
+        fileUri = fileChanges.fileUri,
+        ranges = fileChanges.ranges.map(range => (VerifierState.verificationNum, range))
+      )
+      */
+      VerifierState.updateDiagnostics(fileChanges)
+    //  VerifierState.addChanges(changes)
+    //  VerifierState.publishDiagnostics(changes.fileUri)
+    }
+    
   }
+
 
 
 

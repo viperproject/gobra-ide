@@ -39,3 +39,9 @@ case class FileChanges (
   fileUri: String,
   ranges: Array[ChangeRange]
 )
+/*
+case class Changes (
+  fileUri: String,
+  ranges: Array[(Int, ChangeRange)]
+)
+*/

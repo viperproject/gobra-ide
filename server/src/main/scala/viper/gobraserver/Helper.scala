@@ -35,7 +35,6 @@ object Helper {
           if (serverMode) {
             ViperBackends.ViperServerBackend
           } else {
-            VerifierState.resetFileChanges(fileUri)
             backendId match {
               case "SILICON" => ViperBackends.SiliconBackend
               case "CARBON" => ViperBackends.CarbonBackend
@@ -107,5 +106,12 @@ object Helper {
       success = false,
       message = "An error occured during verification: " + e
     )
+  }
+
+  def sendFinishedVerification(fileUri: String) {
+    VerifierState.client match {
+      case Some(c) => c.finishedVerification(fileUri)
+      case None =>
+    }
   }
 }

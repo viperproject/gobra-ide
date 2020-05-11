@@ -11,9 +11,12 @@ import org.eclipse.lsp4j.{
 }
 
 import scala.collection.mutable.Map
+import scala.collection.immutable.{Map => ImmMap}
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Queue
 import collection.JavaConverters._
+
+import viper.gobra.reporting.VerifierError
 
 import scala.math.max
 
@@ -25,6 +28,12 @@ object VerifierState {
 
   var openFileUri: String = _
 
+  private var _verificationNum: Int = 0
+  def verificationNum: Int = _verificationNum
+  def incVerificationNum() {
+    _verificationNum = _verificationNum + 1
+  }
+
   private val _jobQueue = Queue[VerifierConfig]()
   def jobQueue: Queue[VerifierConfig] = _jobQueue
 
@@ -35,67 +44,67 @@ object VerifierState {
     _client = Some(client)
   }
   
-  // Diagnostics mapping from file uri to a list of diagnostics and overall verification results
-  private val _diagnostics = Map[String, (List[Diagnostic], OverallVerificationResult)]()
 
-  // Filechanges mapping from file uri to the file changes
-  private val _fileChanges = Map[String, FileChanges]()
+  /**
+    * The overall verfication result.
+    */
+  private val _overallResults = Map[String, OverallVerificationResult]()
 
-  def getDiagnostics(fileUri: String): List[Diagnostic] = {
-    _diagnostics.get(fileUri) match {
-      case Some((diagnostics, _)) => diagnostics
-      case None => Nil
-    }
-  }
-
-  def getOverallResult(fileUri: String): Option[OverallVerificationResult] = {
-    _diagnostics.get(fileUri) match {
-      case Some((_, overallResult)) => Some(overallResult)
-      case None => None
-    }
-  }
-
-  def resetDiagnostics(fileUri: String) {
-    _diagnostics.get(fileUri) match {
-      case Some(_) => _diagnostics.remove(fileUri)
-      case None =>
-    }
-  }
-
-  def addDiagnostics(fileUri: String, diagnostics: List[Diagnostic], overallResult: OverallVerificationResult) {
-    _diagnostics += (fileUri -> (diagnostics, overallResult))
-  }
-
-  def publishDiagnostics(fileUri: String) {
-    client match {
-      case Some(c) =>
-        val params = new PublishDiagnosticsParams(fileUri, getDiagnostics(fileUri).asJava)
-        c.publishDiagnostics(params)
-      case None =>
-    }
+  def addOverallResult(fileUri: String, overallResult: OverallVerificationResult) {
+    _overallResults += (fileUri -> overallResult)
   }
 
   def sendOverallResult(fileUri: String) {
     client match {
       case Some(c) =>
-        getOverallResult(fileUri) match {
+        _overallResults.get(fileUri) match {
           case Some(overallResult) => c.overallResultNotification(gson.toJson(overallResult))
           case None => c.noVerificationResult()
         }
     }
   }
 
-  def sendFinishedVerification(fileUri: String) {
+  /**
+    * Diagnostics of the verification stored per file in a key value pair.
+    */
+  private val _diagnostics = Map[String, ImmMap[VerifierError, Diagnostic]]()
+
+  def addDiagnostics(fileUri: String, errors: List[VerifierError], diagnostics: List[Diagnostic]) {
+    val diagnosticsMap = (errors zip diagnostics).toMap
+    _diagnostics += (fileUri -> diagnosticsMap)
+  }
+
+  def addDiagnosticsMap(fileUri: String, diagnosticsMap: ImmMap[VerifierError, Diagnostic]) {
+    _diagnostics += (fileUri -> diagnosticsMap)
+  }
+
+  def getDiagnostics(fileUri: String): ImmMap[VerifierError, Diagnostic] = {
+    _diagnostics.get(fileUri) match {
+      case Some(diagnostics) => diagnostics
+      case None => ImmMap[VerifierError, Diagnostic]()
+    }
+  }
+
+  def removeDiagnostics(fileUri: String): Unit = _diagnostics.remove(fileUri)
+
+  /**
+    * Publish all available diagnostics.
+    */
+  def publishDiagnostics(fileUri: String) {
     client match {
-      case Some(c) => c.finishedVerification(fileUri)
+      case Some(c) =>
+        val diagnostics = getDiagnostics(fileUri).values.toList
+        val params = new PublishDiagnosticsParams(fileUri, diagnostics.asJava)
+        c.publishDiagnostics(params)
       case None =>
     }
   }
 
+
   def translateDiagnostics(fileChanges: FileChanges, diagnostics: List[Diagnostic]): List[Diagnostic] = {
     var newDiagnostics = diagnostics
     
-    fileChanges.ranges.foreach({ range =>
+    fileChanges.ranges.foreach(range => {
       val (cStartL, cStartC) = (range.startPos.getLine(), range.startPos.getCharacter())
       val (cEndL, cEndC) = (range.endPos.getLine(), range.endPos.getCharacter())
 
@@ -132,6 +141,7 @@ object VerifierState {
             val startPos = new Position(startL, startC)
             val endPos = new Position(endL, endC)
             new Diagnostic(new Range(startPos, endPos), diagnostic.getMessage(), diagnostic.getSeverity(), "")
+            
           })
         case text =>
           // add character case
@@ -184,41 +194,17 @@ object VerifierState {
   }
 
   def updateDiagnostics(fileChanges: FileChanges) {
-    // return when no changes were made
     if (fileChanges.ranges.length == 0) return
 
+    val fileUri = fileChanges.fileUri
 
-    _diagnostics.get(fileChanges.fileUri) match {
-      case Some((diagnostics, overallResult)) =>
+    _diagnostics.get(fileUri) match {
+      case Some(diagnosticsMap) =>
+        val (errs, diagnostics) = diagnosticsMap.toList.unzip
         val newDiagnostics = translateDiagnostics(fileChanges, diagnostics)
-
-        VerifierState.addDiagnostics(fileChanges.fileUri, newDiagnostics, overallResult)
-        VerifierState.publishDiagnostics(fileChanges.fileUri)
-
-      case None => println("no diagnostic") // do nothing when no diagnostics exist
+        VerifierState.addDiagnostics(fileUri, errs, newDiagnostics)
+        publishDiagnostics(fileUri)
+      case None =>
     }
-  }
-
-
-
-
-  def getFileChanges(fileUri: String): FileChanges = {
-    _fileChanges.get(fileUri) match {
-      case Some(changes) => changes
-      case None => new FileChanges(fileUri, Array())
-    }
-  }
-
-  def addFileChanges(fileChanges: FileChanges) {
-    _fileChanges.get(fileChanges.fileUri) match {
-      case Some(changes) =>
-        val fileUri = fileChanges.fileUri
-        _fileChanges += (fileUri -> (new FileChanges(fileUri,changes.ranges ++ fileChanges.ranges)))
-      case None => _fileChanges += (fileChanges.fileUri -> fileChanges)  
-    }
-  }
-
-  def resetFileChanges(fileUri: String) {
-    _fileChanges.remove(fileUri)
   }
 }

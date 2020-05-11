@@ -44,34 +44,39 @@ object GobraServer extends GobraFrontend {
     val config = Helper.configFromTask(verifierConfig)
     val resultFuture = verifier.verify(config)
 
-    //VerifierState.resetFileChanges(fileUri)
+    VerifierState.incVerificationNum()
 
     resultFuture.onComplete {
       case Success(result) =>
         val endTime = System.currentTimeMillis()
-        val previousDiagnostics = VerifierState.getDiagnostics(fileUri)
 
-        val diagnostics = result match {
+        result match {
           case VerifierResult.Success => {
-            VerifierState.resetDiagnostics(fileUri)
-            List()
+            // TODO: change this s.t. diagnostics are only hidden and not removed. (removal should only happen on file close)
+            VerifierState.removeDiagnostics(fileUri)
           }
           case VerifierResult.Failure(errors) =>
-            val fileChanges = VerifierState.getFileChanges(fileUri)
-
             val cachedErrors = errors.filter(_.cached)
             val nonCachedErrors = errors.filterNot(_.cached)
 
-            val cachedDiagnostics = cachedErrors.map(error => errorToDiagnostic(error)).toList
-            if (cachedDiagnostics.isEmpty) VerifierState.resetDiagnostics(fileUri)
+            val diagnostics = VerifierState.getDiagnostics(fileUri)
 
-            val nonCachedDiagnostics = nonCachedErrors.map(error => errorToDiagnostic(error)).toList
+            val (oldCachedErrors, oldCachedDiagnostics) = diagnostics
+              .filter({case (k, v) => cachedErrors.contains(k)}).toList.unzip
+            val newCachedErrors = cachedErrors.filterNot(oldCachedErrors.toSet)
+            val newCachedDiagnostics = newCachedErrors.map(err => errorToDiagnostic(err))
 
-            nonCachedDiagnostics ++ VerifierState.translateDiagnostics(fileChanges, cachedDiagnostics)
+            val newNonCachedDiagnostics = nonCachedErrors.map(err => errorToDiagnostic(err))
+
+            val newErrors = oldCachedErrors ++ newCachedErrors ++ nonCachedErrors
+            val newDiagnostics = oldCachedDiagnostics ++ newCachedDiagnostics ++ newNonCachedDiagnostics
+
+            VerifierState.addDiagnostics(fileUri, newErrors, newDiagnostics)
+            
         }
+        
         val overallResult = Helper.getOverallVerificationResult(result, endTime - startTime)
-
-        VerifierState.addDiagnostics(fileUri, diagnostics, overallResult)
+        VerifierState.addOverallResult(fileUri, overallResult)
 
 
         // only send diagnostics after verification if same file is still open.
@@ -79,7 +84,7 @@ object GobraServer extends GobraFrontend {
           VerifierState.publishDiagnostics(fileUri)
           VerifierState.sendOverallResult(fileUri)
         }
-        VerifierState.sendFinishedVerification(fileUri)
+        Helper.sendFinishedVerification(fileUri)
 
       case Failure(e) =>
         println("Exception occured: " + e)
