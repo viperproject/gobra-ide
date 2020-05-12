@@ -63,8 +63,23 @@ object GobraServer extends GobraFrontend {
 
             val (oldCachedErrors, oldCachedDiagnostics) = diagnostics
               .filter({case (k, v) => cachedErrors.contains(k)}).toList.unzip
+
+            // Cached Errors which were not seen before.
             val newCachedErrors = cachedErrors.filterNot(oldCachedErrors.toSet)
-            val newCachedDiagnostics = newCachedErrors.map(err => errorToDiagnostic(err))
+            val diagnosticsCache = VerifierState.getDiagnosticsCache(fileUri)
+
+            println("The diagnosticsCache is:")
+            println(diagnosticsCache)
+
+            val newCachedDiagnostics = newCachedErrors.map(err => diagnosticsCache.get(err) match {
+              case Some(diagnostic) =>
+                println("retrieved from the cache")
+                diagnostic
+              case None => errorToDiagnostic(err)
+            })
+
+
+            //val newCachedDiagnostics = newCachedErrors.map(err => errorToDiagnostic(err))
 
             val newNonCachedDiagnostics = nonCachedErrors.map(err => errorToDiagnostic(err))
 
@@ -72,6 +87,7 @@ object GobraServer extends GobraFrontend {
             val newDiagnostics = oldCachedDiagnostics ++ newCachedDiagnostics ++ newNonCachedDiagnostics
 
             VerifierState.addDiagnostics(fileUri, newErrors, newDiagnostics)
+            VerifierState.addDiagnosticsCache(fileUri, newErrors, newDiagnostics)
             
         }
         

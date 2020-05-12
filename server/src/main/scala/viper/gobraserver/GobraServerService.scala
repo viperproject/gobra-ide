@@ -150,18 +150,11 @@ class GobraServerService extends IdeLanguageClientAware {
 
   @JsonNotification("gobraServer/fileChanges")
   def fileChanges(fileChangesJson: String): Unit = {
-    println("fileChanges")
+    //println("fileChanges")
     Future {
       val fileChanges: FileChanges = gson.fromJson(fileChangesJson, classOf[FileChanges])
-      /*
-      val changes = Changes(
-        fileUri = fileChanges.fileUri,
-        ranges = fileChanges.ranges.map(range => (VerifierState.verificationNum, range))
-      )
-      */
+
       VerifierState.updateDiagnostics(fileChanges)
-    //  VerifierState.addChanges(changes)
-    //  VerifierState.publishDiagnostics(changes.fileUri)
     }
     
   }

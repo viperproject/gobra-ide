@@ -73,11 +73,11 @@ object VerifierState {
     val diagnosticsMap = (errors zip diagnostics).toMap
     _diagnostics += (fileUri -> diagnosticsMap)
   }
-
+/*
   def addDiagnosticsMap(fileUri: String, diagnosticsMap: ImmMap[VerifierError, Diagnostic]) {
     _diagnostics += (fileUri -> diagnosticsMap)
   }
-
+*/
   def getDiagnostics(fileUri: String): ImmMap[VerifierError, Diagnostic] = {
     _diagnostics.get(fileUri) match {
       case Some(diagnostics) => diagnostics
@@ -87,16 +87,57 @@ object VerifierState {
 
   def removeDiagnostics(fileUri: String): Unit = _diagnostics.remove(fileUri)
 
+
+  /**
+    * Cache of the previously used diagnostics.
+    */
+  private val _cachedDiagnostics = Map[String, Map[VerifierError, Diagnostic]]()
+
+  def addDiagnosticsCache(fileUri: String, errors: List[VerifierError], diagnostics: List[Diagnostic]) {
+    val diagnosticsMap = (errors zip diagnostics).toMap
+    _cachedDiagnostics.get(fileUri) match {
+      case Some(diagnostics) => _cachedDiagnostics += (fileUri -> (diagnostics ++ diagnosticsMap))
+      case None => _cachedDiagnostics += (fileUri -> (Map[VerifierError, Diagnostic]() ++ diagnosticsMap))
+    }
+  }
+
+  def getDiagnosticsCache(fileUri: String): Map[VerifierError, Diagnostic] = {
+    _cachedDiagnostics.get(fileUri) match {
+      case Some(cache) => cache
+      case None => Map[VerifierError, Diagnostic]()
+    }
+  }
+
+
   /**
     * Publish all available diagnostics.
     */
   def publishDiagnostics(fileUri: String) {
+    /*
+    (client, _overallResults.get(fileUri)) match {
+      case (Some(c), Some(result)) =>
+        result match {
+          case OverallVerificationResult(true, _) =>
+            val params = new PublishDiagnosticsParams(fileUri, List().asJava)
+            c.publishDiagnostics(params)
+          case OverallVerificationResult(false, _) =>
+            val diagnostics = getDiagnostics(fileUri).values.toList
+            val params = new PublishDiagnosticsParams(fileUri, diagnostics.asJava)
+            c.publishDiagnostics(params)
+        }
+        */
     client match {
       case Some(c) =>
         val diagnostics = getDiagnostics(fileUri).values.toList
         val params = new PublishDiagnosticsParams(fileUri, diagnostics.asJava)
         c.publishDiagnostics(params)
       case None =>
+/*
+        val diagnostics = getDiagnostics(fileUri).values.toList
+        val params = new PublishDiagnosticsParams(fileUri, diagnostics.asJava)
+        c.publishDiagnostics(params)
+*/
+      //case _ =>
     }
   }
 
@@ -202,8 +243,16 @@ object VerifierState {
       case Some(diagnosticsMap) =>
         val (errs, diagnostics) = diagnosticsMap.toList.unzip
         val newDiagnostics = translateDiagnostics(fileChanges, diagnostics)
-        VerifierState.addDiagnostics(fileUri, errs, newDiagnostics)
+        addDiagnostics(fileUri, errs, newDiagnostics)
         publishDiagnostics(fileUri)
+      case None =>
+    }
+
+    _cachedDiagnostics.get(fileUri) match {
+      case Some(diagnosticsMap) =>
+        val (errs, diagnostics) = diagnosticsMap.toList.unzip
+        val newDiagnostics = translateDiagnostics(fileChanges, diagnostics)
+        addDiagnosticsCache(fileUri, errs, newDiagnostics)
       case None =>
     }
   }
