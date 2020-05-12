@@ -5,6 +5,8 @@ import viper.gobra.backend.ViperBackends
 import viper.server.ViperBackendConfigs
 import viper.gobra.reporting.{ FileWriterReporter, VerifierResult, NoopReporter }
 
+import org.eclipse.lsp4j.Range
+
 import java.io.File
 
 import ch.qos.logback.classic.Level
@@ -114,4 +116,9 @@ object Helper {
       case None =>
     }
   }
+
+  def startLine(range: Range): Int = range.getStart().getLine()
+  def startChar(range: Range): Int = range.getStart().getCharacter()
+  def endLine(range: Range): Int = range.getEnd().getLine()
+  def endChar(range: Range): Int = range.getEnd().getCharacter()
 }

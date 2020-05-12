@@ -7,7 +7,8 @@ import org.eclipse.lsp4j.{
     Position,
     Range,
     DiagnosticSeverity,
-    PublishDiagnosticsParams
+    PublishDiagnosticsParams,
+    TextDocumentContentChangeEvent
 }
 
 import scala.collection.mutable.Map
@@ -115,23 +116,26 @@ object VerifierState {
   }
 
 
-  def translateDiagnostics(fileChanges: FileChanges, diagnostics: List[Diagnostic]): List[Diagnostic] = {
+  def translateDiagnostics(changes: List[TextDocumentContentChangeEvent], diagnostics: List[Diagnostic]): List[Diagnostic] = {
     var newDiagnostics = diagnostics
     
-    fileChanges.ranges.foreach(range => {
-      val (cStartL, cStartC) = (range.startPos.getLine(), range.startPos.getCharacter())
-      val (cEndL, cEndC) = (range.endPos.getLine(), range.endPos.getCharacter())
+    changes.foreach(change => {
+      val range = change.getRange()
 
-      newDiagnostics = range.text match {
+      var (cStartL, cStartC) = (Helper.startLine(range), Helper.startChar(range))
+      var (cEndL, cEndC) = (Helper.endLine(range), Helper.endChar(range))
+
+      newDiagnostics = change.getText() match {
         case "" =>
           // delete character case
           val deletedLines = cEndL - cStartL
           val deletedCharacters = max(cEndC - cStartC, 0)
 
           newDiagnostics.map(diagnostic => {
-            var (startL, startC) = (diagnostic.getRange().getStart().getLine(), diagnostic.getRange().getStart().getCharacter())
-            var (endL, endC) = (diagnostic.getRange().getEnd().getLine(), diagnostic.getRange().getEnd().getCharacter())
+            val range = diagnostic.getRange()
 
+            var (startL, startC) = (Helper.startLine(range), Helper.startChar(range))
+            var (endL, endC) = (Helper.endLine(range), Helper.endChar(range))
 
             if (cEndC <= startC && cEndL == endL) {
                 startC = startC - deletedCharacters
@@ -207,14 +211,12 @@ object VerifierState {
     newDiagnostics
   }
 
-  def updateDiagnostics(fileChanges: FileChanges) {
-    if (fileChanges.ranges.length == 0) return
-
-    val fileUri = fileChanges.fileUri
+  def updateDiagnostics(fileUri: String, changes: List[TextDocumentContentChangeEvent]) {
+    if (changes.length == 0) return
 
     _diagnostics.get(fileUri) match {
       case Some(diagnostics) =>
-        val newDiagnostics = translateDiagnostics(fileChanges, diagnostics)
+        val newDiagnostics = translateDiagnostics(changes, diagnostics)
         addDiagnostics(fileUri, newDiagnostics)
         publishDiagnostics(fileUri)
       case None =>
@@ -223,7 +225,7 @@ object VerifierState {
     _cachedDiagnostics.get(fileUri) match {
       case Some(diagnosticsMap) =>
         val (errs, diagnostics) = diagnosticsMap.toList.unzip
-        val newDiagnostics = translateDiagnostics(fileChanges, diagnostics)
+        val newDiagnostics = translateDiagnostics(changes, diagnostics)
         addDiagnosticsCache(fileUri, errs, newDiagnostics)
       case None =>
     }

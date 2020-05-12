@@ -1,5 +1,4 @@
 import { Helper } from "./Helper";
-import { Range, Position } from "./Range";
 import * as vscode from "vscode";
 
 export class FileData {
@@ -60,23 +59,4 @@ export class OverallVerificationResult {
     this.message = message;
   }
     
-}
-
-export class ChangeRange extends Range {
-  text: string;
-
-  constructor(startPos: Position, endPos: Position, text: string) {
-    super(startPos, endPos);
-    this.text = text;
-  }
-}
-
-export class FileChanges {
-  fileUri: string;
-  ranges: ChangeRange[];
-
-  constructor(fileUri: string, ranges: ChangeRange[]) {
-    this.fileUri = fileUri;
-    this.ranges = ranges;
-  }
 }

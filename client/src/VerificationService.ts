@@ -3,7 +3,7 @@ import { Helper, Commands, Texts, Color } from "./Helper";
 import { StatusBar } from "./StatusBar";
 import * as vscode from 'vscode';
 import { URI } from 'vscode-uri';
-import { VerifierConfig, OverallVerificationResult, FileData, FileChanges } from "./MessagePayloads";
+import { VerifierConfig, OverallVerificationResult, FileData } from "./MessagePayloads";
 
 
 export class Verifier {
@@ -19,9 +19,6 @@ export class Verifier {
     State.verifierConfig = verifierConfig;
     // register file changed listener
     State.context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(Verifier.changeFile));
-
-    // register handler for file changes sending the ranges and actions to the client
-    vscode.workspace.onDidChangeTextDocument(Verifier.sendFileChanges);
 
     // register the handler for the overall verification result notification
     State.client.onNotification(Commands.overallResultNotification, Verifier.handleOverallResultNotification)
@@ -91,19 +88,6 @@ export class Verifier {
     State.updateFileData();
     State.client.sendNotification(Commands.changeFile, Helper.fileDataToJson(State.verifierConfig.fileData));
   }
-
-
-  public static sendFileChanges(changeEvent: vscode.TextDocumentChangeEvent): void {
-    let fileUri = URI.file(changeEvent.document.fileName).toString();
-    let ranges = changeEvent.contentChanges.map(Helper.createChangeRange);
-
-    if (ranges.length == 0) return;
-
-    let fileChanges = new FileChanges(fileUri, ranges);
-    State.client.sendNotification(Commands.fileChanges, Helper.fileChangesToJson(fileChanges));
-    //console.log(Helper.fileChangesToJson(fileChanges));
-  }
-
 }
 
 

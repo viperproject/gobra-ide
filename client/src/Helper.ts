@@ -1,8 +1,6 @@
 import * as vscode from 'vscode';
 import { URI } from 'vscode-uri';
 import { VerifierConfig, OverallVerificationResult, FileData } from "./MessagePayloads";
-import { FileChanges, ChangeRange } from "./MessagePayloads";
-import { Position } from "./Range";
 
 
 export class Helper {
@@ -34,10 +32,6 @@ export class Helper {
     return JSON.parse(json);
   }
 
-  public static fileChangesToJson(fileChanges: FileChanges): string {
-    return JSON.stringify(fileChanges);
-  }
-
   public static getGobraConfiguration(): vscode.WorkspaceConfiguration {
     return vscode.workspace.getConfiguration("gobraSettings");
   }
@@ -46,12 +40,6 @@ export class Helper {
     return vscode.workspace.getConfiguration("gobraSettings").get("serverMode");
   }
 
-  public static createChangeRange(change: vscode.TextDocumentContentChangeEvent): ChangeRange {
-    let startPos = new Position(change.range.start.line, change.range.start.character);
-    let endPos = new Position(change.range.end.line, change.range.end.character);
-
-    return new ChangeRange(startPos, endPos, change.text);
-  }
 }
 
 // Defines the commands used for requests

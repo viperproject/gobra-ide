@@ -17,10 +17,12 @@ import org.eclipse.lsp4j.{
   InitializeParams,
   InitializeResult,
   ServerCapabilities,
-  TextDocumentSyncKind
+  TextDocumentSyncKind,
+  TextDocumentContentChangeEvent
 }
 
 import scala.util.{ Success, Failure }
+import collection.JavaConverters._
 import scala.concurrent.{ExecutionContext, Future}
 
 class GobraServerService extends IdeLanguageClientAware {
@@ -37,7 +39,7 @@ class GobraServerService extends IdeLanguageClientAware {
     println("initialize")
     val capabilities = new ServerCapabilities()
     // always send full text document for each notification:
-    capabilities.setTextDocumentSync(TextDocumentSyncKind.Full)
+    capabilities.setTextDocumentSync(TextDocumentSyncKind.Incremental)
 
     var options: List[String] = List()
     GobraServer.init(options)
@@ -87,25 +89,15 @@ class GobraServerService extends IdeLanguageClientAware {
 
     VerifierState.openFileUri = params.getTextDocument().getUri()  
   }
-  
-  import collection.JavaConverters._
-  import scala.util.matching.Regex
 
   @JsonNotification("textDocument/didChange")
   def didChange(params: DidChangeTextDocumentParams): Unit = {
-    /*
     Future {
-      val text = params.getContentChanges().asScala.map(_.getText())
+      val fileUri = params.getTextDocument().getUri()
+      val changes = params.getContentChanges().asScala.toList
 
-      val regex = new Regex("func(\\s)*")
-
-      text.map(t => println((regex findAllIn t).mkString(", ")))
-
-      //println(params.getContentChanges().asScala.map(_.getText()))
+      VerifierState.updateDiagnostics(fileUri, changes)
     }
-    //println("DidChange")
-    //println(params.getContentChanges().asScala.map(_.getText()))
-    */
   }
 
   @JsonNotification("textDocument/didClose")
@@ -131,8 +123,6 @@ class GobraServerService extends IdeLanguageClientAware {
       VerifierState.jobQueue.enqueue(config)
       VerifierState.jobQueue.notify()
     }
-
-    //GobraServer.verify(config)
   }
 
 
@@ -146,20 +136,6 @@ class GobraServerService extends IdeLanguageClientAware {
     VerifierState.publishDiagnostics(VerifierState.openFileUri)
     VerifierState.sendOverallResult(VerifierState.openFileUri)
   }
-
-
-  @JsonNotification("gobraServer/fileChanges")
-  def fileChanges(fileChangesJson: String): Unit = {
-    //println("fileChanges")
-    Future {
-      val fileChanges: FileChanges = gson.fromJson(fileChangesJson, classOf[FileChanges])
-
-      VerifierState.updateDiagnostics(fileChanges)
-    }
-    
-  }
-
-
 
 
   override def connect(client: IdeLanguageClient): Unit = {

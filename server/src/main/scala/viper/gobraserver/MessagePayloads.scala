@@ -29,6 +29,7 @@ case class OverallVerificationResult(
   message: String
 )
 
+/*
 case class ChangeRange (
   startPos: Position,
   endPos: Position,
@@ -39,3 +40,4 @@ case class FileChanges (
   fileUri: String,
   ranges: Array[ChangeRange]
 )
+*/
