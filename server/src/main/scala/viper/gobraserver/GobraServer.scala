@@ -52,43 +52,25 @@ object GobraServer extends GobraFrontend {
 
         result match {
           case VerifierResult.Success => {
-            // TODO: change this s.t. diagnostics are only hidden and not removed. (removal should only happen on file close)
             VerifierState.removeDiagnostics(fileUri)
           }
           case VerifierResult.Failure(errors) =>
-            val cachedErrors = errors.filter(_.cached)
-            val nonCachedErrors = errors.filterNot(_.cached)
+            val cachedErrors = errors.filter(_.cached).toList
+            val nonCachedErrors = errors.filterNot(_.cached).toList
 
-            val diagnostics = VerifierState.getDiagnostics(fileUri)
-
-            val (oldCachedErrors, oldCachedDiagnostics) = diagnostics
-              .filter({case (k, v) => cachedErrors.contains(k)}).toList.unzip
-
-            // Cached Errors which were not seen before.
-            val newCachedErrors = cachedErrors.filterNot(oldCachedErrors.toSet)
             val diagnosticsCache = VerifierState.getDiagnosticsCache(fileUri)
-
-            println("The diagnosticsCache is:")
-            println(diagnosticsCache)
-
-            val newCachedDiagnostics = newCachedErrors.map(err => diagnosticsCache.get(err) match {
-              case Some(diagnostic) =>
-                println("retrieved from the cache")
-                diagnostic
+            val cachedDiagnostics = cachedErrors.map(err => diagnosticsCache.get(err) match {
+              case Some(diagnostic) => diagnostic
               case None => errorToDiagnostic(err)
-            })
+            }).toList
 
+            val nonCachedDiagnostics = nonCachedErrors.map(err => errorToDiagnostic(err)).toList
 
-            //val newCachedDiagnostics = newCachedErrors.map(err => errorToDiagnostic(err))
+            val diagnostics = cachedDiagnostics ++ nonCachedDiagnostics
+            val sortedErrs = cachedErrors ++ nonCachedErrors
 
-            val newNonCachedDiagnostics = nonCachedErrors.map(err => errorToDiagnostic(err))
-
-            val newErrors = oldCachedErrors ++ newCachedErrors ++ nonCachedErrors
-            val newDiagnostics = oldCachedDiagnostics ++ newCachedDiagnostics ++ newNonCachedDiagnostics
-
-            VerifierState.addDiagnostics(fileUri, newErrors, newDiagnostics)
-            VerifierState.addDiagnosticsCache(fileUri, newErrors, newDiagnostics)
-            
+            VerifierState.addDiagnostics(fileUri, diagnostics)
+            VerifierState.addDiagnosticsCache(fileUri, sortedErrs, diagnostics)
         }
         
         val overallResult = Helper.getOverallVerificationResult(result, endTime - startTime)

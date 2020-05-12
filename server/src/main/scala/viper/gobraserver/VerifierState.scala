@@ -21,8 +21,6 @@ import viper.gobra.reporting.VerifierError
 import scala.math.max
 
 
-
-
 object VerifierState {
   private val gson: Gson = new Gson()
 
@@ -67,21 +65,16 @@ object VerifierState {
   /**
     * Diagnostics of the verification stored per file in a key value pair.
     */
-  private val _diagnostics = Map[String, ImmMap[VerifierError, Diagnostic]]()
+  private val _diagnostics = Map[String, List[Diagnostic]]()
 
-  def addDiagnostics(fileUri: String, errors: List[VerifierError], diagnostics: List[Diagnostic]) {
-    val diagnosticsMap = (errors zip diagnostics).toMap
-    _diagnostics += (fileUri -> diagnosticsMap)
+  def addDiagnostics(fileUri: String, diagnostics: List[Diagnostic]) {
+    _diagnostics += (fileUri -> diagnostics)
   }
-/*
-  def addDiagnosticsMap(fileUri: String, diagnosticsMap: ImmMap[VerifierError, Diagnostic]) {
-    _diagnostics += (fileUri -> diagnosticsMap)
-  }
-*/
-  def getDiagnostics(fileUri: String): ImmMap[VerifierError, Diagnostic] = {
+
+  def getDiagnostics(fileUri: String): List[Diagnostic] = {
     _diagnostics.get(fileUri) match {
       case Some(diagnostics) => diagnostics
-      case None => ImmMap[VerifierError, Diagnostic]()
+      case None => List()
     }
   }
 
@@ -113,31 +106,11 @@ object VerifierState {
     * Publish all available diagnostics.
     */
   def publishDiagnostics(fileUri: String) {
-    /*
-    (client, _overallResults.get(fileUri)) match {
-      case (Some(c), Some(result)) =>
-        result match {
-          case OverallVerificationResult(true, _) =>
-            val params = new PublishDiagnosticsParams(fileUri, List().asJava)
-            c.publishDiagnostics(params)
-          case OverallVerificationResult(false, _) =>
-            val diagnostics = getDiagnostics(fileUri).values.toList
-            val params = new PublishDiagnosticsParams(fileUri, diagnostics.asJava)
-            c.publishDiagnostics(params)
-        }
-        */
     client match {
       case Some(c) =>
-        val diagnostics = getDiagnostics(fileUri).values.toList
-        val params = new PublishDiagnosticsParams(fileUri, diagnostics.asJava)
+        val params = new PublishDiagnosticsParams(fileUri, getDiagnostics(fileUri).asJava)
         c.publishDiagnostics(params)
       case None =>
-/*
-        val diagnostics = getDiagnostics(fileUri).values.toList
-        val params = new PublishDiagnosticsParams(fileUri, diagnostics.asJava)
-        c.publishDiagnostics(params)
-*/
-      //case _ =>
     }
   }
 
@@ -240,10 +213,9 @@ object VerifierState {
     val fileUri = fileChanges.fileUri
 
     _diagnostics.get(fileUri) match {
-      case Some(diagnosticsMap) =>
-        val (errs, diagnostics) = diagnosticsMap.toList.unzip
+      case Some(diagnostics) =>
         val newDiagnostics = translateDiagnostics(fileChanges, diagnostics)
-        addDiagnostics(fileUri, errs, newDiagnostics)
+        addDiagnostics(fileUri, newDiagnostics)
         publishDiagnostics(fileUri)
       case None =>
     }
