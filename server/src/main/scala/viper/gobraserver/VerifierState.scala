@@ -184,7 +184,7 @@ object VerifierState {
               }
             }
 
-            if (cEndC <= endC && cEndL == endL) {
+            if (cEndC < endC && cEndL == endL) {
               if (addedLines > 0) {
                 endC = endC - cEndC
               } else {
