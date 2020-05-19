@@ -66,7 +66,7 @@ object VerifierState {
   /**
     * Diagnostics of the verification stored per file in a key value pair.
     */
-  private val _diagnostics = Map[String, List[Diagnostic]]()
+  private var _diagnostics = Map[String, List[Diagnostic]]()
 
   def addDiagnostics(fileUri: String, diagnostics: List[Diagnostic]) {
     _diagnostics += (fileUri -> diagnostics)
@@ -101,6 +101,8 @@ object VerifierState {
       case None => Map[VerifierError, Diagnostic]()
     }
   }
+
+  def flushCachedDiagnostics(): Unit = _cachedDiagnostics.clear()
 
 
   /**
@@ -169,7 +171,7 @@ object VerifierState {
 
           newDiagnostics.map(diagnostic => {
             var (startL, startC) = (diagnostic.getRange().getStart().getLine(), diagnostic.getRange().getStart().getCharacter())
-            var (endL, endC) = (diagnostic.getRange().getEnd().getLine(), diagnostic.getRange().getEnd().getCharacter())
+            var (endL, endC) = (diagnostic.getRange().getEnd().getLine(), diagnostic.getRange().getEnd().getCharacter())    
 
             if (cEndL < startL || (cStartC <= startC && cEndL == startL)) {
               startL = startL + addedLines
@@ -187,12 +189,11 @@ object VerifierState {
             if (cEndC < endC && cEndL == endL) {
               if (addedLines > 0) {
                 endC = endC - cEndC
+                endL = endL + addedLines
               } else {
                 endC = endC + addedCharacters
               }
-            }
-
-            if (cEndL <= endL) {
+            } else if (cEndL < endL) {
               endL = endL + addedLines
             }
             

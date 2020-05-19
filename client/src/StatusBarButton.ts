@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 
 
-export class StatusBar{
+export class StatusBarButton {
     
   public item: vscode.StatusBarItem;
 

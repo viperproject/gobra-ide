@@ -18,7 +18,9 @@ import org.eclipse.lsp4j.{
   InitializeResult,
   ServerCapabilities,
   TextDocumentSyncKind,
-  TextDocumentContentChangeEvent
+  TextDocumentContentChangeEvent,
+  MessageParams,
+  MessageType
 }
 
 import scala.util.{ Success, Failure }
@@ -135,6 +137,18 @@ class GobraServerService extends IdeLanguageClientAware {
 
     VerifierState.publishDiagnostics(VerifierState.openFileUri)
     VerifierState.sendOverallResult(VerifierState.openFileUri)
+  }
+
+  @JsonNotification("gobraServer/flushCache")
+  def flushCache(): Unit = {
+    println("flushCache")
+    GobraServer.flushCache()
+    VerifierState.flushCachedDiagnostics()
+
+    VerifierState.client match {
+      case Some(c) => c.showMessage(new MessageParams(MessageType.Info, "Successfully flushed ViperServer Cache."))
+      case None =>
+    }
   }
 
 

@@ -1,6 +1,6 @@
 import { State } from "./ExtensionState";
 import { Helper, Commands, Texts, Color } from "./Helper";
-import { StatusBar } from "./StatusBar";
+import { StatusBarButton } from "./StatusBarButton";
 import * as vscode from 'vscode';
 import { URI } from 'vscode-uri';
 import { VerifierConfig, OverallVerificationResult, FileData } from "./MessagePayloads";
@@ -8,13 +8,20 @@ import { VerifierConfig, OverallVerificationResult, FileData } from "./MessagePa
 
 export class Verifier {
   // insert fields defining the verifier
-  public static verifyItem: StatusBar;
+  public static verifyItem: StatusBarButton;
+  public static cacheFlushItem: StatusBarButton;
 
   public static initialize(verifierConfig: VerifierConfig): void {
     // Initialize Verification Button in Statusbar
-    Verifier.verifyItem = new StatusBar(Texts.helloGobra, 10);
+    Verifier.verifyItem = new StatusBarButton(Texts.helloGobra, 10);
     Helper.registerCommand(Commands.verifyFile, Verifier.verifyFile, State.context);
     Verifier.verifyItem.setCommand(Commands.verifyFile, State.context);
+
+    // Initialize Flush Cache Button in Statusbar
+    Verifier.cacheFlushItem = new StatusBarButton(Texts.flushCache, 20);
+    Helper.registerCommand(Commands.flushCache, Verifier.flushCache, State.context);
+    Verifier.cacheFlushItem.setCommand(Commands.flushCache, State.context);
+
     // add data of current file
     State.verifierConfig = verifierConfig;
     // register file changed listener
@@ -48,6 +55,11 @@ export class Verifier {
         });
       }
     }
+  }
+
+  // flushes cache of ViperServer and also all diagnostics.
+  public static flushCache(): void {
+    State.client.sendNotification(Commands.flushCache);
   }
 
 

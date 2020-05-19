@@ -50,12 +50,13 @@ export class Commands {
   public static noVerificationResult = "gobraServer/noVerificationResult";
   public static finishedVerification = "gobraServer/finishedVerification";
   public static verificationException = "gobraServer/verificationException";
-  public static fileChanges = "gobraServer/fileChanges";
+  public static flushCache = "gobraServer/flushCache";
 }
 
 // Defines the texts in statusbars ...
 export class Texts {
   public static helloGobra = "Hello from Gobra";
+  public static flushCache = "Flush Cache";
 }
 
 export class Color {

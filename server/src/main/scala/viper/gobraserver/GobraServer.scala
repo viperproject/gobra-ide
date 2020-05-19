@@ -110,6 +110,10 @@ object GobraServer extends GobraFrontend {
     _server.stop()
   }
 
+  def flushCache() {
+    _server.flushCache()
+  }
+
   def delete() {
     ViperBackends.ViperServerBackend.resetServer()
     _server = null
