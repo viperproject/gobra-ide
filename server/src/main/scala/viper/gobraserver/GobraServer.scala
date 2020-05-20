@@ -40,8 +40,6 @@ object GobraServer extends GobraFrontend {
     val fileUri = verifierConfig.fileData.fileUri
 
     VerifierState.toggleVerificationRunning
-    // remove all previous verification filechanges associated to this file
-    VerifierState.changes = VerifierState.changes.filter({case (uri, _) => uri != fileUri})
     
     val filePath = verifierConfig.fileData.filePath
     val startTime = System.currentTimeMillis()
@@ -81,6 +79,8 @@ object GobraServer extends GobraFrontend {
             VerifierState.addDiagnosticsCache(fileUri, sortedErrs, diagnostics)
         }
         VerifierState.toggleVerificationRunning
+        // remove all filechanges associated to this file which occured during the verification.
+        VerifierState.changes = VerifierState.changes.filter({case (uri, _) => uri != fileUri})
         
         val overallResult = Helper.getOverallVerificationResult(result, endTime - startTime)
         VerifierState.addOverallResult(fileUri, overallResult)
