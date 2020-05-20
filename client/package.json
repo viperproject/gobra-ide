@@ -120,6 +120,11 @@
           "description": "Specifies the used Viper backend, one of SILICON, CARBON."
         }
       }
+    },
+    "configurationDefaults": {
+      "[gobra]": {
+        "editor.quickSuggestions": false
+      }
     }
   }
 }
