@@ -99,6 +99,8 @@ class GobraServerService extends IdeLanguageClientAware {
       val changes = params.getContentChanges().asScala.toList
 
       VerifierState.updateDiagnostics(fileUri, changes)
+
+      if (VerifierState.verificationRunning) VerifierState.changes = VerifierState.changes :+ (fileUri, changes)
     }
   }
 

@@ -68,12 +68,7 @@ object Helper {
 
         Config(
           inputFile = new File(path),
-          reporter = FileWriterReporter(
-            unparse = unparse,
-            eraseGhost = eraseGhost,
-            debug = debug,
-            printInternal = printInternal,
-            printVpr = printViper),
+          reporter = reporter,
           backend = backend,
           backendConfig = backendConfig,
           logLevel = Level.toLevel(logLevel),

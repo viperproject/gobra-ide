@@ -27,11 +27,14 @@ object VerifierState {
 
   var openFileUri: String = _
 
-  private var _verificationNum: Int = 0
-  def verificationNum: Int = _verificationNum
-  def incVerificationNum() {
-    _verificationNum = _verificationNum + 1
-  }
+  /**
+    * Tracks filechanges which happened during a verification.
+    */
+  var changes: List[(String, List[TextDocumentContentChangeEvent])] = List()
+
+  private var _verificationRunning: Boolean = false
+  def verificationRunning: Boolean = _verificationRunning
+  def toggleVerificationRunning { _verificationRunning = !_verificationRunning }
 
   private val _jobQueue = Queue[VerifierConfig]()
   def jobQueue: Queue[VerifierConfig] = _jobQueue

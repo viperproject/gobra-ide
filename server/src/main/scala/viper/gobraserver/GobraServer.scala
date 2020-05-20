@@ -38,13 +38,16 @@ object GobraServer extends GobraFrontend {
 
   def verify(verifierConfig: VerifierConfig): Future[VerifierResult] = {
     val fileUri = verifierConfig.fileData.fileUri
+
+    VerifierState.toggleVerificationRunning
+    // remove all previous verification filechanges associated to this file
+    VerifierState.changes = VerifierState.changes.filter({case (uri, _) => uri != fileUri})
+    
     val filePath = verifierConfig.fileData.filePath
     val startTime = System.currentTimeMillis()
 
     val config = Helper.configFromTask(verifierConfig)
     val resultFuture = verifier.verify(config)
-
-    VerifierState.incVerificationNum()
 
     resultFuture.onComplete {
       case Success(result) =>
@@ -61,17 +64,23 @@ object GobraServer extends GobraFrontend {
             val diagnosticsCache = VerifierState.getDiagnosticsCache(fileUri)
             val cachedDiagnostics = cachedErrors.map(err => diagnosticsCache.get(err) match {
               case Some(diagnostic) => diagnostic
-              case None => errorToDiagnostic(err)
+              case None =>
+                println("This case should not occur!") 
+                errorToDiagnostic(err)
             }).toList
 
             val nonCachedDiagnostics = nonCachedErrors.map(err => errorToDiagnostic(err)).toList
 
-            val diagnostics = cachedDiagnostics ++ nonCachedDiagnostics
+            // Filechanges which happened during the verification.
+            val fileChanges = VerifierState.changes.filter({case (uri, _) => uri == fileUri}).flatMap({case (_, change) => change})
+
+            val diagnostics = cachedDiagnostics ++ VerifierState.translateDiagnostics(fileChanges, nonCachedDiagnostics)
             val sortedErrs = cachedErrors ++ nonCachedErrors
 
             VerifierState.addDiagnostics(fileUri, diagnostics)
             VerifierState.addDiagnosticsCache(fileUri, sortedErrs, diagnostics)
         }
+        VerifierState.toggleVerificationRunning
         
         val overallResult = Helper.getOverallVerificationResult(result, endTime - startTime)
         VerifierState.addOverallResult(fileUri, overallResult)
