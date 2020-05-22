@@ -3,6 +3,7 @@ package viper.gobraserver
 import viper.gobra.Gobra
 import viper.gobra.GobraFrontend
 import viper.gobra.reporting.VerifierResult
+import viper.gobra.backend.ViperBackends
 import viper.gobra.reporting.VerifierError
 
 import java.io.File
@@ -63,7 +64,7 @@ object GobraServer extends GobraFrontend {
             val cachedDiagnostics = cachedErrors.map(err => diagnosticsCache.get(err) match {
               case Some(diagnostic) => diagnostic
               case None =>
-                println("This case should not occur!") 
+                println("Caches not consistent!")
                 errorToDiagnostic(err)
             }).toList
 
@@ -76,7 +77,8 @@ object GobraServer extends GobraFrontend {
             val sortedErrs = cachedErrors ++ nonCachedErrors
 
             VerifierState.addDiagnostics(fileUri, diagnostics)
-            VerifierState.addDiagnosticsCache(fileUri, sortedErrs, diagnostics)
+            // only update diagnostics cache when ViperServer is used as a backend.
+            if (config.backend == ViperBackends.ViperServerBackend) VerifierState.addDiagnosticsCache(fileUri, sortedErrs, diagnostics)
         }
         VerifierState.toggleVerificationRunning
         // remove all filechanges associated to this file which occured during the verification.
