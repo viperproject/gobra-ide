@@ -24,7 +24,7 @@ export function activate(context: vscode.ExtensionContext) {
 	State.client.onReady().then(() =>
 		{
 			let verifierConfig = new VerifierConfig();
-			Verifier.initialize(verifierConfig, fileUri, 2000);
+			Verifier.initialize(verifierConfig, fileUri, 500);
 		}
 	);
 

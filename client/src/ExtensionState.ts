@@ -6,7 +6,8 @@ import * as net from 'net';
 import * as child_process from "child_process";
 import { FileData, VerifierConfig, ClientConfig } from "./MessagePayloads";
 import { Helper } from "./Helper";
-import { IdeEvents } from './IdeEvents';
+import { IdeEvents } from "./IdeEvents";
+import { Verifier } from "./VerificationService";
 
 
 export class State {
@@ -29,7 +30,23 @@ export class State {
 
   public static updateConfiguration(): void {
     let config = Helper.getGobraConfiguration();
-    this.verifierConfig.clientConfig = new ClientConfig(config);
+    State.verifierConfig.clientConfig = new ClientConfig(config);
+  }
+
+  public static setVerificationRequestTimeout(fileUri: string, timeout: number, event: IdeEvents): void {
+    State.verificationRequestTimeout = setTimeout(() => {
+      Verifier.verifyFile(fileUri, event);
+      State.clearVerificationRequestTimeout();
+    }, timeout);
+  }
+
+  public static clearVerificationRequestTimeout(): void {
+    clearTimeout(State.verificationRequestTimeout);
+    State.verificationRequestTimeout = null;
+  }
+
+  public static refreshVerificationRequestTimeout(): void {
+    State.verificationRequestTimeout.refresh();
   }
 
 

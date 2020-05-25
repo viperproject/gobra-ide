@@ -1,9 +1,6 @@
 import * as vscode from 'vscode';
 import { URI } from 'vscode-uri';
 import { VerifierConfig, OverallVerificationResult, FileData } from "./MessagePayloads";
-import { Verifier } from "./VerificationService";
-import { State } from "./ExtensionState";
-import { IdeEvents } from "./IdeEvents";
 
 
 export class Helper {
@@ -41,22 +38,6 @@ export class Helper {
 
   public static isServerMode(): boolean {
     return vscode.workspace.getConfiguration("gobraSettings").get("serverMode");
-  }
-
-  public static setVerificationRequestTimeout(fileUri: string, timeout: number, event: IdeEvents): void {
-    State.verificationRequestTimeout = setTimeout(() => {
-      Verifier.verifyFile(fileUri, event);
-      Helper.clearVerificationRequestTimeout();
-    }, timeout);
-  }
-
-  public static clearVerificationRequestTimeout(): void {
-    clearTimeout(State.verificationRequestTimeout);
-    State.verificationRequestTimeout = null;
-  }
-
-  public static refreshVerificationRequestTimeout(): void {
-    State.verificationRequestTimeout.refresh();
   }
 
 }

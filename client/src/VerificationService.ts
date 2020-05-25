@@ -43,9 +43,9 @@ export class Verifier {
       if (change.contentChanges.length == 0) return;
 
       if (State.verificationRequestTimeout) {
-        Helper.refreshVerificationRequestTimeout();
+        State.refreshVerificationRequestTimeout();
       } else {
-        Helper.setVerificationRequestTimeout(change.document.uri.toString(), timeout, IdeEvents.FileChange);
+        State.setVerificationRequestTimeout(change.document.uri.toString(), timeout, IdeEvents.FileChange);
       }
     }));
 
@@ -134,6 +134,7 @@ export class Verifier {
     // setting filedata to currently open filedata
     State.updateFileData();
     State.client.sendNotification(Commands.changeFile, Helper.fileDataToJson(State.verifierConfig.fileData));
+    State.clearVerificationRequestTimeout();
   }
 }
 
