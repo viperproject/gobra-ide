@@ -11,7 +11,6 @@ let fileSystemWatcher: vscode.FileSystemWatcher;
 export function activate(context: vscode.ExtensionContext) {
 	// Uri of the file which triggered the plugin activation.
 	let fileUri: string = Helper.getFileUri();
-	console.log(fileUri);
 
   // creating Gobra Server
 	fileSystemWatcher = vscode.workspace.createFileSystemWatcher("**/*.gobra");
@@ -24,7 +23,7 @@ export function activate(context: vscode.ExtensionContext) {
 	State.client.onReady().then(() =>
 		{
 			let verifierConfig = new VerifierConfig();
-			Verifier.initialize(verifierConfig, fileUri, 500);
+			Verifier.initialize(verifierConfig, fileUri, 1000);
 		}
 	);
 
