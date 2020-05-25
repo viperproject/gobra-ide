@@ -1,0 +1,38 @@
+{
+  "scopeName": "source.gobra",
+  "patterns": [
+    { "include": "#gobrakeywords" },
+    { "include": "#comments" }
+  ],
+
+  "repository": {
+    "gobrakeywords": {
+      "match": "requires|ensures|assert",
+      "name": "keyword.other.gobrakeywords"
+    },
+
+    "comments": {
+      "patterns": [
+        {
+          "begin": "//",
+          "beginCaptures": {
+            "0": { "name": "punctuation.definition.comment.gobra" }
+          },
+          "end": "$",
+          "name": "comment.line.double-slash.gobra"
+        },
+        {
+          "begin": "/\\*",
+          "beginCaptures": {
+            "0": { "name": "punctuation.definition.comment-start.gobra" }
+          },
+          "end": "\\*/",
+          "endCaptures": {
+            "0": { "name": "punctuation.definition.comment-end.gobra" }
+          },
+          "name": "comment.block.gobra"
+        }
+      ]
+    }
+  }
+}

@@ -13,7 +13,7 @@
     "url": "https://gitlab.inf.ethz.ch/OU-PMUELLER/student-projects/gobra-ide"
   },
   "engines": {
-    "vscode": "^1.33.0"
+    "vscode": "^1.45.0"
   },
   "main": "./out/extension",
   "dependencies": {
@@ -43,9 +43,17 @@
         "extensions": [
           ".gobra"
         ],
+        "configuration": "./src/gobra-configuration.json",
         "aliases": [
           "Gobra"
         ]
+      }
+    ],
+    "grammars": [
+      {
+        "language": "gobra",
+        "scopeName": "source.gobra",
+        "path": "./src/gobra.tmGrammar.json"
       }
     ],
     "configuration": {

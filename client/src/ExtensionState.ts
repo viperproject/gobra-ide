@@ -6,6 +6,7 @@ import * as net from 'net';
 import * as child_process from "child_process";
 import { FileData, VerifierConfig, ClientConfig } from "./MessagePayloads";
 import { Helper } from "./Helper";
+import { IdeEvents } from './IdeEvents';
 
 
 export class State {
@@ -15,6 +16,10 @@ export class State {
   public static runningVerificationUri: string;
 
   public static runningVerifications: Set<string>;
+  // tracks the verification requests which were made when a verification was already running.
+  public static verificationRequests: Map<string, IdeEvents>;
+
+  public static verificationRequestTimeout: NodeJS.Timeout;
 
   public static verifierConfig: VerifierConfig;
 
@@ -34,6 +39,9 @@ export class State {
     this.runningVerificationUri = null;
 
     this.runningVerifications = new Set<string>();
+    this.verificationRequests = new Map<string, IdeEvents>();
+
+    this.verificationRequestTimeout = null;
 
     let serverBin = State.context.asAbsolutePath(path.join('../', 'server', 'target', 'scala-2.12', 'server.jar'));
 
