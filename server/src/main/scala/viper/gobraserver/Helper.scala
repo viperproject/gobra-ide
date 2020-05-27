@@ -98,6 +98,13 @@ object Helper {
     }
   }
 
+  def getOverallVerificationResultFromException(e: Throwable): OverallVerificationResult = {
+    OverallVerificationResult(
+      success = false,
+      message = e.getMessage()
+    )
+  }
+
   def getOverallVerificationResult(e: Throwable): OverallVerificationResult = {
     OverallVerificationResult(
       success = false,

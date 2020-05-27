@@ -5,6 +5,7 @@ import viper.gobra.GobraFrontend
 import viper.gobra.reporting.VerifierResult
 import viper.gobra.backend.ViperBackends
 import viper.gobra.reporting.VerifierError
+import viper.gobra.util.Violation$LogicException
 
 import java.io.File
 
@@ -35,6 +36,7 @@ object GobraServer extends GobraFrontend {
   def start() {
     _verifier = new Gobra
     _server.start()
+    VerifierState.flushCachedDiagnostics()
   }
 
   def verify(verifierConfig: VerifierConfig): Future[VerifierResult] = {
@@ -87,21 +89,27 @@ object GobraServer extends GobraFrontend {
         val overallResult = Helper.getOverallVerificationResult(result, endTime - startTime)
         VerifierState.addOverallResult(fileUri, overallResult)
 
+        publishResults(fileUri)
 
-        // only send diagnostics after verification if same file is still open.
-        if (fileUri == VerifierState.openFileUri) {
-          VerifierState.publishDiagnostics(fileUri)
-          VerifierState.sendOverallResult(fileUri)
-        }
-        Helper.sendFinishedVerification(fileUri)
+      case Failure(exception) =>
 
-      case Failure(e) =>
-        println("Exception occured: " + e)
-        VerifierState.client match {
-          case Some(c) =>
-            c.showMessage(new MessageParams(MessageType.Error, "An exception occured during verification of " + filePath))
-            c.verificationException(fileUri)
-          case None =>
+        exception match {
+          case e: Violation$LogicException => {
+            VerifierState.removeDiagnostics(fileUri)
+            val overallResult = Helper.getOverallVerificationResultFromException(e)
+            VerifierState.addOverallResult(fileUri, overallResult)
+
+            publishResults(fileUri)
+          }
+          case e => {
+            println("Exception occured: " + e)
+            VerifierState.client match {
+              case Some(c) =>
+                c.showMessage(new MessageParams(MessageType.Error, "An exception occured during verification of " + filePath))
+                c.verificationException(fileUri)
+              case None =>
+            }
+          }
         }
 
         // restart GobraServer
@@ -110,6 +118,14 @@ object GobraServer extends GobraFrontend {
     }
 
     resultFuture
+  }
+
+  def publishResults(fileUri: String) {
+    if (fileUri == VerifierState.openFileUri) {
+      VerifierState.publishDiagnostics(fileUri)
+      VerifierState.sendOverallResult(fileUri)
+    }
+    Helper.sendFinishedVerification(fileUri)
   }
 
   def errorToDiagnostic(error: VerifierError): Diagnostic = {
