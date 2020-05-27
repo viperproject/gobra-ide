@@ -20,14 +20,13 @@ class VerificationWorker extends Runnable {
           }
           verificationJob = VerifierState.jobQueue.dequeue()
         }
-
         val resultFuture = GobraServer.verify(verificationJob)
         Await.result(resultFuture, Duration.Inf)
 
       }
     } catch {
       case e: InterruptedException => println("VerificationWorker got interrupted.")
-      case _ =>
+      case _ => run() // restart the verification worker
     }
 
   }

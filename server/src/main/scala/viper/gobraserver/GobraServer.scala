@@ -103,6 +103,10 @@ object GobraServer extends GobraFrontend {
             c.verificationException(fileUri)
           case None =>
         }
+
+        // restart GobraServer
+        println("Restarting Gobra Server")
+        start()
     }
 
     resultFuture
