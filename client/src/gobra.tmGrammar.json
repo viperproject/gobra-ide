@@ -251,13 +251,17 @@
 			}
 		},
 		{
-			"match": "\\b\\w+(?:,\\s*\\w+)*(?=\\s*:=)",
+			"match": "\\b\\w+!?(?:,\\s*\\w+!?)*(?=\\s*:=)",
 			"captures": {
 				"0": {
 					"patterns": [
 						{
 							"match": "\\d\\w*",
 							"name": "invalid.illegal.identifier.go"
+						},
+						{
+							"match": "\\w+!",
+							"name": "variable.other.assignment.addressable.gobra"
 						},
 						{
 							"match": "\\w+",
@@ -654,13 +658,17 @@
 		"variables": {
 			"patterns": [
 				{
-					"match": "(\\w+(?:,\\s*\\w+)*)(\\s+\\*?\\w+(?:\\.\\w+)?\\s*)?(?=\\s*=)",
+					"match": "(\\w+!?(?:,\\s*\\w+!?)*)(\\s+\\*?\\w+!?(?:\\.\\w+)?\\s*)?(?=\\s*=)",
 					"captures": {
 						"1": {
 							"patterns": [
 								{
 									"match": "\\d\\w*",
 									"name": "invalid.illegal.identifier.go"
+								},
+								{
+									"match": "\\w+!",
+									"name": "variable.other.assignment.addressable.gobra"
 								},
 								{
 									"match": "\\w+",
