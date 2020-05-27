@@ -65,6 +65,8 @@ export class Verifier {
 
   // verifies the file with the given fileUri
   public static verifyFile(fileUri: string, event: IdeEvents): void {
+    State.clearVerificationRequestTimeout();
+    
     // only verify if it is a gobra file
     if (!fileUri.endsWith(".gobra")) return;
 
