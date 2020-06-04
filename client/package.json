@@ -56,6 +56,14 @@
         "path": "./src/gobra.tmGrammar.json"
       }
     ],
+    "commands": [
+      {
+        "command": "gobraServer/flushCache",
+        "title": "flush viper server cache",
+        "category": "Gobra"
+      }
+    ],
+
     "configuration": {
       "type": "object",
       "title": "Gobra Configuration",

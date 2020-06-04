@@ -16,9 +16,9 @@ export class Verifier {
     Verifier.verifyItem = new StatusBarButton(Texts.helloGobra, 10);
 
     // Initialize Flush Cache Button in Statusbar
-    Verifier.cacheFlushItem = new StatusBarButton(Texts.flushCache, 20);
+    //Verifier.cacheFlushItem = new StatusBarButton(Texts.flushCache, 20);
     Helper.registerCommand(Commands.flushCache, Verifier.flushCache, State.context);
-    Verifier.cacheFlushItem.setCommand(Commands.flushCache, State.context);
+    //Verifier.cacheFlushItem.setCommand(Commands.flushCache, State.context);
 
     // add data of current file
     State.verifierConfig = verifierConfig;
