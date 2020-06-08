@@ -39,6 +39,9 @@ object GobraServer extends GobraFrontend {
     VerifierState.flushCachedDiagnostics()
   }
 
+  /**
+    * Verify file and display potential errors as Diagnostics.
+    */
   def verify(verifierConfig: VerifierConfig): Future[VerifierResult] = {
     val fileUri = verifierConfig.fileData.fileUri
 
@@ -47,7 +50,7 @@ object GobraServer extends GobraFrontend {
     val filePath = verifierConfig.fileData.filePath
     val startTime = System.currentTimeMillis()
 
-    val config = Helper.configFromTask(verifierConfig)
+    val config = Helper.verificationConfigFromTask(verifierConfig)
     val resultFuture = verifier.verify(config)
 
     resultFuture.onComplete {
@@ -119,6 +122,38 @@ object GobraServer extends GobraFrontend {
 
     resultFuture
   }
+
+
+  /**
+    * Goify File and publish potential errors as Diagnostics.
+    */
+  def goify(fileData: FileData): Future[VerifierResult] = {
+    val fileUri = fileData.fileUri
+
+    val filePath = fileData.filePath
+    val startTime = System.currentTimeMillis()
+
+    val config = Helper.goifyConfigFromTask(fileData)
+
+    val goifyFuture = verifier.goify(config)
+
+    goifyFuture.onComplete {
+      case Success(result) =>
+        val endTime = System.currentTimeMillis()
+
+        (result, VerifierState.client) match {
+          case (VerifierResult.Success, Some(c)) =>
+            c.finishedGoifying(fileUri, true)
+          case (VerifierResult.Failure(_), Some(c)) =>
+            c.finishedGoifying(fileUri, false)
+          case _ =>
+        }
+    }
+
+    goifyFuture
+  }
+
+
 
   def publishResults(fileUri: String) {
     if (fileUri == VerifierState.openFileUri) {

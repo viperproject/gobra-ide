@@ -12,11 +12,12 @@ import java.io.File
 import ch.qos.logback.classic.Level
 
 object Helper {
-  def configFromTask(verifierConfig: VerifierConfig): Config = {
+
+  def verificationConfigFromTask(verifierConfig: VerifierConfig): Config = {
     verifierConfig match {
       case VerifierConfig(
         FileData(path, fileUri),
-        ClientConfig(backendId, serverMode, debug, eraseGhost, unparse, printInternal, printViper, parseOnly, logLevel)
+        ClientConfig(backendId, serverMode, debug, eraseGhost, goify, unparse, printInternal, printViper, parseOnly, logLevel)
       ) => {
 
         val shouldParse = true
@@ -28,6 +29,7 @@ object Helper {
         val reporter = FileWriterReporter(
           unparse = unparse,
           eraseGhost = eraseGhost,
+          goify = goify,
           debug = debug,
           printInternal = printInternal,
           printVpr = printViper
@@ -80,6 +82,12 @@ object Helper {
         )
       }
     }
+  }
+
+  def goifyConfigFromTask(fileData: FileData): Config = {
+    val reporter = FileWriterReporter(goify = true)
+
+    Config(inputFile = new File(fileData.filePath), reporter = reporter)
   }
 
 

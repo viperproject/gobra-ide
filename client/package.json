@@ -61,6 +61,11 @@
         "command": "gobraServer/flushCache",
         "title": "flush viper server cache",
         "category": "Gobra"
+      },
+      {
+        "command": "gobraServer/goifyFile",
+        "title": "goify currently opened file",
+        "category": "Gobra"
       }
     ],
 

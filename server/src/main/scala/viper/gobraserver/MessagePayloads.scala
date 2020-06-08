@@ -12,6 +12,7 @@ case class ClientConfig (
   serverMode: Boolean,
   debug: Boolean,
   eraseGhost: Boolean,
+  goify: Boolean,
   unparse: Boolean,
   printInternal: Boolean,
   printViper: Boolean,

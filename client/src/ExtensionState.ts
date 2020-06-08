@@ -20,6 +20,8 @@ export class State {
   // tracks the verification requests which were made when a verification was already running.
   public static verificationRequests: Map<string, IdeEvents>;
 
+  public static runningGoifications: Set<string>;
+
   public static verificationRequestTimeout: NodeJS.Timeout;
 
   public static verifierConfig: VerifierConfig;
@@ -57,6 +59,8 @@ export class State {
 
     this.runningVerifications = new Set<string>();
     this.verificationRequests = new Map<string, IdeEvents>();
+
+    this.runningGoifications = new Set<string>();
 
     this.verificationRequestTimeout = null;
 

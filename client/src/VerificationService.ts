@@ -7,37 +7,47 @@ import { IdeEvents } from "./IdeEvents";
 
 
 export class Verifier {
-  // insert fields defining the verifier
   public static verifyItem: StatusBarButton;
   public static cacheFlushItem: StatusBarButton;
 
   public static initialize(verifierConfig: VerifierConfig, fileUri: string, timeout: number): void {
+    // add file data of current file to the state
+    State.verifierConfig = verifierConfig;
+
     // Initialize Verification Button in Statusbar
     Verifier.verifyItem = new StatusBarButton(Texts.helloGobra, 10);
 
-    // Initialize Flush Cache Button in Statusbar
-    //Verifier.cacheFlushItem = new StatusBarButton(Texts.flushCache, 20);
+    /**
+      * Register Commands for Command Palette.
+      */
     Helper.registerCommand(Commands.flushCache, Verifier.flushCache, State.context);
-    //Verifier.cacheFlushItem.setCommand(Commands.flushCache, State.context);
+    Helper.registerCommand(Commands.goifyFile, Verifier.goifyFile, State.context);
 
-    // add data of current file
-    State.verifierConfig = verifierConfig;
-    // register file changed listener
+
+    /**
+      * Register Notification handlers for Gobra-Server notifications.
+      */
+    State.client.onNotification(Commands.overallResultNotification, Verifier.handleOverallResultNotification)
+    State.client.onNotification(Commands.noVerificationResult, Verifier.handleNoResultNotification);
+    State.client.onNotification(Commands.finishedVerification, Verifier.handleFinishedVerificationNotification);
+    State.client.onNotification(Commands.verificationException, Verifier.handleFinishedVerificationNotification);
+
+    State.client.onNotification(Commands.finishedGoifying, Verifier.handleFinishedGoifyingNotification);
+
+
+    /**
+      * Register VSCode Event listeners.
+      */
     State.context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(Verifier.changeFile));
-
-    // verify file which triggered the activation of the plugin
-    Verifier.verifyFile(fileUri.toString(), IdeEvents.Open);
-    // register event which verifies files which get newly opened
+    // open event
     State.context.subscriptions.push(vscode.workspace.onDidOpenTextDocument(document => {
       Verifier.verifyFile(document.uri.toString(), IdeEvents.Open)
     }));
-    
-    // register event which verifies files when they get saved
+    // save event
     State.context.subscriptions.push(vscode.workspace.onDidSaveTextDocument(document => {
       Verifier.verifyFile(document.uri.toString(), IdeEvents.Save);
     }));
-
-    // register event which verifies files when a filechange is made
+    // filechange event
     State.context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(change => {
       // don't set timeout when file was saved
       if (change.contentChanges.length == 0) return;
@@ -49,21 +59,15 @@ export class Verifier {
       }
     }));
 
-    // register the handler for the overall verification result notification
-    State.client.onNotification(Commands.overallResultNotification, Verifier.handleOverallResultNotification)
-    // register the handler for the no verification result notification
-    State.client.onNotification(Commands.noVerificationResult, Verifier.handleNoResultNotification);
-    // register the handler for the finished verification notification
-    State.client.onNotification(Commands.finishedVerification, Verifier.handleFinishedVerificationNotification);
-    // register the handler for the verification exception notification
-    State.client.onNotification(Commands.verificationException, Verifier.handleFinishedVerificationNotification);
+
+    // verify file which triggered the activation of the plugin
+    Verifier.verifyFile(fileUri.toString(), IdeEvents.Open);    
   }
 
-  public static test(name: string): void {
-    console.log(name);
-  }
 
-  // verifies the file with the given fileUri
+  /**
+    * Verifies the file with the given fileUri
+    */
   public static verifyFile(fileUri: string, event: IdeEvents): void {
     State.clearVerificationRequestTimeout();
     
@@ -88,12 +92,54 @@ export class Verifier {
     }
   }
 
-  // flushes cache of ViperServer and also all diagnostics.
+  /**
+    * Transform the file with the given fileUri to a Go file with the goified annotations.
+    * Open the Goified file when the Goification has terminated and succeeded.
+    */
+  public static goifyFile(): void {
+    State.updateFileData();
+
+    let fileUri = State.verifierConfig.fileData.fileUri;
+    let filePath = State.verifierConfig.fileData.filePath;
+
+    // only goify if it is a gobra file
+    if (!fileUri.endsWith(".gobra")) return;
+
+    if (!State.runningGoifications.has(fileUri)) {
+      State.runningGoifications.add(fileUri);
+
+      vscode.window.activeTextEditor.document.save().then((saved: boolean) => {
+        console.log("sending goification request");
+        State.client.sendNotification(Commands.goifyFile, Helper.fileDataToJson(State.verifierConfig.fileData))
+      })
+    } else {
+      vscode.window.showInformationMessage("There is already a Goification running for file " + filePath);
+    }
+  }
+
+
+  /**
+    * Flushes cache of ViperServer and also all diagnostics.
+    */
   public static flushCache(): void {
     State.client.sendNotification(Commands.flushCache);
   }
 
 
+  /**
+    * Send focus change information to Gobra-Server.
+    */
+   public static changeFile(): void {
+    // setting filedata to currently open filedata
+    State.updateFileData();
+    State.client.sendNotification(Commands.changeFile, Helper.fileDataToJson(State.verifierConfig.fileData));
+    State.clearVerificationRequestTimeout();
+  }
+
+
+  /**
+    * Handler Functions handling notifications from Gobra-Server.
+    */
   private static handleOverallResultNotification(jsonOverallResult: string): void {
     let overallResult: OverallVerificationResult = Helper.jsonToOverallResult(jsonOverallResult);
     if (overallResult.success) {
@@ -131,12 +177,14 @@ export class Verifier {
     }
   }
 
+  private static handleFinishedGoifyingNotification(fileUri: string, success: boolean): void {
+    State.runningGoifications.delete(fileUri);
 
-  public static changeFile(): void {
-    // setting filedata to currently open filedata
-    State.updateFileData();
-    State.client.sendNotification(Commands.changeFile, Helper.fileDataToJson(State.verifierConfig.fileData));
-    State.clearVerificationRequestTimeout();
+    if (success) {
+      vscode.window.showTextDocument(vscode.Uri.parse(fileUri + ".go"));
+    } else {
+      vscode.window.showErrorMessage("An error occured during the Goification of " + vscode.Uri.parse(fileUri).fsPath);
+    }
   }
 }
 

@@ -44,13 +44,22 @@ export class Helper {
 
 // Defines the commands used for requests
 export class Commands {
+  /**
+    * Commands handled by Gobra-Server
+    */
   public static verifyFile = "gobraServer/verifyFile";
   public static changeFile = "gobraServer/changeFile";
+  public static flushCache = "gobraServer/flushCache";
+  public static goifyFile = "gobraServer/goifyFile";
+
+  /**
+    * Commands handled by Client (VSCode)
+    */
   public static overallResultNotification = "gobraServer/overallResultNotification";
   public static noVerificationResult = "gobraServer/noVerificationResult";
   public static finishedVerification = "gobraServer/finishedVerification";
   public static verificationException = "gobraServer/verificationException";
-  public static flushCache = "gobraServer/flushCache";
+  public static finishedGoifying = "gobraServer/finishedGoifying";
 }
 
 // Defines the texts in statusbars ...
