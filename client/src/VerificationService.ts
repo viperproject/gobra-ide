@@ -22,7 +22,7 @@ export class Verifier {
       */
     Helper.registerCommand(Commands.flushCache, Verifier.flushCache, State.context);
     Helper.registerCommand(Commands.goifyFile, Verifier.goifyFile, State.context);
-
+    Helper.registerCommand(Commands.gobrafyFile, Verifier.gobrafyFile, State.context);
 
     /**
       * Register Notification handlers for Gobra-Server notifications.
@@ -33,6 +33,7 @@ export class Verifier {
     State.client.onNotification(Commands.verificationException, Verifier.handleFinishedVerificationNotification);
 
     State.client.onNotification(Commands.finishedGoifying, Verifier.handleFinishedGoifyingNotification);
+    State.client.onNotification(Commands.finishedGobrafying, Verifier.handleFinishedGobrafyingNotification);
 
 
     /**
@@ -93,7 +94,7 @@ export class Verifier {
   }
 
   /**
-    * Transform the file with the given fileUri to a Go file with the goified annotations.
+    * Transform the currently open file to a Go file with the goified annotations.
     * Open the Goified file when the Goification has terminated and succeeded.
     */
   public static goifyFile(): void {
@@ -103,17 +104,50 @@ export class Verifier {
     let filePath = State.verifierConfig.fileData.filePath;
 
     // only goify if it is a gobra file
-    if (!fileUri.endsWith(".gobra")) return;
+    if (!fileUri.endsWith(".gobra")) {
+      vscode.window.showErrorMessage("Can only Goify Gobra files!");
+      return;
+    } 
+    
 
     if (!State.runningGoifications.has(fileUri)) {
       State.runningGoifications.add(fileUri);
 
       vscode.window.activeTextEditor.document.save().then((saved: boolean) => {
         console.log("sending goification request");
-        State.client.sendNotification(Commands.goifyFile, Helper.fileDataToJson(State.verifierConfig.fileData))
+        State.client.sendNotification(Commands.goifyFile, Helper.fileDataToJson(State.verifierConfig.fileData));
       })
     } else {
       vscode.window.showInformationMessage("There is already a Goification running for file " + filePath);
+    }
+  }
+
+
+  /**
+    * Transform the currently open file to a Gobra file with proof annotations.
+    * Open the Gobrafied file when the Gobrafication has terminated and succeeded.
+    */
+  public static gobrafyFile(): void {
+    State.updateFileData();
+
+    let fileUri = State.verifierConfig.fileData.fileUri;
+    let filePath = State.verifierConfig.fileData.filePath;
+
+    // only gobrafy if it is a go file
+    if (!fileUri.endsWith(".go")) {
+      vscode.window.showErrorMessage("Can only Gobrafy Go files!");
+      return;
+    }
+    
+    if (!State.runningGobrafications.has(filePath)) {
+      State.runningGobrafications.add(filePath);
+
+      vscode.window.activeTextEditor.document.save().then((saved: boolean) => {
+        console.log("sending gobrafication request");
+        State.client.sendNotification(Commands.gobrafyFile, Helper.fileDataToJson(State.verifierConfig.fileData));
+      })
+    } else {
+      vscode.window.showInformationMessage("There is already a Gobrafication running for file " + filePath);
     }
   }
 
@@ -186,6 +220,14 @@ export class Verifier {
       vscode.window.showErrorMessage("An error occured during the Goification of " + vscode.Uri.parse(fileUri).fsPath);
     }
   }
+
+  private static handleFinishedGobrafyingNotification(oldFilePath: string, newFilePath: string): void {
+    State.runningGobrafications.delete(oldFilePath);
+
+    vscode.window.showTextDocument(vscode.Uri.file(newFilePath));
+  }
+
+
+
+
 }
-
-

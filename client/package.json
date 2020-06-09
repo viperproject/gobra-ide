@@ -34,7 +34,8 @@
     "update-vscode": "vscode-install"
   },
   "activationEvents": [
-    "onLanguage:gobra"
+    "onLanguage:gobra",
+    "onLanguage:go"
   ],
   "contributes": {
     "languages": [
@@ -59,12 +60,17 @@
     "commands": [
       {
         "command": "gobraServer/flushCache",
-        "title": "flush viper server cache",
+        "title": "Flush Viper Server Cache",
         "category": "Gobra"
       },
       {
         "command": "gobraServer/goifyFile",
-        "title": "goify currently opened file",
+        "title": "Goify currently opened File",
+        "category": "Gobra"
+      },
+      {
+        "command": "gobraServer/gobrafyFile",
+        "title": "Gobrafy currently opened File",
         "category": "Gobra"
       }
     ],

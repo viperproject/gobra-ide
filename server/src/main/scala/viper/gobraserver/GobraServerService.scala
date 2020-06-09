@@ -137,6 +137,15 @@ class GobraServerService extends IdeLanguageClientAware {
     GobraServer.goify(fileData)
   }
 
+  @JsonNotification("gobraServer/gobrafyFile")
+  def gobrafyFile(fileDataJson: String): Unit = {
+    println("gobrafyFile")
+    val fileData: FileData = gson.fromJson(fileDataJson, classOf[FileData])
+
+    GobraServer.gobrafy(fileData)
+    GobraServer.flushCache()
+  }
+
 
   @JsonNotification("gobraServer/changeFile")
   def changeFile(fileDataJson: String): Unit = {

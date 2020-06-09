@@ -7,15 +7,16 @@ import viper.gobra.backend.ViperBackends
 import viper.gobra.reporting.VerifierError
 import viper.gobra.util.Violation$LogicException
 
-import java.io.File
+import java.io._
+import scala.io.Source
 
-import scala.concurrent.ExecutionContext
 import viper.server.{ ViperCoreServer, ViperConfig }
 import viper.gobra.backend.ViperBackends
 
 import org.eclipse.lsp4j.{ Diagnostic, Position, Range, DiagnosticSeverity, PublishDiagnosticsParams, MessageParams, MessageType }
 
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext
 import scala.util.{ Success, Failure }
 
 object GobraServer extends GobraFrontend {
@@ -154,6 +155,31 @@ object GobraServer extends GobraFrontend {
   }
 
 
+  /**
+    * Gobrafy File.
+    */
+  def gobrafy(fileData: FileData) {
+    val filePath = fileData.filePath
+
+    val fileContents = Source.fromFile(filePath).mkString
+
+    val filePathDropSuffix = if (filePath.endsWith(".go")) filePath.dropRight(3) else filePath
+    val newFilePath = if(filePathDropSuffix.endsWith(".gobra")) filePathDropSuffix else filePathDropSuffix + ".gobra"
+
+    val gobraFile = new File(newFilePath)
+    val bw = new BufferedWriter(new FileWriter(gobraFile))
+
+    bw.write(GobrafierRunner.gobrafyFileContents(fileContents))
+    bw.close()
+
+    VerifierState.client match {
+      case Some(c) => c.finishedGobrafying(filePath, newFilePath)
+      case None =>
+    }
+
+  }
+
+
 
   def publishResults(fileUri: String) {
     if (fileUri == VerifierState.openFileUri) {
@@ -178,6 +204,7 @@ object GobraServer extends GobraFrontend {
 
   def flushCache() {
     _server.flushCache()
+    VerifierState.flushCachedDiagnostics()
   }
 
   def delete() {

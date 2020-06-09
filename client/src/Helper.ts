@@ -51,6 +51,7 @@ export class Commands {
   public static changeFile = "gobraServer/changeFile";
   public static flushCache = "gobraServer/flushCache";
   public static goifyFile = "gobraServer/goifyFile";
+  public static gobrafyFile = "gobraServer/gobrafyFile";
 
   /**
     * Commands handled by Client (VSCode)
@@ -60,6 +61,7 @@ export class Commands {
   public static finishedVerification = "gobraServer/finishedVerification";
   public static verificationException = "gobraServer/verificationException";
   public static finishedGoifying = "gobraServer/finishedGoifying";
+  public static finishedGobrafying = "gobraServer/finishedGobrafying";
 }
 
 // Defines the texts in statusbars ...

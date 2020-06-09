@@ -21,6 +21,7 @@ export class State {
   public static verificationRequests: Map<string, IdeEvents>;
 
   public static runningGoifications: Set<string>;
+  public static runningGobrafications: Set<string>;
 
   public static verificationRequestTimeout: NodeJS.Timeout;
 
@@ -61,6 +62,7 @@ export class State {
     this.verificationRequests = new Map<string, IdeEvents>();
 
     this.runningGoifications = new Set<string>();
+    this.runningGobrafications = new Set<string>();
 
     this.verificationRequestTimeout = null;
 
