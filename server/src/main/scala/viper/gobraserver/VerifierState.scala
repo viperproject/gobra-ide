@@ -127,33 +127,55 @@ object VerifierState {
     changes.foreach(change => {
       val range = change.getRange()
 
+      // Position of File change
       var (cStartL, cStartC) = (Helper.startLine(range), Helper.startChar(range))
       var (cEndL, cEndC) = (Helper.endLine(range), Helper.endChar(range))
 
       newDiagnostics = change.getText() match {
         case "" =>
-          // delete character case
+          /**
+            * Delete character or line case.
+            */
           val deletedLines = cEndL - cStartL
           val deletedCharacters = max(cEndC - cStartC, 0)
 
           newDiagnostics.map(diagnostic => {
             val range = diagnostic.getRange()
 
+            // Position of the Diagnostic
             var (startL, startC) = (Helper.startLine(range), Helper.startChar(range))
             var (endL, endC) = (Helper.endLine(range), Helper.endChar(range))
 
+            /**
+              * On same line as Diagnostic.
+              * Before the first character of the Diagnostic.
+              */
             if (cEndC <= startC && cEndL == endL) {
                 startC = startC - deletedCharacters
 
+                /**
+                  * Delete line, so diagnostic may not start at the beginning of the line.
+                  */
                 if (cStartL < cEndL && cStartL < startL) startC = startC + cStartC
             }
                
+            /**
+              * On same line as Diagnostic.
+              * Between the start and end character of the Diagnostic.
+              */
             if (cEndC <= endC && cEndL == endL) {
               endC = endC - deletedCharacters
 
+              /**
+                * Delete line, so the end character may need some offset resulting from characters
+                * which were on the line the diagnostic gets moved to.
+                */
               if (cStartL < cEndL) endC = endC + cStartC
             }
 
+            /**
+              * Lines deleted before the diagnostic.
+              */
             if (cEndL <= startL) {
               startL = startL - deletedLines
             }
@@ -167,20 +189,30 @@ object VerifierState {
             
           })
         case text =>
-          // add character case
+          /**
+            * Add character or line case.
+            */
           val addedLines = text.count(_=='\n')
           val numReturns = text.count(_=='\r')
           val addedCharacters = text.count(_!='\n') - numReturns
 
           newDiagnostics.map(diagnostic => {
+            // Position of the Diagnostic
             var (startL, startC) = (diagnostic.getRange().getStart().getLine(), diagnostic.getRange().getStart().getCharacter())
             var (endL, endC) = (diagnostic.getRange().getEnd().getLine(), diagnostic.getRange().getEnd().getCharacter())    
 
+            /**
+              * Line added before the diagnostic or at the same line
+              * before the start character of the diagnostic.
+              */
             if (cEndL < startL || (cStartC <= startC && cEndL == startL)) {
               startL = startL + addedLines
             }
 
-
+            /**
+              * Characters added on same line and before the start
+              * of the diagnostic.
+              */
             if (cStartC <= startC && cEndL == endL) {
               if (addedLines > 0) {
                 startC = startC - cStartC
@@ -189,6 +221,11 @@ object VerifierState {
               }
             }
 
+
+            /**
+              * Characters added on same line and before the end
+              * of the diagnostic.
+              */
             if (cEndC < endC && cEndL == endL) {
               if (addedLines > 0) {
                 endC = endC - cEndC
