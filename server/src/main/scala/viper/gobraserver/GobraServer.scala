@@ -44,8 +44,6 @@ object GobraServer extends GobraFrontend {
 
 
   def publishResults(fileUri: String) {
-    println("The file uri is: " + fileUri)
-    println("The opened file uri is: " + VerifierState.openFileUri)
 
     if (fileUri == VerifierState.openFileUri) {
       VerifierState.publishDiagnostics(fileUri)
@@ -305,6 +303,8 @@ object GobraServer extends GobraFrontend {
   def verifyGo(verifierConfig: VerifierConfig): Future[VerifierResult] = {
     val filePath = verifierConfig.fileData.filePath
 
+    VerifierState.toggleVerificationRunning
+
     val fileContents = Source.fromFile(filePath).mkString
     val gobrafiedContents = GobrafierRunner.gobrafyFileContents(fileContents)
 
@@ -330,6 +330,7 @@ object GobraServer extends GobraFrontend {
   def flushCache() {
     _server.flushCache()
     VerifierState.flushCachedDiagnostics()
+    VerifierState.changes = List()
   }
 
   def delete() {

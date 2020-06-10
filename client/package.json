@@ -79,6 +79,32 @@
         "category": "Gobra"
       }
     ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "gobra.flushCache",
+          "when": "resourceLangId == gobra",
+          "group": "Gobra"
+        },
+        {
+          "command": "gobra.goifyFile",
+          "when": "resourceLangId == gobra",
+          "group": "Gobra"
+        },
+        {
+          "command": "gobra.gobrafyFile",
+          "when": "resourceLangId == go",
+          "group": "Gobra"
+        },
+        {
+          "command": "gobra.verifyFile",
+          "when": "resourceLangId == gobra || resourceLangId == go",
+          "group": "Gobra"
+        }
+      ]
+    },
+
+
     "configuration": {
       "type": "object",
       "title": "Gobra Configuration",
