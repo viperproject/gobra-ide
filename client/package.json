@@ -103,6 +103,32 @@
         }
       ]
     },
+    "keybindings": [
+      {
+        "command": "gobra.flushCache",
+        "key": "alt+shift+f",
+        "mac": "alt+shift+f",
+        "when": "resourceLangId == gobra"
+      },
+      {
+        "command": "gobra.goifyFile",
+        "key": "ctrl+g",
+        "mac": "cmd+g",
+        "when": "resourceLangId == gobra"
+      },
+      {
+        "command": "gobra.gobrafyFile",
+        "key": "ctrl+g",
+        "mac": "cmd+g",
+        "when": "resourceLangId == go"
+      },
+      {
+        "command": "gobra.verifyFile",
+        "key": "f5",
+        "mac": "f5",
+        "when": "resourceLangId == gobra || resourceLangId == go"
+      }
+    ],
 
 
     "configuration": {
