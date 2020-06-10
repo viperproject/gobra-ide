@@ -190,11 +190,17 @@ object VerifierState {
           })
         case text =>
           /**
+            * Characters were overwritten with Code Completion / Intellisense.
+            * Need to remove those to not count letters multiple times.
+            */
+          val overwrittenCharacters = cEndC - cStartC
+
+          /**
             * Add character or line case.
             */
           val addedLines = text.count(_=='\n')
           val numReturns = text.count(_=='\r')
-          val addedCharacters = text.count(_!='\n') - numReturns
+          val addedCharacters = text.count(_!='\n') - numReturns - overwrittenCharacters
 
           newDiagnostics.map(diagnostic => {
             // Position of the Diagnostic

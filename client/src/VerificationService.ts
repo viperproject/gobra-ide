@@ -221,10 +221,14 @@ export class Verifier {
     }
   }
 
-  private static handleFinishedGobrafyingNotification(oldFilePath: string, newFilePath: string): void {
+  private static handleFinishedGobrafyingNotification(oldFilePath: string, newFilePath: string, success: boolean): void {
     State.runningGobrafications.delete(oldFilePath);
 
-    vscode.window.showTextDocument(vscode.Uri.file(newFilePath));
+    if (success) {
+      vscode.window.showTextDocument(vscode.Uri.file(newFilePath));
+    } else {
+      vscode.window.showErrorMessage("An error occured during the Gobrafication of " + oldFilePath);
+    }
   }
 
 

@@ -115,7 +115,11 @@ class GobraServerService extends IdeLanguageClientAware {
   @JsonNotification("textDocument/didSave")
   def didSave(params: DidSaveTextDocumentParams): Unit = {
     println("didSave")
+  }
 
+  @JsonNotification("workspace/didChangeWatchedFiles")
+  def didChangeWatchedFiles(params: DidChangeWatchedFilesParams): Unit = {
+    println("didChangeWatchedFiles")
   }
 
   @JsonNotification("gobraServer/verifyFile")

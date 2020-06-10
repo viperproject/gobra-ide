@@ -21,6 +21,6 @@ trait IdeLanguageClient extends LanguageClient {
   def finishedGoifying(fileUri: String, success: Boolean): Unit
 
   @JsonNotification("gobraServer/finishedGobrafying")
-  def finishedGobrafying(oldFilePath: String, newFilePath: String): Unit
+  def finishedGobrafying(oldFilePath: String, newFilePath: String, success: Boolean): Unit
 
 }

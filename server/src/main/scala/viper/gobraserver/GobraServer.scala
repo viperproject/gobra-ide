@@ -159,22 +159,30 @@ object GobraServer extends GobraFrontend {
     * Gobrafy File.
     */
   def gobrafy(fileData: FileData) {
-    val filePath = fileData.filePath
+    var success = false
 
-    val fileContents = Source.fromFile(filePath).mkString
+    val filePath = fileData.filePath
 
     val filePathDropSuffix = if (filePath.endsWith(".go")) filePath.dropRight(3) else filePath
     val newFilePath = if(filePathDropSuffix.endsWith(".gobra")) filePathDropSuffix else filePathDropSuffix + ".gobra"
 
-    val gobraFile = new File(newFilePath)
-    val bw = new BufferedWriter(new FileWriter(gobraFile))
+    try {
+      val fileContents = Source.fromFile(filePath).mkString
+      
+      val gobraFile = new File(newFilePath)
+      val bw = new BufferedWriter(new FileWriter(gobraFile))
 
-    bw.write(GobrafierRunner.gobrafyFileContents(fileContents))
-    bw.close()
+      bw.write(GobrafierRunner.gobrafyFileContents(fileContents))
+      bw.close()
+
+      success = true  
+    } catch {
+      case _ => // just fall through case since we were pessimistic with the success.
+    }
 
     VerifierState.client match {
-      case Some(c) => c.finishedGobrafying(filePath, newFilePath)
-      case None =>
+        case Some(c) => c.finishedGobrafying(filePath, newFilePath, success)
+        case None =>
     }
 
   }
