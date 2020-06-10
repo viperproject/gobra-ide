@@ -13,7 +13,7 @@ export function activate(context: vscode.ExtensionContext) {
 	let fileUri: string = Helper.getFileUri();
 
   // creating Gobra Server
-	fileSystemWatcher = vscode.workspace.createFileSystemWatcher("**/*.gobra");
+	fileSystemWatcher = vscode.workspace.createFileSystemWatcher("**/*.{gobra, go}");
 	State.startLanguageServer(context, fileSystemWatcher);
 
 

@@ -6,6 +6,7 @@ import viper.gobra.reporting.VerifierResult
 import viper.gobra.backend.ViperBackends
 import viper.gobra.reporting.VerifierError
 import viper.gobra.util.Violation$LogicException
+import viper.gobra.frontend.Config
 
 import java.io._
 import scala.io.Source
@@ -40,20 +41,130 @@ object GobraServer extends GobraFrontend {
     VerifierState.flushCachedDiagnostics()
   }
 
+
+
+  def publishResults(fileUri: String) {
+    println("The file uri is: " + fileUri)
+    println("The opened file uri is: " + VerifierState.openFileUri)
+
+    if (fileUri == VerifierState.openFileUri) {
+      VerifierState.publishDiagnostics(fileUri)
+      VerifierState.sendOverallResult(fileUri)
+    }
+    Helper.sendFinishedVerification(fileUri)
+  }
+
+  def errorToDiagnostic(error: VerifierError, fileType: FileType.Value): Diagnostic = fileType match {
+    case FileType.Gobra =>
+      val startPos = new Position(error.position.start.line-1, error.position.start.column-1)
+      val endPos = error.position.end match {
+        case Some(pos) => new Position(pos.line-1, pos.column-1)
+        case None => startPos
+      }
+      new Diagnostic(new Range(startPos, endPos), error.message, DiagnosticSeverity.Error, "")
+
+    case FileType.Go =>
+      val startPos = new Position(error.position.start.line-1, 0)
+      val endPos = error.position.end match {
+        case Some(pos) => new Position(pos.line-1, Int.MaxValue)
+        case None => startPos
+      }
+      new Diagnostic(new Range(startPos, endPos), error.message, DiagnosticSeverity.Error, "")
+  }
+
+  def displayVerificationResult(fileData: FileData, config: Config, startTime: Long, resultFuture: Future[VerifierResult]) {
+
+    val fileUri = fileData.fileUri
+    val filePath = fileData.filePath
+
+    val fileType = if (fileUri.endsWith(".gobra")) FileType.Gobra else FileType.Go
+
+    resultFuture.onComplete {
+      case Success(result) =>
+        val endTime = System.currentTimeMillis()
+
+        result match {
+          case VerifierResult.Success => {
+            VerifierState.removeDiagnostics(fileUri)
+          }
+          case VerifierResult.Failure(errors) =>
+
+            val cachedErrors = errors.filter(_.cached).toList
+            val nonCachedErrors = errors.filterNot(_.cached).toList
+
+            val diagnosticsCache = VerifierState.getDiagnosticsCache(fileUri)
+            val cachedDiagnostics = cachedErrors.map(err => diagnosticsCache.get(err) match {
+              case Some(diagnostic) => diagnostic
+              case None =>
+                println("Caches not consistent!")
+                errorToDiagnostic(err, fileType)
+            }).toList
+
+            val nonCachedDiagnostics = nonCachedErrors.map(err => errorToDiagnostic(err, fileType)).toList
+
+            // Filechanges which happened during the verification.
+            val fileChanges = VerifierState.changes.filter({case (uri, _) => uri == fileUri}).flatMap({case (_, change) => change})
+
+            val diagnostics = cachedDiagnostics ++ VerifierState.translateDiagnostics(fileChanges, nonCachedDiagnostics)
+            val sortedErrs = cachedErrors ++ nonCachedErrors
+
+            VerifierState.addDiagnostics(fileUri, diagnostics)
+            // only update diagnostics cache when ViperServer is used as a backend.
+            if (config.backend == ViperBackends.ViperServerBackend) VerifierState.addDiagnosticsCache(fileUri, sortedErrs, diagnostics)
+        }
+        VerifierState.toggleVerificationRunning
+        // remove all filechanges associated to this file which occured during the verification.
+        VerifierState.changes = VerifierState.changes.filter({case (uri, _) => uri != fileUri})
+        
+        val overallResult = Helper.getOverallVerificationResult(result, endTime - startTime)
+        VerifierState.addOverallResult(fileUri, overallResult)
+
+        publishResults(fileUri)
+
+      case Failure(exception) =>
+
+        exception match {
+          case e: Violation$LogicException => {
+            VerifierState.removeDiagnostics(fileUri)
+            val overallResult = Helper.getOverallVerificationResultFromException(e)
+            VerifierState.addOverallResult(fileUri, overallResult)
+
+            publishResults(fileUri)
+          }
+          case e => {
+            println("Exception occured: " + e)
+            VerifierState.client match {
+              case Some(c) =>
+                c.showMessage(new MessageParams(MessageType.Error, "An exception occured during verification of " + filePath))
+                c.verificationException(fileUri)
+              case None =>
+            }
+          }
+        }
+
+        // restart GobraServer
+        println("Restarting Gobra Server")
+        start()
+    }
+  }
+
   /**
     * Verify file and display potential errors as Diagnostics.
     */
   def verify(verifierConfig: VerifierConfig): Future[VerifierResult] = {
     val fileUri = verifierConfig.fileData.fileUri
+    val filePath = verifierConfig.fileData.filePath
 
     VerifierState.toggleVerificationRunning
     
-    val filePath = verifierConfig.fileData.filePath
+    
     val startTime = System.currentTimeMillis()
 
     val config = Helper.verificationConfigFromTask(verifierConfig)
     val resultFuture = verifier.verify(config)
 
+    displayVerificationResult(verifierConfig.fileData, config, startTime, resultFuture)
+    /*
     resultFuture.onComplete {
       case Success(result) =>
         val endTime = System.currentTimeMillis()
@@ -120,6 +231,7 @@ object GobraServer extends GobraFrontend {
         println("Restarting Gobra Server")
         start()
     }
+    */
 
     resultFuture
   }
@@ -177,34 +289,39 @@ object GobraServer extends GobraFrontend {
 
       success = true  
     } catch {
-      case _ => // just fall through case since we were pessimistic with the success.
+      case _: Throwable => // just fall through case since we were pessimistic with the success.
     }
 
     VerifierState.client match {
         case Some(c) => c.finishedGobrafying(filePath, newFilePath, success)
         case None =>
     }
+  }
 
+
+  /**
+    * Verify Go File directly.
+    */
+  def verifyGo(verifierConfig: VerifierConfig): Future[VerifierResult] = {
+    val filePath = verifierConfig.fileData.filePath
+
+    val fileContents = Source.fromFile(filePath).mkString
+    val gobrafiedContents = GobrafierRunner.gobrafyFileContents(fileContents)
+
+    val startTime = System.currentTimeMillis()
+
+    val config = Helper.verificationConfigFromTask(verifierConfig)
+    val resultFuture = verifier.verify(gobrafiedContents, config)
+
+    displayVerificationResult(verifierConfig.fileData, config, startTime, resultFuture)
+
+    resultFuture
   }
 
 
 
-  def publishResults(fileUri: String) {
-    if (fileUri == VerifierState.openFileUri) {
-      VerifierState.publishDiagnostics(fileUri)
-      VerifierState.sendOverallResult(fileUri)
-    }
-    Helper.sendFinishedVerification(fileUri)
-  }
 
-  def errorToDiagnostic(error: VerifierError): Diagnostic = {
-    val startPos = new Position(error.position.start.line-1, error.position.start.column-1)
-    val endPos = error.position.end match {
-      case Some(pos) => new Position(pos.line-1, pos.column-1)
-      case None => startPos
-    }
-    new Diagnostic(new Range(startPos, endPos), error.message, DiagnosticSeverity.Error, "")
-  }
+
 
   def stop() {
     _server.stop()

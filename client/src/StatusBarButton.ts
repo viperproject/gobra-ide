@@ -41,7 +41,8 @@ export class StatusBarButton {
   public updateItem() {
     if (vscode.window.activeTextEditor &&
         vscode.window.activeTextEditor.document &&
-        vscode.window.activeTextEditor.document.languageId == "gobra") {
+        (vscode.window.activeTextEditor.document.languageId == "gobra" ||
+         vscode.window.activeTextEditor.document.languageId == "go")) {
           this.item.show();
     } else {
       this.item.hide();

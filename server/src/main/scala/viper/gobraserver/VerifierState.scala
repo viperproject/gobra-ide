@@ -21,6 +21,9 @@ import viper.gobra.reporting.VerifierError
 
 import scala.math.max
 
+object FileType extends Enumeration {
+  val Gobra, Go = Value
+}
 
 object VerifierState {
   private val gson: Gson = new Gson()
@@ -36,8 +39,8 @@ object VerifierState {
   def verificationRunning: Boolean = _verificationRunning
   def toggleVerificationRunning { _verificationRunning = !_verificationRunning }
 
-  private val _jobQueue = Queue[VerifierConfig]()
-  def jobQueue: Queue[VerifierConfig] = _jobQueue
+  private val _jobQueue = Queue[(FileType.Value, VerifierConfig)]()
+  def jobQueue: Queue[(FileType.Value, VerifierConfig)] = _jobQueue
 
   private var _client: Option[IdeLanguageClient] = None
   def client: Option[IdeLanguageClient] = _client

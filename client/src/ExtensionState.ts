@@ -78,7 +78,7 @@ export class State {
 
     let clientOptions: LanguageClientOptions = {
       // register server for gobra files
-      documentSelector: [{ scheme: 'file', language: 'gobra' }],
+      documentSelector: [{ scheme: 'file', language: 'gobra' }, { scheme: 'file', language: 'go' }],
       synchronize: {
           fileEvents: fileSystemWatcher
       }

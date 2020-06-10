@@ -42,12 +42,13 @@ export class Helper {
 
 }
 
-// Defines the commands used for requests
+
 export class Commands {
   /**
     * Commands handled by Gobra-Server
     */
-  public static verifyFile = "gobraServer/verifyFile";
+  public static verifyGobraFile = "gobraServer/verifyGobraFile";
+  public static verifyGoFile = "gobraServer/verifyGoFile";
   public static changeFile = "gobraServer/changeFile";
   public static flushCache = "gobraServer/flushCache";
   public static goifyFile = "gobraServer/goifyFile";
@@ -77,5 +78,14 @@ export class Color {
 }
 
 
+/**
+  * Commands contributed to VS-Code.
+  */
+export class ContributionCommands {
+  public static flushCache = "gobra.flushCache";
+  public static goifyFile = "gobra.goifyFile";
+  public static gobrafyFile = "gobra.gobrafyFile";
+  public static verifyFile = "gobra.verifyFile";
+}
 
 

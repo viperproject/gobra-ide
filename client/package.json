@@ -59,22 +59,26 @@
     ],
     "commands": [
       {
-        "command": "gobraServer/flushCache",
+        "command": "gobra.flushCache",
         "title": "Flush Viper Server Cache",
         "category": "Gobra"
       },
       {
-        "command": "gobraServer/goifyFile",
+        "command": "gobra.goifyFile",
         "title": "Goify currently opened File",
         "category": "Gobra"
       },
       {
-        "command": "gobraServer/gobrafyFile",
+        "command": "gobra.gobrafyFile",
         "title": "Gobrafy currently opened File",
+        "category": "Gobra"
+      },
+      {
+        "command": "gobra.verifyFile",
+        "title": "Verify currently opened File",
         "category": "Gobra"
       }
     ],
-
     "configuration": {
       "type": "object",
       "title": "Gobra Configuration",

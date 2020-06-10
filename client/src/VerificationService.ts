@@ -1,5 +1,5 @@
 import { State } from "./ExtensionState";
-import { Helper, Commands, Texts, Color } from "./Helper";
+import { Helper, Commands, ContributionCommands, Texts, Color } from "./Helper";
 import { StatusBarButton } from "./StatusBarButton";
 import * as vscode from 'vscode';
 import { VerifierConfig, OverallVerificationResult, FileData } from "./MessagePayloads";
@@ -20,9 +20,10 @@ export class Verifier {
     /**
       * Register Commands for Command Palette.
       */
-    Helper.registerCommand(Commands.flushCache, Verifier.flushCache, State.context);
-    Helper.registerCommand(Commands.goifyFile, Verifier.goifyFile, State.context);
-    Helper.registerCommand(Commands.gobrafyFile, Verifier.gobrafyFile, State.context);
+    Helper.registerCommand(ContributionCommands.flushCache, Verifier.flushCache, State.context);
+    Helper.registerCommand(ContributionCommands.goifyFile, Verifier.goifyFile, State.context);
+    Helper.registerCommand(ContributionCommands.gobrafyFile, Verifier.gobrafyFile, State.context);
+    Helper.registerCommand(ContributionCommands.verifyFile, Verifier.manualVerifyFile, State.context);
 
     /**
       * Register Notification handlers for Gobra-Server notifications.
@@ -34,7 +35,6 @@ export class Verifier {
 
     State.client.onNotification(Commands.finishedGoifying, Verifier.handleFinishedGoifyingNotification);
     State.client.onNotification(Commands.finishedGobrafying, Verifier.handleFinishedGobrafyingNotification);
-
 
     /**
       * Register VSCode Event listeners.
@@ -65,26 +65,42 @@ export class Verifier {
     Verifier.verifyFile(fileUri.toString(), IdeEvents.Open);    
   }
 
+  /**
+    * Verifies the currently opened file
+    */
+  public static manualVerifyFile(): void {
+    State.updateConfiguration();
+    Verifier.verifyFile(State.verifierConfig.fileData.fileUri, IdeEvents.Manual);
+  }
 
   /**
     * Verifies the file with the given fileUri
     */
   public static verifyFile(fileUri: string, event: IdeEvents): void {
     State.clearVerificationRequestTimeout();
-    
-    // only verify if it is a gobra file
-    if (!fileUri.endsWith(".gobra")) return;
 
+    // return when no text editor is active
+    if (!vscode.window.activeTextEditor) return;
+    
+    // only verify if it is a gobra file or a go file where the verification was manually invoked.
+    if (!fileUri.endsWith(".gobra") && !(fileUri.endsWith(".go") && event == IdeEvents.Manual)) return;
+    
     if (!State.runningVerifications.has(fileUri)) {
       
       State.runningVerifications.add(fileUri);
-
+      
       State.updateConfiguration();
+      
       Verifier.verifyItem.addHourGlass();
 
       vscode.window.activeTextEditor.document.save().then((saved: boolean) => {
         console.log("sending verification request");
-        State.client.sendNotification(Commands.verifyFile, Helper.configToJson(State.verifierConfig))
+
+        if (fileUri.endsWith(".gobra")) {
+          State.client.sendNotification(Commands.verifyGobraFile, Helper.configToJson(State.verifierConfig));
+        } else {
+          State.client.sendNotification(Commands.verifyGoFile, Helper.configToJson(State.verifierConfig));
+        }
       });
     } else {
       if (!State.verificationRequests.has(fileUri) && event != IdeEvents.Save) {

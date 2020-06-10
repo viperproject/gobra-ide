@@ -1,5 +1,6 @@
 export enum IdeEvents {
   Save,
   FileChange,
-  Open
+  Open,
+  Manual
 }

@@ -109,7 +109,8 @@ class GobraServerService extends IdeLanguageClientAware {
     println("didClose")
 
     val fileUri = params.getTextDocument().getUri()
-    VerifierState.removeDiagnostics(fileUri)
+    // TODO: need to remove diagnostics and forget file in ViperServer
+    //VerifierState.removeDiagnostics(fileUri)
   }
 
   @JsonNotification("textDocument/didSave")
@@ -122,13 +123,25 @@ class GobraServerService extends IdeLanguageClientAware {
     println("didChangeWatchedFiles")
   }
 
-  @JsonNotification("gobraServer/verifyFile")
-  def verifyFile(configJson: String): Unit = {
-    println("verifyFile")
+  @JsonNotification("gobraServer/verifyGobraFile")
+  def verifyGobraFile(configJson: String): Unit = {
+    println("verifyGobraFile")
     val config: VerifierConfig = gson.fromJson(configJson, classOf[VerifierConfig])
 
     VerifierState.jobQueue.synchronized {
-      VerifierState.jobQueue.enqueue(config)
+      VerifierState.jobQueue.enqueue((FileType.Gobra, config))
+      VerifierState.jobQueue.notify()
+    }
+  }
+
+  @JsonNotification("gobraServer/verifyGoFile")
+  def verifyGoFile(configJson: String): Unit = {
+    println("verifyGoFile")
+
+    val config: VerifierConfig = gson.fromJson(configJson, classOf[VerifierConfig])
+
+    VerifierState.jobQueue.synchronized {
+      VerifierState.jobQueue.enqueue((FileType.Go, config))
       VerifierState.jobQueue.notify()
     }
   }
