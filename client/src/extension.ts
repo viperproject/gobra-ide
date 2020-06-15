@@ -15,8 +15,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 	// install vipertools
 	Verifier.updateViperTools().then(() => {
-		console.log("Installed ViperTools");
-		
+
 		// creating Gobra Server
 		fileSystemWatcher = vscode.workspace.createFileSystemWatcher("**/*.{gobra, go}");
 		State.startLanguageServer(context, fileSystemWatcher);
@@ -27,12 +26,6 @@ export function activate(context: vscode.ExtensionContext) {
 			Verifier.initialize(verifierConfig, fileUri, 1000);
 		});
 	});
-
-  
-
-
-	
-
 	
 
 }

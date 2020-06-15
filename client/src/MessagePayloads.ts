@@ -43,10 +43,15 @@ export class ClientConfig {
 export class VerifierConfig {
   fileData: FileData;
   gobraSettings: GobraSettings;
+  z3Executable: string;
+  boogieExecutable: string;
 
   constructor() {
     this.fileData = new FileData();
     this.gobraSettings = Helper.getGobraSettings();
+
+    this.z3Executable = Helper.getZ3Path();
+    this.boogieExecutable = Helper.getBoogiePath();
   }
 }
 
@@ -60,7 +65,6 @@ export interface GobraSettings {
   parseOnly: boolean;
   loglevel: string;
   backend: string;
-  paths: PathSettings;
 }
 
 export interface PathSettings {
@@ -70,6 +74,7 @@ export interface PathSettings {
 }
 
 export interface GobraDependencies {
+  viperToolsPaths: PathSettings;
   viperToolsProvider: PlatformDependendPath;
 }
 

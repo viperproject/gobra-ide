@@ -18,7 +18,9 @@ object Helper {
     verifierConfig match {
       case VerifierConfig(
         FileData(path, fileUri),
-        GobraSettings(backendId, serverMode, z3Exe, boogieExe, debug, eraseGhost, goify, unparse, printInternal, printViper, parseOnly, logLevel)
+        GobraSettings(backendId, serverMode, debug, eraseGhost, goify, unparse, printInternal, printViper, parseOnly, logLevel),
+        z3Exe,
+        boogieExe
       ) => {
 
         val shouldParse = true

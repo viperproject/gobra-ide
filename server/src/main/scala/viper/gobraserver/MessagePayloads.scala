@@ -10,8 +10,6 @@ case class FileData (
 case class GobraSettings (
   backend: String,
   serverMode: Boolean,
-  z3Exe: String,
-  boogieExe: String,
   debug: Boolean,
   eraseGhost: Boolean,
   goify: Boolean,
@@ -24,7 +22,9 @@ case class GobraSettings (
 
 case class VerifierConfig (
   fileData: FileData,
-  gobraSettings: GobraSettings
+  gobraSettings: GobraSettings,
+  z3Executable: String,
+  boogieExecutable: String
 )
 
 case class OverallVerificationResult(

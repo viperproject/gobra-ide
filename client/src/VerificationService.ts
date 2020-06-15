@@ -12,7 +12,6 @@ import { Dependency, InstallerSequence, FileDownloader, ZipExtractor } from "./d
 
 export class Verifier {
   public static verifyItem: StatusBarButton;
-  public static cacheFlushItem: StatusBarButton;
 
   public static initialize(verifierConfig: VerifierConfig, fileUri: string, timeout: number): void {
     // add file data of current file to the state
@@ -86,6 +85,9 @@ export class Verifier {
 
     // return when no text editor is active
     if (!vscode.window.activeTextEditor) return;
+
+    // return when the viper tools are currently being updated.
+    if (State.updatingViperTools) return;
     
     // only verify if it is a gobra file or a go file where the verification was manually invoked.
     if (!fileUri.endsWith(".gobra") && !(fileUri.endsWith(".go") && event == IdeEvents.Manual)) return;
@@ -196,16 +198,13 @@ export class Verifier {
     * Update ViperTools by downloading them if necessary. 
     */
   public static async updateViperTools(): Promise<any> {
-    console.log("updating vipertools");
+    let statusBarUpdateField = new StatusBarButton(Texts.updatingViperTools, 50, Color.green);
+    State.updatingViperTools = true;
 
     let viperToolsProvider = Helper.getViperToolsProvider();
     let viperToolsPath = Helper.getViperToolsPath();
-    let boogiePath = Helper.getBoogiePath().replace("$viperTools$", viperToolsPath + Helper.extractionAddition());
-    let z3Path = Helper.getZ3Path().replace("$viperTools$", viperToolsPath + Helper.extractionAddition());
-
-    console.log(viperToolsPath);
-    console.log(boogiePath);
-    console.log(z3Path);
+    let boogiePath = Helper.getBoogiePath();
+    let z3Path = Helper.getZ3Path();
 
     const myDependency = new Dependency<"Viper">(
       viperToolsPath,
@@ -217,31 +216,16 @@ export class Verifier {
       ]
     );
 
-    await myDependency.ensureInstalled("Viper");
+    let ensureInstalled = myDependency.ensureInstalled("Viper")
 
-    //console.log(Helper.getViperToolsProvider());
-    //console.log(Helper.getBoogiePath());
-    //console.log(Helper.getZ3Path());
-    //console.log(Helper.getViperToolsPath());
+    ensureInstalled.then(() => {
+      State.updatingViperTools = false;
+      statusBarUpdateField.item.dispose();
+    });
 
-
-
-    //let viperToolsPath = pathHelper.join(boogiePath, "ViperToolWin.zip");
-    //console.log(viperToolsPath);
-    /*
-    const myDependency = new Dependency<"remote">(
-      "D:\\Daten_Silas\\Desktop",
-      ["remote",
-        new InstallerSequence([
-          new FileDownloader("http://viper.ethz.ch/downloads/ViperToolsWin.zip"),
-          new ZipExtractor("testViperTools")
-        ])
-      ]
-    );
-
-    console.log("created dependency");
-    await myDependency.ensureInstalled("remote");
-    */
+    return ensureInstalled;
+    //State.updatingViperTools = false;
+    //statusBarUpdateField.item.dispose();
   }
 
   

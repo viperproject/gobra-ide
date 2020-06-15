@@ -212,7 +212,7 @@
           "default": "SILICON",
           "description": "Specifies the used Viper backend, one of SILICON, CARBON."
         },
-        "gobraSettings.paths": {
+        "gobraDependencies.viperToolsPaths": {
           "type": "object",
           "default": {
             "viperToolsPath": {

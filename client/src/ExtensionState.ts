@@ -15,6 +15,7 @@ export class State {
   public static context: vscode.ExtensionContext;
   public static disposableServer: vscode.Disposable;
   public static runningVerificationUri: string;
+  public static updatingViperTools: boolean;
 
   public static runningVerifications: Set<string>;
   // tracks the verification requests which were made when a verification was already running.
@@ -57,6 +58,8 @@ export class State {
   public static startLanguageServer(context: vscode.ExtensionContext, fileSystemWatcher: vscode.FileSystemWatcher): Promise<any> {
     this.context = context;
     this.runningVerificationUri = null;
+
+    this.updatingViperTools = false;
 
     this.runningVerifications = new Set<string>();
     this.verificationRequests = new Map<string, IdeEvents>();

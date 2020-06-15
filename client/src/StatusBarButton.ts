@@ -5,9 +5,10 @@ export class StatusBarButton {
     
   public item: vscode.StatusBarItem;
 
-  constructor(text: string, priority: number) {
+  constructor(text: string, priority: number, color?: string) {
     this.item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, priority);
     this.item.text = text;
+    if (color) this.item.color = color;
     this.updateItem();
   }
 

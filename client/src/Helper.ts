@@ -42,8 +42,13 @@ export class Helper {
   }
 
   public static getGobraSettings(): GobraSettings {
-    let config: unknown = vscode.workspace.getConfiguration("gobraSettings");
-    return <GobraSettings> config;
+    let gobraSettings: unknown = vscode.workspace.getConfiguration("gobraSettings");
+    return <GobraSettings> gobraSettings;
+  }
+
+  public static getGobraDependencies(): GobraDependencies {
+    let gobraDependencies: unknown = vscode.workspace.getConfiguration("gobraDependencies");
+    return <GobraDependencies> gobraDependencies;
   }
 
   public static getPlatformPath(paths: PlatformDependendPath): string {
@@ -56,7 +61,7 @@ export class Helper {
 
   public static getViperToolsProvider(): string {
     let gobraDependencies: unknown = vscode.workspace.getConfiguration("gobraDependencies");
-    let viperToolsProvider = (<GobraDependencies> gobraDependencies).viperToolsProvider;
+    let viperToolsProvider = Helper.getGobraDependencies().viperToolsProvider;
 
     return Helper.getPlatformPath(viperToolsProvider);
   }
@@ -66,26 +71,29 @@ export class Helper {
   }
 
   public static getViperToolsPath(): string {
-    let viperToolsPaths = Helper.getGobraSettings().paths.viperToolsPath;
+    let viperToolsPaths = Helper.getGobraDependencies().viperToolsPaths.viperToolsPath;
 
     return Helper.getPlatformPath(viperToolsPaths);
   }
 
   public static getBoogiePath(): string {
-    let boogiePaths = Helper.getGobraSettings().paths.boogieExecutable;
+    let boogiePaths = Helper.getGobraDependencies().viperToolsPaths.boogieExecutable;
+    let viperToolsPath = Helper.getViperToolsPath();
 
-    return Helper.getPlatformPath(boogiePaths);
+    return Helper.getPlatformPath(boogiePaths).replace("$viperTools$", viperToolsPath + Helper.extractionAddition());
   }
 
   public static getZ3Path(): string {
-    let z3Paths = Helper.getGobraSettings().paths.z3Executable;
+    let z3Paths = Helper.getGobraDependencies().viperToolsPaths.z3Executable;
+    let viperToolsPath = Helper.getViperToolsPath();
 
-    return Helper.getPlatformPath(z3Paths);
+    return Helper.getPlatformPath(z3Paths).replace("$viperTools$", viperToolsPath + Helper.extractionAddition());
   }
 
   public static isServerMode(): boolean {
     return vscode.workspace.getConfiguration("gobraSettings").get("serverMode");
   }
+
 
 }
 
@@ -116,6 +124,7 @@ export class Commands {
 export class Texts {
   public static helloGobra = "Hello from Gobra";
   public static flushCache = "Flush Cache";
+  public static updatingViperTools = "$(sync~spin) Updating Viper Tools ...";
 }
 
 export class Color {
