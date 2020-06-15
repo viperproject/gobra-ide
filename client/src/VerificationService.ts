@@ -4,6 +4,10 @@ import { StatusBarButton } from "./StatusBarButton";
 import * as vscode from 'vscode';
 import { VerifierConfig, OverallVerificationResult, FileData } from "./MessagePayloads";
 import { IdeEvents } from "./IdeEvents";
+import * as pathHelper from 'path';
+
+// TODO: change this to import module instead of file in my project. also remove index file in project and dependencies and util folder
+//import { Dependency, InstallerSequence, FileDownloader, ZipExtractor } from "./dependencies";
 
 
 export class Verifier {
@@ -24,6 +28,7 @@ export class Verifier {
     Helper.registerCommand(ContributionCommands.goifyFile, Verifier.goifyFile, State.context);
     Helper.registerCommand(ContributionCommands.gobrafyFile, Verifier.gobrafyFile, State.context);
     Helper.registerCommand(ContributionCommands.verifyFile, Verifier.manualVerifyFile, State.context);
+    Helper.registerCommand(ContributionCommands.updateViperTools, Verifier.updateViperTools, State.context);
 
     /**
       * Register Notification handlers for Gobra-Server notifications.
@@ -188,6 +193,33 @@ export class Verifier {
 
 
   /**
+    * Update ViperTools by downloading them if necessary. 
+    */
+  public static async updateViperTools(): Promise<any> {
+    console.log("updating vipertools");
+
+
+
+    //let viperToolsPath = pathHelper.join(boogiePath, "ViperToolWin.zip");
+    //console.log(viperToolsPath);
+    /*
+    const myDependency = new Dependency<"remote">(
+      "D:\\Daten_Silas\\Desktop",
+      ["remote",
+        new InstallerSequence([
+          new FileDownloader("http://viper.ethz.ch/downloads/ViperToolsWin.zip"),
+          new ZipExtractor("testViperTools")
+        ])
+      ]
+    );
+
+    console.log("created dependency");
+    await myDependency.ensureInstalled("remote");
+    */
+  }
+
+
+  /**
     * Handler Functions handling notifications from Gobra-Server.
     */
   private static handleOverallResultNotification(jsonOverallResult: string): void {
@@ -210,6 +242,8 @@ export class Verifier {
     let fileUri = Helper.getFileUri();
     if (State.runningVerifications.has(fileUri)) {
       Verifier.verifyItem.addHourGlass();
+    } else {
+      Verifier.verifyFile(fileUri, IdeEvents.Open);
     }
   }
 

@@ -133,7 +133,7 @@ object GobraServer extends GobraFrontend {
             println("Exception occured: " + e)
             VerifierState.client match {
               case Some(c) =>
-                c.showMessage(new MessageParams(MessageType.Error, "An exception occured during verification of " + filePath))
+                c.showMessage(new MessageParams(MessageType.Error, "An exception occured during verification: " + e))
                 c.verificationException(fileUri)
               case None =>
             }

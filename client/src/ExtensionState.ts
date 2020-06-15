@@ -72,7 +72,7 @@ export class State {
 
     // server binary was not found
     if (!fs.existsSync(serverBin)) {
-      console.log(serverBin + " does not exist.");
+      vscode.window.showErrorMessage("The server binary " + serverBin + " does not exist. Please reinstall the Extension.");
       return;
     }
 

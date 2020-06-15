@@ -14,6 +14,8 @@ export class FileData {
 export class ClientConfig {
   backend: string;
   serverMode: boolean;
+  z3Exe: string;
+  boogieExe: string;
   debug: boolean;
   eraseGhost: boolean;
   unparse: boolean;
@@ -25,6 +27,8 @@ export class ClientConfig {
   constructor(config: vscode.WorkspaceConfiguration) {
     this.backend = config.get("backend");
     this.serverMode = config.get("serverMode");
+    this.z3Exe = "hello";
+    this.boogieExe = "boogie";
     this.debug = config.get("debug");
     this.eraseGhost = config.get("eraseGhost");
     this.unparse = config.get("unparse");

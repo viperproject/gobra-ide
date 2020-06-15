@@ -10,6 +10,8 @@ case class FileData (
 case class ClientConfig (
   backend: String,
   serverMode: Boolean,
+  z3Exe: String,
+  boogieExe: String,
   debug: Boolean,
   eraseGhost: Boolean,
   goify: Boolean,
@@ -29,16 +31,3 @@ case class OverallVerificationResult(
   success: Boolean,
   message: String
 )
-
-/*
-case class ChangeRange (
-  startPos: Position,
-  endPos: Position,
-  text: String
-)
-
-case class FileChanges (
-  fileUri: String,
-  ranges: Array[ChangeRange]
-)
-*/

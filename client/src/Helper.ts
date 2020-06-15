@@ -86,6 +86,7 @@ export class ContributionCommands {
   public static goifyFile = "gobra.goifyFile";
   public static gobrafyFile = "gobra.gobrafyFile";
   public static verifyFile = "gobra.verifyFile";
+  public static updateViperTools = "gobra.updateViperTools"
 }
 
 

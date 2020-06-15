@@ -17,21 +17,23 @@
   },
   "main": "./out/extension",
   "dependencies": {
-    "vscode-languageclient": "^5.2.1"
+    "vscode-languageclient": "^5.2.1",
+    "@types/vscode": "^1.43.0",
+    "@types/node": "14.0.13",
+    "vscode-test": "^1.3.0",
+    "fs-extra": "^9.0.0",
+    "@types/fs-extra": "^8.1.0",
+    "extract-zip": "^2.0.0"
   },
   "devDependencies": {
-    "@types/node": "^12.11.7",
-    "tslint": "^5.16.0",
-    "typescript": "^3.6.4",
-    "vscode": "^1.1.35",
-    "vscode-uri": "2.1.1"
+    "tslint": "^6.1.0",
+    "typescript": "^3.8.3",
+    "vscode-uri": "^2.1.1"
   },
   "scripts": {
     "vscode:prepublish": "npm run update-vscode && npm run compile",
     "compile": "tsc -b",
-    "watch": "tsc -b -w",
-    "postinstall": "vscode-install",
-    "update-vscode": "vscode-install"
+    "watch": "tsc -b -w"
   },
   "activationEvents": [
     "onLanguage:gobra",
@@ -77,6 +79,11 @@
         "command": "gobra.verifyFile",
         "title": "Verify currently opened File",
         "category": "Gobra"
+      },
+      {
+        "command": "gobra.updateViperTools",
+        "title": "Update Viper Tools",
+        "category": "Gobra"
       }
     ],
     "menus": {
@@ -98,6 +105,11 @@
         },
         {
           "command": "gobra.verifyFile",
+          "when": "resourceLangId == gobra || resourceLangId == go",
+          "group": "Gobra"
+        },
+        {
+          "command": "gobra.updateViperTools",
           "when": "resourceLangId == gobra || resourceLangId == go",
           "group": "Gobra"
         }
@@ -129,8 +141,6 @@
         "when": "resourceLangId == gobra || resourceLangId == go"
       }
     ],
-
-
     "configuration": {
       "type": "object",
       "title": "Gobra Configuration",
@@ -201,6 +211,27 @@
           ],
           "default": "SILICON",
           "description": "Specifies the used Viper backend, one of SILICON, CARBON."
+        },
+        "gobraSettings.paths": {
+          "type": "object",
+          "default": {
+            "viperToolsPath": {
+              "windows": "%ProgramFiles%\\Gobra\\",
+              "linux": "usr/local/Gobra",
+              "mac": "usr/local/Gobra"
+            },
+            "z3Executable": {
+              "windows": "$viperTools$/z3/bin/z3.exe",
+              "linux": "$viperTools$/z3/bin/z3",
+              "mac": "$viperTools$/z3/bin/z3"
+            },
+            "boogieExecutable": {
+              "windows": "$viperTools$/boogie/Binaries/Boogie.exe",
+              "linux": "$viperTools$/boogie/Binaries/Boogie.exe",
+              "max": "$viperTools$/boogie/Binaries/Boogie"
+            }
+          },
+          "description": "Paths to the dependencies."
         }
       }
     }

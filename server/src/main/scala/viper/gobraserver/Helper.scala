@@ -8,6 +8,7 @@ import viper.gobra.reporting.{ FileWriterReporter, VerifierResult, NoopReporter 
 import org.eclipse.lsp4j.Range
 
 import java.io.File
+import java.nio.file.{ Files, Paths }
 
 import ch.qos.logback.classic.Level
 
@@ -17,7 +18,7 @@ object Helper {
     verifierConfig match {
       case VerifierConfig(
         FileData(path, fileUri),
-        ClientConfig(backendId, serverMode, debug, eraseGhost, goify, unparse, printInternal, printViper, parseOnly, logLevel)
+        ClientConfig(backendId, serverMode, z3Exe, boogieExe, debug, eraseGhost, goify, unparse, printInternal, printViper, parseOnly, logLevel)
       ) => {
 
         val shouldParse = true
@@ -47,24 +48,31 @@ object Helper {
           }
 
         val backendConfig = 
-          if (serverMode)
+          if (serverMode) {
+            var options: Vector[String] = Vector.empty
+
+            if (z3Exe != null && Files.exists(Paths.get(z3Exe)))
+              options ++= Vector("--z3Exe", z3Exe)
+
             backendId match {
               case "SILICON" =>
-                var options: List[String] = List()
-                options ++= List("--logLevel", "ERROR")
-                options ++= List("--disableCatchingExceptions")
-                options ++= List("--enableMoreCompleteExhale")
+                //var options: List[String] = List()
+                options ++= Vector("--logLevel", "ERROR")
+                options ++= Vector("--disableCatchingExceptions")
+                options ++= Vector("--enableMoreCompleteExhale")
 
-                ViperBackendConfigs.SiliconConfig(options)
+                ViperBackendConfigs.SiliconConfig(options.toList)
               
               case "CARBON" =>
-                var options: List[String] = List()
-                
-                ViperBackendConfigs.CarbonConfig(options)
+                //var options: List[String] = List()
+                if (boogieExe != null && Files.exists(Paths.get(boogieExe)))
+                  options ++= Vector("--boogieExe", boogieExe)
+
+                ViperBackendConfigs.CarbonConfig(options.toList)
 
               case _ => ViperBackendConfigs.EmptyConfig
             }
-          else
+          } else
             ViperBackendConfigs.EmptyConfig
 
 
@@ -73,6 +81,8 @@ object Helper {
           reporter = reporter,
           backend = backend,
           backendConfig = backendConfig,
+          z3Exe = z3Exe,
+          boogieExe = boogieExe,
           logLevel = Level.toLevel(logLevel),
           shouldParse = shouldParse,
           shouldTypeCheck = shouldTypeCheck,
