@@ -1,9 +1,14 @@
 import * as vscode from 'vscode';
 import { URI } from 'vscode-uri';
-import { VerifierConfig, OverallVerificationResult, FileData } from "./MessagePayloads";
+import { VerifierConfig, OverallVerificationResult, FileData, GobraSettings, PlatformDependendPath, GobraDependencies } from "./MessagePayloads";
 
 
 export class Helper {
+  public static isWin = /^win/.test(process.platform);
+    public static isLinux = /^linux/.test(process.platform);
+    public static isMac = /^darwin/.test(process.platform);
+
+
   public static registerCommand(commandId: string, command: (...args: any[]) => any, context: vscode.ExtensionContext): void {
     context.subscriptions.push(vscode.commands.registerCommand(commandId, command));
   }
@@ -24,6 +29,10 @@ export class Helper {
     return JSON.stringify(config);
   }
 
+  public static gobraSettingsToJson(settings: GobraSettings): string {
+    return JSON.stringify(settings);
+  }
+
   public static fileDataToJson(fileData: FileData): string {
     return JSON.stringify(fileData);
   }
@@ -32,8 +41,46 @@ export class Helper {
     return JSON.parse(json);
   }
 
-  public static getGobraConfiguration(): vscode.WorkspaceConfiguration {
-    return vscode.workspace.getConfiguration("gobraSettings");
+  public static getGobraSettings(): GobraSettings {
+    let config: unknown = vscode.workspace.getConfiguration("gobraSettings");
+    return <GobraSettings> config;
+  }
+
+  public static getPlatformPath(paths: PlatformDependendPath): string {
+    if (Helper.isWin && paths.windows) return paths.windows;
+    if (Helper.isLinux && paths.linux) return paths.linux;
+    if (Helper.isMac && paths.mac) return paths.mac;
+
+    return null;
+  }
+
+  public static getViperToolsProvider(): string {
+    let gobraDependencies: unknown = vscode.workspace.getConfiguration("gobraDependencies");
+    let viperToolsProvider = (<GobraDependencies> gobraDependencies).viperToolsProvider;
+
+    return Helper.getPlatformPath(viperToolsProvider);
+  }
+
+  public static extractionAddition(): string {
+    return Helper.isWin ? "\\Viper\\ViperTools" : "/Viper/ViperTools"
+  }
+
+  public static getViperToolsPath(): string {
+    let viperToolsPaths = Helper.getGobraSettings().paths.viperToolsPath;
+
+    return Helper.getPlatformPath(viperToolsPaths);
+  }
+
+  public static getBoogiePath(): string {
+    let boogiePaths = Helper.getGobraSettings().paths.boogieExecutable;
+
+    return Helper.getPlatformPath(boogiePaths);
+  }
+
+  public static getZ3Path(): string {
+    let z3Paths = Helper.getGobraSettings().paths.z3Executable;
+
+    return Helper.getPlatformPath(z3Paths);
   }
 
   public static isServerMode(): boolean {

@@ -11,6 +11,7 @@ export class FileData {
   }
 }
 
+
 export class ClientConfig {
   backend: string;
   serverMode: boolean;
@@ -27,8 +28,8 @@ export class ClientConfig {
   constructor(config: vscode.WorkspaceConfiguration) {
     this.backend = config.get("backend");
     this.serverMode = config.get("serverMode");
-    this.z3Exe = "hello";
-    this.boogieExe = "boogie";
+    this.z3Exe = "D:\\Daten_Silas\\Downloads\\ViperToolsWin\\z3\\bin\\z3.exe";
+    this.boogieExe = "D:\\Daten_Silas\\Downloads\\ViperToolsWin\\boogie\\Binaries\\Boogie.exe";
     this.debug = config.get("debug");
     this.eraseGhost = config.get("eraseGhost");
     this.unparse = config.get("unparse");
@@ -41,17 +42,41 @@ export class ClientConfig {
 
 export class VerifierConfig {
   fileData: FileData;
-  clientConfig: ClientConfig;
+  gobraSettings: GobraSettings;
 
   constructor() {
     this.fileData = new FileData();
-    this.clientConfig = new ClientConfig(Helper.getGobraConfiguration());
+    this.gobraSettings = Helper.getGobraSettings();
   }
+}
 
-  private updateConfig(): void {
-    let config = Helper.getGobraConfiguration();
-    this.clientConfig = new ClientConfig(config);
-  }
+export interface GobraSettings {
+  serverMode: boolean;
+  debug: boolean;
+  eraseGhost: boolean;
+  unparse: boolean;
+  printInternal: boolean;
+  printViper: boolean;
+  parseOnly: boolean;
+  loglevel: string;
+  backend: string;
+  paths: PathSettings;
+}
+
+export interface PathSettings {
+  viperToolsPath: PlatformDependendPath;
+  z3Executable: PlatformDependendPath;
+  boogieExecutable: PlatformDependendPath;
+}
+
+export interface GobraDependencies {
+  viperToolsProvider: PlatformDependendPath;
+}
+
+export interface PlatformDependendPath {
+  windows?: string;
+  linux?: string;
+  mac?: string;
 }
 
 export class OverallVerificationResult {

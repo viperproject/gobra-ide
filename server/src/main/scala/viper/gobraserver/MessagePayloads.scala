@@ -7,7 +7,7 @@ case class FileData (
   fileUri: String
 )
 
-case class ClientConfig (
+case class GobraSettings (
   backend: String,
   serverMode: Boolean,
   z3Exe: String,
@@ -24,7 +24,7 @@ case class ClientConfig (
 
 case class VerifierConfig (
   fileData: FileData,
-  clientConfig: ClientConfig
+  gobraSettings: GobraSettings
 )
 
 case class OverallVerificationResult(

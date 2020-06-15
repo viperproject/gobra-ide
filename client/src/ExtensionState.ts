@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as net from 'net';
 import * as child_process from "child_process";
-import { FileData, VerifierConfig, ClientConfig } from "./MessagePayloads";
+import { FileData, VerifierConfig, GobraSettings } from "./MessagePayloads";
 import { Helper } from "./Helper";
 import { IdeEvents } from "./IdeEvents";
 import { Verifier } from "./VerificationService";
@@ -32,8 +32,8 @@ export class State {
   }
 
   public static updateConfiguration(): void {
-    let config = Helper.getGobraConfiguration();
-    State.verifierConfig.clientConfig = new ClientConfig(config);
+    //State.verifierConfig.clientConfig = new ClientConfig(config);
+    State.verifierConfig.gobraSettings = Helper.getGobraSettings();
   }
 
   public static setVerificationRequestTimeout(fileUri: string, timeout: number, event: IdeEvents): void {

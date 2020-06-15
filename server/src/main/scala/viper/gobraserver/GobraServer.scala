@@ -259,6 +259,12 @@ object GobraServer extends GobraFrontend {
             c.finishedGoifying(fileUri, false)
           case _ =>
         }
+      
+      case Failure(_) =>
+        VerifierState.client match {
+          case Some(c) => c.finishedGoifying(fileUri, false)
+          case None =>
+        }
     }
 
     goifyFuture

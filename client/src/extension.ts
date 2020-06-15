@@ -14,22 +14,26 @@ export function activate(context: vscode.ExtensionContext) {
 
 
 	// install vipertools
-	Verifier.updateViperTools().then(() => console.log("installed viper tools------------------------------------"));
+	Verifier.updateViperTools().then(() => {
+		console.log("Installed ViperTools");
+		
+		// creating Gobra Server
+		fileSystemWatcher = vscode.workspace.createFileSystemWatcher("**/*.{gobra, go}");
+		State.startLanguageServer(context, fileSystemWatcher);
 
-  // creating Gobra Server
-	fileSystemWatcher = vscode.workspace.createFileSystemWatcher("**/*.{gobra, go}");
-	State.startLanguageServer(context, fileSystemWatcher);
+		// wait for server to start completely until next steps
+		State.client.onReady().then(() =>{
+			let verifierConfig = new VerifierConfig();
+			Verifier.initialize(verifierConfig, fileUri, 1000);
+		});
+	});
+
+  
 
 
 	
 
-	// wait for server to start completely until next steps
-	State.client.onReady().then(() =>
-		{
-			let verifierConfig = new VerifierConfig();
-			Verifier.initialize(verifierConfig, fileUri, 1000);
-		}
-	);
+	
 
 }
 

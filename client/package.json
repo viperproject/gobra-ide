@@ -216,23 +216,32 @@
           "type": "object",
           "default": {
             "viperToolsPath": {
-              "windows": "%ProgramFiles%\\Gobra\\",
+              "windows": "C:\\Gobra",
               "linux": "usr/local/Gobra",
               "mac": "usr/local/Gobra"
             },
             "z3Executable": {
-              "windows": "$viperTools$/z3/bin/z3.exe",
+              "windows": "$viperTools$\\z3\\bin\\z3.exe",
               "linux": "$viperTools$/z3/bin/z3",
               "mac": "$viperTools$/z3/bin/z3"
             },
             "boogieExecutable": {
-              "windows": "$viperTools$/boogie/Binaries/Boogie.exe",
+              "windows": "$viperTools$\\boogie\\Binaries\\Boogie.exe",
               "linux": "$viperTools$/boogie/Binaries/Boogie.exe",
-              "max": "$viperTools$/boogie/Binaries/Boogie"
+              "mac": "$viperTools$/boogie/Binaries/Boogie"
             }
           },
           "description": "Paths to the dependencies."
+        },
+        "gobraDependencies.viperToolsProvider": {
+          "type": "object",
+          "default": {
+            "windows": "http://viper.ethz.ch/downloads/ViperToolsWin.zip",
+            "linux": "http://viper.ethz.ch/downloads/ViperToolsLinux.zip",
+            "mac": "http://viper.ethz.ch/downloads/ViperToolsMac.zip"
+          }
         }
+        
       }
     }
   }

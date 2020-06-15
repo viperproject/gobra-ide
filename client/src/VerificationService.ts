@@ -2,12 +2,12 @@ import { State } from "./ExtensionState";
 import { Helper, Commands, ContributionCommands, Texts, Color } from "./Helper";
 import { StatusBarButton } from "./StatusBarButton";
 import * as vscode from 'vscode';
-import { VerifierConfig, OverallVerificationResult, FileData } from "./MessagePayloads";
+import { VerifierConfig, OverallVerificationResult, FileData, GobraSettings } from "./MessagePayloads";
 import { IdeEvents } from "./IdeEvents";
-import * as pathHelper from 'path';
+
 
 // TODO: change this to import module instead of file in my project. also remove index file in project and dependencies and util folder
-//import { Dependency, InstallerSequence, FileDownloader, ZipExtractor } from "./dependencies";
+import { Dependency, InstallerSequence, FileDownloader, ZipExtractor } from "./dependencies";
 
 
 export class Verifier {
@@ -198,6 +198,32 @@ export class Verifier {
   public static async updateViperTools(): Promise<any> {
     console.log("updating vipertools");
 
+    let viperToolsProvider = Helper.getViperToolsProvider();
+    let viperToolsPath = Helper.getViperToolsPath();
+    let boogiePath = Helper.getBoogiePath().replace("$viperTools$", viperToolsPath + Helper.extractionAddition());
+    let z3Path = Helper.getZ3Path().replace("$viperTools$", viperToolsPath + Helper.extractionAddition());
+
+    console.log(viperToolsPath);
+    console.log(boogiePath);
+    console.log(z3Path);
+
+    const myDependency = new Dependency<"Viper">(
+      viperToolsPath,
+      ["Viper",
+        new InstallerSequence([
+          new FileDownloader(viperToolsProvider),
+          new ZipExtractor("ViperTools")
+        ])
+      ]
+    );
+
+    await myDependency.ensureInstalled("Viper");
+
+    //console.log(Helper.getViperToolsProvider());
+    //console.log(Helper.getBoogiePath());
+    //console.log(Helper.getZ3Path());
+    //console.log(Helper.getViperToolsPath());
+
 
 
     //let viperToolsPath = pathHelper.join(boogiePath, "ViperToolWin.zip");
@@ -217,6 +243,8 @@ export class Verifier {
     await myDependency.ensureInstalled("remote");
     */
   }
+
+  
 
 
   /**
@@ -285,3 +313,5 @@ export class Verifier {
 
 
 }
+
+
