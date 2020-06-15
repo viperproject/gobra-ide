@@ -217,8 +217,8 @@
           "default": {
             "viperToolsPath": {
               "windows": "C:\\Gobra",
-              "linux": "usr/local/Gobra",
-              "mac": "usr/local/Gobra"
+              "linux": "/usr/local/Gobra",
+              "mac": "/Users/Shared/Gobra"
             },
             "z3Executable": {
               "windows": "$viperTools$\\z3\\bin\\z3.exe",
