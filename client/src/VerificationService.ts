@@ -2,6 +2,8 @@ import { State } from "./ExtensionState";
 import { Helper, Commands, ContributionCommands, Texts, Color } from "./Helper";
 import { StatusBarButton } from "./StatusBarButton";
 import * as vscode from 'vscode';
+import * as fs from 'fs';
+import * as pathHelper from 'path';
 import { VerifierConfig, OverallVerificationResult, FileData, GobraSettings } from "./MessagePayloads";
 import { IdeEvents } from "./IdeEvents";
 
@@ -206,6 +208,10 @@ export class Verifier {
     let boogiePath = Helper.getBoogiePath();
     let z3Path = Helper.getZ3Path();
 
+    if (!fs.existsSync(viperToolsPath)) {
+      fs.mkdirSync(viperToolsPath);
+    }
+
     const myDependency = new Dependency<"Viper">(
       viperToolsPath,
       ["Viper",
@@ -219,6 +225,12 @@ export class Verifier {
     let ensureInstalled = myDependency.ensureInstalled("Viper")
 
     ensureInstalled.then(() => {
+      if (Helper.isLinux || Helper.isMac) {
+        fs.chmodSync(z3Path, '755');
+        fs.chmodSync(boogiePath, '755');
+        fs.chmodSync(boogiePath + ".exe", '755')
+      }
+
       State.updatingViperTools = false;
       statusBarUpdateField.item.dispose();
     });
