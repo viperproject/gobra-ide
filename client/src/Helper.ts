@@ -124,7 +124,10 @@ export class Commands {
 export class Texts {
   public static helloGobra = "Hello from Gobra";
   public static flushCache = "Flush Cache";
-  public static updatingViperTools = "$(sync~spin) Updating Viper Tools ...";
+  public static updatingViperTools = "Updating Viper Tools for Gobra";
+  public static installingViperTools = "Installing Viper Tools for Gobra";
+  public static successfulUpdatingViperTools = "Successfully updated Viper Tools. Please restart the IDE.";
+  public static successfulInstallingViperTools = "Successfully installed Viper Tools.";
 }
 
 export class Color {

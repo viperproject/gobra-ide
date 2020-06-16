@@ -10,6 +10,7 @@ import { IdeEvents } from "./IdeEvents";
 
 // TODO: change this to import module instead of file in my project. also remove index file in project and dependencies and util folder
 import { Dependency, InstallerSequence, FileDownloader, ZipExtractor } from "./dependencies";
+import { withProgressInWindow, Location } from "./util";
 
 
 export class Verifier {
@@ -29,7 +30,7 @@ export class Verifier {
     Helper.registerCommand(ContributionCommands.goifyFile, Verifier.goifyFile, State.context);
     Helper.registerCommand(ContributionCommands.gobrafyFile, Verifier.gobrafyFile, State.context);
     Helper.registerCommand(ContributionCommands.verifyFile, Verifier.manualVerifyFile, State.context);
-    Helper.registerCommand(ContributionCommands.updateViperTools, Verifier.updateViperTools, State.context);
+    Helper.registerCommand(ContributionCommands.updateViperTools, () => Verifier.updateViperTools(true), State.context);
 
     /**
       * Register Notification handlers for Gobra-Server notifications.
@@ -199,8 +200,7 @@ export class Verifier {
   /**
     * Update ViperTools by downloading them if necessary. 
     */
-  public static async updateViperTools(): Promise<any> {
-    let statusBarUpdateField = new StatusBarButton(Texts.updatingViperTools, 50, Color.green);
+  public static async updateViperTools(shouldUpdate: boolean): Promise<Location> {
     State.updatingViperTools = true;
 
     let viperToolsProvider = Helper.getViperToolsProvider();
@@ -212,7 +212,7 @@ export class Verifier {
       fs.mkdirSync(viperToolsPath);
     }
 
-    const myDependency = new Dependency<"Viper">(
+    const gobraTools = new Dependency<"Viper">(
       viperToolsPath,
       ["Viper",
         new InstallerSequence([
@@ -222,22 +222,26 @@ export class Verifier {
       ]
     );
 
-    let ensureInstalled = myDependency.ensureInstalled("Viper")
+    const { result: location, didReportProgress } = await withProgressInWindow(
+      shouldUpdate ? Texts.updatingViperTools : Texts.installingViperTools,
+      listener => gobraTools.install("Viper", shouldUpdate, listener)
+    );
 
-    ensureInstalled.then(() => {
-      if (Helper.isLinux || Helper.isMac) {
-        fs.chmodSync(z3Path, '755');
-        fs.chmodSync(boogiePath, '755');
-        fs.chmodSync(boogiePath + ".exe", '755')
+    if (Helper.isLinux || Helper.isMac) {
+      fs.chmodSync(z3Path, '755');
+      fs.chmodSync(boogiePath, '755');
+      fs.chmodSync(boogiePath + ".exe", '755')
+    }
+
+    if (didReportProgress) {
+      if (shouldUpdate) {
+        vscode.window.showInformationMessage(Texts.successfulUpdatingViperTools);
+      } else {
+        vscode.window.showInformationMessage(Texts.successfulInstallingViperTools);
       }
+    }
 
-      State.updatingViperTools = false;
-      statusBarUpdateField.item.dispose();
-    });
-
-    return ensureInstalled;
-    //State.updatingViperTools = false;
-    //statusBarUpdateField.item.dispose();
+    return location;
   }
 
   
