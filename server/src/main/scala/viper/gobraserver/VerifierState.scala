@@ -69,6 +69,8 @@ object VerifierState {
     }
   }
 
+  def removeOverallResult(fileUri: String): Unit = _overallResults.remove(fileUri)
+
   /**
     * Diagnostics of the verification stored per file in a key value pair.
     */

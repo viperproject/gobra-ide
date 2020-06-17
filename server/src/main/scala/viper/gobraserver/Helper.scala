@@ -3,7 +3,7 @@ package viper.gobraserver
 import viper.gobra.frontend.Config
 import viper.gobra.backend.ViperBackends
 import viper.server.ViperBackendConfigs
-import viper.gobra.reporting.{ FileWriterReporter, VerifierResult, NoopReporter }
+import viper.gobra.reporting.{ FileWriterReporter, VerifierResult, GobraReporter }
 
 import org.eclipse.lsp4j.Range
 
@@ -81,6 +81,7 @@ object Helper {
         Config(
           inputFile = new File(path),
           reporter = reporter,
+          //reporter = GobraIdeReporter(),
           backend = backend,
           backendConfig = backendConfig,
           z3Exe = z3Exe,
@@ -99,7 +100,13 @@ object Helper {
   def goifyConfigFromTask(fileData: FileData): Config = {
     val reporter = FileWriterReporter(goify = true)
 
-    Config(inputFile = new File(fileData.filePath), reporter = reporter)
+    Config(
+      inputFile = new File(fileData.filePath),
+      shouldDesugar = false,
+      shouldViperEncode = false,
+      shouldVerify = false,
+      reporter = reporter
+    )
   }
 
 
@@ -143,4 +150,45 @@ object Helper {
   def startChar(range: Range): Int = range.getStart().getCharacter()
   def endLine(range: Range): Int = range.getEnd().getLine()
   def endChar(range: Range): Int = range.getEnd().getCharacter()
+
+  def gobraFileExtension(uri: String): String = {
+    val dropSuffix = if (uri.endsWith(".go")) uri.dropRight(3) else uri
+    if (dropSuffix.endsWith(".gobra")) dropSuffix else dropSuffix + ".gobra"
+  }
+}
+
+
+import viper.gobra.reporting._
+import viper.silver.reporter.StatisticsReport
+
+
+/**
+  * Note on OverallFailureMessage and EntityFailureMessage:
+  * 
+  * Silicon: Reports all failures as entity failures and additionally reports all failures collected as overall failure.
+  * Carbon: Reports some failures as entity failures and some failures as overall failure.
+  *
+  * => Need to take the distinct union of all entity failures and the overall failure errors.
+  */
+case class GobraIdeReporter(name: String = "gobraide_reporter") extends GobraReporter {
+  override def report(msg: GobraMessage): Unit = msg match {
+    case PreprocessedInputMessage(_, _) => println("preprocessed input")
+    case ParsedInputMessage(file, program) => println("parsed input")
+    case TypeCheckSuccessMessage(file, _, _) => println("type checking succeeded")
+    case TypeCheckFailureMessage(_, _, result) => println("type checking failed: " + result)
+    case TypeCheckDebugMessage(_, _, _) => println("typecheck debug message")
+    case DesugaredMessage(file, internal) => println("desugared input")
+    case GeneratedViperMessage(file, _) => println("generated viper code")
+    case CopyrightReport(text) => println(text)
+    case GobraOverallSuccessMessage(_) => println("overall success message")
+    case GobraOverallFailureMessage(_, result) => println("overall failure message: " + result)
+    case GobraEntitySuccessMessage(_, _) => println("entity success message")
+    case GobraEntityFailureMessage(_, _, result) => println("entity failure message: " + result)
+
+    case RawMessage(m) => m match {
+      case StatisticsReport(noMethods, noFunctions, noPredicates, noDomains, noFields) => println("raw message: " + m)
+      case _ =>
+    }
+    case _ => println("other message")
+  }
 }
