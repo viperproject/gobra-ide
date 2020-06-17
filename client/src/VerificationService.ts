@@ -7,11 +7,7 @@ import * as pathHelper from 'path';
 import { VerifierConfig, OverallVerificationResult, FileData, GobraSettings } from "./MessagePayloads";
 import { IdeEvents } from "./IdeEvents";
 
-
-// TODO: change this to import module instead of file in my project. also remove index file in project and dependencies and util folder
-import { Dependency, InstallerSequence, FileDownloader, ZipExtractor } from "./dependencies";
-import { withProgressInWindow, Location } from "./util";
-
+import { Dependency, InstallerSequence, FileDownloader, ZipExtractor, withProgressInWindow, Location } from 'vs-verification-toolbox';
 
 export class Verifier {
   public static verifyItem: StatusBarButton;
