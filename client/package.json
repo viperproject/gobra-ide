@@ -84,8 +84,8 @@
         "category": "Gobra"
       },
       {
-        "command": "gobra.updateViperTools",
-        "title": "Update Viper Tools",
+        "command": "gobra.updateGobraTools",
+        "title": "Update Gobra Tools",
         "category": "Gobra"
       }
     ],
@@ -112,7 +112,7 @@
           "group": "Gobra"
         },
         {
-          "command": "gobra.updateViperTools",
+          "command": "gobra.updateGobraTools",
           "when": "resourceLangId == gobra || resourceLangId == go",
           "group": "Gobra"
         }
@@ -215,28 +215,52 @@
           "default": "SILICON",
           "description": "Specifies the used Viper backend, one of SILICON, CARBON."
         },
-        "gobraDependencies.viperToolsPaths": {
+        "gobraSettings.buildVersion": {
+          "type": "string",
+          "enum": [
+            "stable",
+            "nightly"
+          ],
+          "default": "stable",
+          "description": "Select the build version of the Gobra Tools."
+        },
+        "gobraDependencies.gobraToolsPaths": {
           "type": "object",
           "default": {
-            "viperToolsPath": {
-              "windows": "C:\\Gobra",
-              "linux": "/usr/local/Gobra",
-              "mac": "/Users/Shared/Gobra"
+            "gobraToolsPath": {
+              "windows": "C:",
+              "linux": "/usr/local",
+              "mac": "/Users/Shared"
+            },
+            "stableBuildPath": {
+              "windows": "$gobraTools$",
+              "linux": "$gobraTools$",
+              "mac": "$gobraTools$"
+            },
+            "nightlyBuildPath": {
+              "windows": "$gobraTools$",
+              "linux": "$gobraTools$",
+              "mac": "$gobraTools$"
             },
             "z3Executable": {
-              "windows": "$viperTools$\\z3\\bin\\z3.exe",
-              "linux": "$viperTools$/z3/bin/z3",
-              "mac": "$viperTools$/z3/bin/z3"
+              "windows": "$gobraTools$\\z3\\bin\\z3.exe",
+              "linux": "$gobraTools$/z3/bin/z3",
+              "mac": "$gobraTools$/z3/bin/z3"
             },
             "boogieExecutable": {
-              "windows": "$viperTools$\\boogie\\Binaries\\Boogie.exe",
-              "linux": "$viperTools$/boogie/Binaries/Boogie.exe",
-              "mac": "$viperTools$/boogie/Binaries/Boogie"
+              "windows": "$gobraTools$\\boogie\\Binaries\\Boogie.exe",
+              "linux": "$gobraTools$/boogie/Binaries/Boogie.exe",
+              "mac": "$gobraTools$/boogie/Binaries/Boogie"
+            },
+            "serverJar": {
+              "windows": "$buildPath$\\server\\server.jar",
+              "linux": "$buildPath$/server/server.jar",
+              "mac": "$buildPath$/server/server.jar"
             }
           },
           "description": "Paths to the dependencies."
         },
-        "gobraDependencies.viperToolsProvider": {
+        "gobraDependencies.gobraToolsProvider": {
           "type": "object",
           "default": {
             "windows": "http://viper.ethz.ch/downloads/ViperToolsWin.zip",

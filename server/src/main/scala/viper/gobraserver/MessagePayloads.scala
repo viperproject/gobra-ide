@@ -28,6 +28,7 @@ case class VerifierConfig (
 )
 
 case class OverallVerificationResult(
+  fileUri: String,
   success: Boolean,
   message: String
 )

@@ -12,8 +12,8 @@ export function activate(context: vscode.ExtensionContext) {
 	// Uri of the file which triggered the plugin activation.
 	let fileUri: string = Helper.getFileUri();
 
-	// install vipertools
-	Verifier.updateViperTools(false).then(() => {
+	// install gobra tools
+	Verifier.updateGobraTools(false).then(() => {
 
 		// creating Gobra Server
 		fileSystemWatcher = vscode.workspace.createFileSystemWatcher("**/*.{gobra, go}");

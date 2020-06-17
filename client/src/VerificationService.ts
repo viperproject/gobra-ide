@@ -1,23 +1,22 @@
 import { State } from "./ExtensionState";
 import { Helper, Commands, ContributionCommands, Texts, Color } from "./Helper";
-import { StatusBarButton } from "./StatusBarButton";
+import { ProgressBar } from "./ProgressBar";
 import * as vscode from 'vscode';
 import * as fs from 'fs';
-import * as pathHelper from 'path';
 import { VerifierConfig, OverallVerificationResult, FileData, GobraSettings } from "./MessagePayloads";
 import { IdeEvents } from "./IdeEvents";
 
 import { Dependency, InstallerSequence, FileDownloader, ZipExtractor, withProgressInWindow, Location } from 'vs-verification-toolbox';
 
 export class Verifier {
-  public static verifyItem: StatusBarButton;
+  public static verifyItem: ProgressBar;
 
   public static initialize(verifierConfig: VerifierConfig, fileUri: string, timeout: number): void {
     // add file data of current file to the state
     State.verifierConfig = verifierConfig;
 
     // Initialize Verification Button in Statusbar
-    Verifier.verifyItem = new StatusBarButton(Texts.helloGobra, 10);
+    Verifier.verifyItem = new ProgressBar(Texts.helloGobra, 10);
 
     /**
       * Register Commands for Command Palette.
@@ -26,18 +25,19 @@ export class Verifier {
     Helper.registerCommand(ContributionCommands.goifyFile, Verifier.goifyFile, State.context);
     Helper.registerCommand(ContributionCommands.gobrafyFile, Verifier.gobrafyFile, State.context);
     Helper.registerCommand(ContributionCommands.verifyFile, Verifier.manualVerifyFile, State.context);
-    Helper.registerCommand(ContributionCommands.updateViperTools, () => Verifier.updateViperTools(true), State.context);
+    Helper.registerCommand(ContributionCommands.updateGobraTools, () => Verifier.updateGobraTools(true), State.context);
 
     /**
       * Register Notification handlers for Gobra-Server notifications.
       */
-    State.client.onNotification(Commands.overallResultNotification, Verifier.handleOverallResultNotification)
-    State.client.onNotification(Commands.noVerificationResult, Verifier.handleNoResultNotification);
-    State.client.onNotification(Commands.finishedVerification, Verifier.handleFinishedVerificationNotification);
-    State.client.onNotification(Commands.verificationException, Verifier.handleFinishedVerificationNotification);
+    State.client.onNotification(Commands.overallResult, Verifier.handleOverallResultNotification)
+    State.client.onNotification(Commands.verificationProgress, Verifier.handleVerificationProgressNotification);
+    State.client.onNotification(Commands.noVerificationInformation, Verifier.handleNoVerificationInformationNotification);
+    State.client.onNotification(Commands.verificationException, Verifier.handleVerificationExceptionNotification);
 
     State.client.onNotification(Commands.finishedGoifying, Verifier.handleFinishedGoifyingNotification);
     State.client.onNotification(Commands.finishedGobrafying, Verifier.handleFinishedGobrafyingNotification);
+
 
     /**
       * Register VSCode Event listeners.
@@ -45,6 +45,7 @@ export class Verifier {
     State.context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(Verifier.changeFile));
     // open event
     State.context.subscriptions.push(vscode.workspace.onDidOpenTextDocument(document => {
+      console.log("opened " + document.uri.toString());
       Verifier.verifyFile(document.uri.toString(), IdeEvents.Open)
     }));
     // save event
@@ -62,6 +63,11 @@ export class Verifier {
         State.setVerificationRequestTimeout(change.document.uri.toString(), timeout, IdeEvents.FileChange);
       }
     }));
+
+    // change of build version
+    State.context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(e => {
+      if (e.affectsConfiguration("gobraSettings.buildVersion")) vscode.window.showInformationMessage(Texts.changedBuildVersion);
+    }))
 
 
     // verify file which triggered the activation of the plugin
@@ -85,19 +91,21 @@ export class Verifier {
     // return when no text editor is active
     if (!vscode.window.activeTextEditor) return;
 
-    // return when the viper tools are currently being updated.
-    if (State.updatingViperTools) return;
+    // return when the gobra tools are currently being updated.
+    if (State.updatingGobraTools) return;
     
     // only verify if it is a gobra file or a go file where the verification was manually invoked.
     if (!fileUri.endsWith(".gobra") && !(fileUri.endsWith(".go") && event == IdeEvents.Manual)) return;
+
+    State.updateConfiguration();
+
+    // return if file is currently getting gobrafied.
+    if (State.runningGobrafications.has(State.verifierConfig.fileData.filePath)) return
     
     if (!State.runningVerifications.has(fileUri)) {
       
+      
       State.runningVerifications.add(fileUri);
-      
-      State.updateConfiguration();
-      
-      Verifier.verifyItem.addHourGlass();
 
       vscode.window.activeTextEditor.document.save().then((saved: boolean) => {
         console.log("sending verification request");
@@ -114,6 +122,18 @@ export class Verifier {
       }
     }
   }
+
+  /**
+    * Verifies the File if it is in the verification requests queue.
+    */
+  private static reverifyFile(fileUri: string): void {
+    if (State.verificationRequests.has(fileUri)) {
+      let event = State.verificationRequests.get(fileUri);
+      State.verificationRequests.delete(fileUri);
+      Verifier.verifyFile(fileUri, event);
+    }
+  }
+
 
   /**
     * Transform the currently open file to a Go file with the goified annotations.
@@ -194,33 +214,34 @@ export class Verifier {
 
 
   /**
-    * Update ViperTools by downloading them if necessary. 
+    * Update GobraTools by downloading them if necessary. 
     */
-  public static async updateViperTools(shouldUpdate: boolean): Promise<Location> {
-    State.updatingViperTools = true;
+  public static async updateGobraTools(shouldUpdate: boolean): Promise<Location> {
+    State.updatingGobraTools = true;
 
-    let viperToolsProvider = Helper.getViperToolsProvider();
-    let viperToolsPath = Helper.getViperToolsPath();
+
+    let gobraToolsProvider = Helper.getGobraToolsProvider();
+    let gobraToolsPath = Helper.getGobraToolsPath();
     let boogiePath = Helper.getBoogiePath();
     let z3Path = Helper.getZ3Path();
 
-    if (!fs.existsSync(viperToolsPath)) {
-      fs.mkdirSync(viperToolsPath);
+    if (!fs.existsSync(gobraToolsPath)) {
+      fs.mkdirSync(gobraToolsPath);
     }
 
-    const gobraTools = new Dependency<"Viper">(
-      viperToolsPath,
-      ["Viper",
+    const gobraTools = new Dependency<"Gobra">(
+      gobraToolsPath,
+      ["Gobra",
         new InstallerSequence([
-          new FileDownloader(viperToolsProvider),
-          new ZipExtractor("ViperTools")
+          new FileDownloader(gobraToolsProvider),
+          new ZipExtractor("GobraTools")
         ])
       ]
     );
 
     const { result: location, didReportProgress } = await withProgressInWindow(
-      shouldUpdate ? Texts.updatingViperTools : Texts.installingViperTools,
-      listener => gobraTools.install("Viper", shouldUpdate, listener)
+      shouldUpdate ? Texts.updatingGobraTools : Texts.installingGobraTools,
+      listener => gobraTools.install("Gobra", shouldUpdate, listener)
     );
 
     if (Helper.isLinux || Helper.isMac) {
@@ -231,9 +252,9 @@ export class Verifier {
 
     if (didReportProgress) {
       if (shouldUpdate) {
-        vscode.window.showInformationMessage(Texts.successfulUpdatingViperTools);
+        vscode.window.showInformationMessage(Texts.successfulUpdatingGobraTools);
       } else {
-        vscode.window.showInformationMessage(Texts.successfulInstallingViperTools);
+        vscode.window.showInformationMessage(Texts.successfulInstallingGobraTools);
       }
     }
 
@@ -242,48 +263,48 @@ export class Verifier {
 
   
 
-
   /**
     * Handler Functions handling notifications from Gobra-Server.
     */
+   private static handleNoVerificationInformationNotification(): void {
+    Verifier.verifyItem.setProperties(Texts.helloGobra, Color.white);
+
+    let fileUri = Helper.getFileUri();
+
+    if (!State.runningVerifications.has(fileUri)) {
+      Verifier.verifyFile(fileUri, IdeEvents.Open);
+    }
+  }
+
   private static handleOverallResultNotification(jsonOverallResult: string): void {
     let overallResult: OverallVerificationResult = Helper.jsonToOverallResult(jsonOverallResult);
+
+    State.runningVerifications.delete(overallResult.fileUri);
+
     if (overallResult.success) {
       Verifier.verifyItem.setProperties(overallResult.message, Color.green);
     } else {
       Verifier.verifyItem.setProperties(overallResult.message, Color.red);
     }
 
-    let fileUri = Helper.getFileUri();
-    if (State.runningVerifications.has(fileUri)) {
-      Verifier.verifyItem.addHourGlass();
-    }
+    Verifier.reverifyFile(overallResult.fileUri);
   }
 
-  private static handleNoResultNotification(): void {
-    Verifier.verifyItem.setProperties(Texts.helloGobra, Color.white);
+  private static handleVerificationProgressNotification(fileUri: string, progress: number): void {
+    //console.log("Verification progress for file " + fileUri + " arrived: " + progress);
 
-    let fileUri = Helper.getFileUri();
-    if (State.runningVerifications.has(fileUri)) {
-      Verifier.verifyItem.addHourGlass();
-    } else {
-      Verifier.verifyFile(fileUri, IdeEvents.Open);
-    }
+    Verifier.verifyItem.progress(Helper.getFileName(fileUri), progress);
   }
 
-  private static handleFinishedVerificationNotification(fileUri: string): void {
+
+  private static handleVerificationExceptionNotification(fileUri: string): void {
     State.runningVerifications.delete(fileUri);
 
-    if (Helper.getFileUri() == fileUri) {
-      Verifier.verifyItem.removeHourGlass();
-    }
-
-    if (State.verificationRequests.has(fileUri)) {
-      let event = State.verificationRequests.get(fileUri);
-      State.verificationRequests.delete(fileUri);
-      Verifier.verifyFile(fileUri, event);
-    }
+    Verifier.reverifyFile(fileUri);
   }
+
+  
+
 
   private static handleFinishedGoifyingNotification(fileUri: string, success: boolean): void {
     State.runningGoifications.delete(fileUri);
@@ -304,6 +325,11 @@ export class Verifier {
       vscode.window.showErrorMessage("An error occured during the Gobrafication of " + oldFilePath);
     }
   }
+
+
+  private static delay(ms: number) {
+    return new Promise( resolve => setTimeout(resolve, ms) );
+}
 
 
 

@@ -14,8 +14,7 @@ export class State {
   public static client: LanguageClient;
   public static context: vscode.ExtensionContext;
   public static disposableServer: vscode.Disposable;
-  public static runningVerificationUri: string;
-  public static updatingViperTools: boolean;
+  public static updatingGobraTools: boolean;
 
   public static runningVerifications: Set<string>;
   // tracks the verification requests which were made when a verification was already running.
@@ -57,9 +56,8 @@ export class State {
   // creates the language client and starts the server
   public static startLanguageServer(context: vscode.ExtensionContext, fileSystemWatcher: vscode.FileSystemWatcher): Promise<any> {
     this.context = context;
-    this.runningVerificationUri = null;
 
-    this.updatingViperTools = false;
+    this.updatingGobraTools = false;
 
     this.runningVerifications = new Set<string>();
     this.verificationRequests = new Map<string, IdeEvents>();
@@ -69,13 +67,15 @@ export class State {
 
     this.verificationRequestTimeout = null;
 
+    // TODO: change this once the zip downloads are ready.
+    //let serverBin = Helper.getServerJarPath(Helper.isNightly());
     let serverBin = State.context.asAbsolutePath(path.join('../', 'server', 'target', 'scala-2.12', 'server.jar'));
 
     let serverOptions = () => State.startServerProcess(serverBin);
 
     // server binary was not found
     if (!fs.existsSync(serverBin)) {
-      vscode.window.showErrorMessage("The server binary " + serverBin + " does not exist. Please reinstall the Extension.");
+      vscode.window.showErrorMessage("The server binary " + serverBin + " does not exist. Please update Gobra Tools.");
       return;
     }
 

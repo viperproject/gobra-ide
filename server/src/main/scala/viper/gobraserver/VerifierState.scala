@@ -35,9 +35,7 @@ object VerifierState {
     */
   var changes: List[(String, List[TextDocumentContentChangeEvent])] = List()
 
-  private var _verificationRunning: Boolean = false
-  def verificationRunning: Boolean = _verificationRunning
-  def toggleVerificationRunning { _verificationRunning = !_verificationRunning }
+  var verificationRunning: Boolean = false
 
   private val _jobQueue = Queue[(FileType.Value, VerifierConfig)]()
   def jobQueue: Queue[(FileType.Value, VerifierConfig)] = _jobQueue
@@ -49,27 +47,36 @@ object VerifierState {
     _client = Some(client)
   }
   
+  /**
+    * The verification information of a given file.
+    * When a verification is running this is an int representing the progress.
+    * When no verification is running this is the verification result.
+    */
+  private val _verificationInformation = Map[String, Either[Int, OverallVerificationResult]]()
+
+  def updateVerificationInformation(fileUri: String, info: Either[Int, OverallVerificationResult]): Unit = {
+    _verificationInformation += (fileUri -> info)
+    if (fileUri == VerifierState.openFileUri) sendVerificationInformation(fileUri)
+  }
+
+  def removeVerificationInformation(fileUri: String): Unit = _verificationInformation.remove(fileUri)
 
   /**
-    * The overall verfication result.
+    * Sends the verification progress if a verification is still running or the overall verification
+    * result when the verification is finished.
     */
-  private val _overallResults = Map[String, OverallVerificationResult]()
+  def sendVerificationInformation(fileUri: String): Unit = VerifierState.client match {
+    case Some(c) =>
+      _verificationInformation.get(fileUri) match {
+        case Some(Left(progress)) => c.verificationProgress(fileUri, progress)
+        case Some(Right(result)) => c.overallResult(gson.toJson(result))
+        case None => c.noVerificationInformation
+      }
 
-  def addOverallResult(fileUri: String, overallResult: OverallVerificationResult) {
-    _overallResults += (fileUri -> overallResult)
+    case None =>
   }
-
-  def sendOverallResult(fileUri: String) {
-    client match {
-      case Some(c) =>
-        _overallResults.get(fileUri) match {
-          case Some(overallResult) => c.overallResultNotification(gson.toJson(overallResult))
-          case None => c.noVerificationResult()
-        }
-    }
-  }
-
-  def removeOverallResult(fileUri: String): Unit = _overallResults.remove(fileUri)
+  
+  
 
   /**
     * Diagnostics of the verification stored per file in a key value pair.

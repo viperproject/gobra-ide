@@ -3,7 +3,7 @@ package viper.gobraserver
 import viper.gobra.frontend.Config
 import viper.gobra.backend.ViperBackends
 import viper.server.ViperBackendConfigs
-import viper.gobra.reporting.{ FileWriterReporter, VerifierResult, GobraReporter }
+import viper.gobra.reporting.{ FileWriterReporter, VerifierResult }
 
 import org.eclipse.lsp4j.Range
 
@@ -29,7 +29,8 @@ object Helper {
         val shouldViperEncode = shouldDesugar
         val shouldVerify = shouldViperEncode
 
-        val reporter = FileWriterReporter(
+        val reporter = GobraIdeReporter(
+          fileUri = fileUri,
           unparse = unparse,
           eraseGhost = eraseGhost,
           goify = goify,
@@ -81,7 +82,7 @@ object Helper {
         Config(
           inputFile = new File(path),
           reporter = reporter,
-          //reporter = GobraIdeReporter(),
+          //reporter = GobraIdeReporter(fileUri = fileUri),
           backend = backend,
           backendConfig = backendConfig,
           z3Exe = z3Exe,
@@ -110,41 +111,31 @@ object Helper {
   }
 
 
-  def getOverallVerificationResult(result: VerifierResult, elapsedTime: Long): OverallVerificationResult = {
+  def getOverallVerificationResult(fileUri: String, result: VerifierResult, elapsedTime: Long): OverallVerificationResult = {
     result match {
       case VerifierResult.Success =>
         OverallVerificationResult(
+          fileUri = fileUri,
           success = true,
           message = "Verification succeeded in " + (elapsedTime/1000) + "." + (elapsedTime%1000)/10 + "s"
         )
       case VerifierResult.Failure(errors) =>
         OverallVerificationResult(
+          fileUri = fileUri,
           success = false,
           message = "Verification failed in " + (elapsedTime / 1000) + "." + (elapsedTime%1000)/10 + "s with: " + errors.head.id
         )
     }
   }
 
-  def getOverallVerificationResultFromException(e: Throwable): OverallVerificationResult = {
+  def getOverallVerificationResultFromException(fileUri: String, e: Throwable): OverallVerificationResult = {
     OverallVerificationResult(
+      fileUri = fileUri,
       success = false,
       message = e.getMessage()
     )
   }
 
-  def getOverallVerificationResult(e: Throwable): OverallVerificationResult = {
-    OverallVerificationResult(
-      success = false,
-      message = "An error occured during verification: " + e
-    )
-  }
-
-  def sendFinishedVerification(fileUri: String) {
-    VerifierState.client match {
-      case Some(c) => c.finishedVerification(fileUri)
-      case None =>
-    }
-  }
 
   def startLine(range: Range): Int = range.getStart().getLine()
   def startChar(range: Range): Int = range.getStart().getCharacter()
@@ -154,41 +145,5 @@ object Helper {
   def gobraFileExtension(uri: String): String = {
     val dropSuffix = if (uri.endsWith(".go")) uri.dropRight(3) else uri
     if (dropSuffix.endsWith(".gobra")) dropSuffix else dropSuffix + ".gobra"
-  }
-}
-
-
-import viper.gobra.reporting._
-import viper.silver.reporter.StatisticsReport
-
-
-/**
-  * Note on OverallFailureMessage and EntityFailureMessage:
-  * 
-  * Silicon: Reports all failures as entity failures and additionally reports all failures collected as overall failure.
-  * Carbon: Reports some failures as entity failures and some failures as overall failure.
-  *
-  * => Need to take the distinct union of all entity failures and the overall failure errors.
-  */
-case class GobraIdeReporter(name: String = "gobraide_reporter") extends GobraReporter {
-  override def report(msg: GobraMessage): Unit = msg match {
-    case PreprocessedInputMessage(_, _) => println("preprocessed input")
-    case ParsedInputMessage(file, program) => println("parsed input")
-    case TypeCheckSuccessMessage(file, _, _) => println("type checking succeeded")
-    case TypeCheckFailureMessage(_, _, result) => println("type checking failed: " + result)
-    case TypeCheckDebugMessage(_, _, _) => println("typecheck debug message")
-    case DesugaredMessage(file, internal) => println("desugared input")
-    case GeneratedViperMessage(file, _) => println("generated viper code")
-    case CopyrightReport(text) => println(text)
-    case GobraOverallSuccessMessage(_) => println("overall success message")
-    case GobraOverallFailureMessage(_, result) => println("overall failure message: " + result)
-    case GobraEntitySuccessMessage(_, _) => println("entity success message")
-    case GobraEntityFailureMessage(_, _, result) => println("entity failure message: " + result)
-
-    case RawMessage(m) => m match {
-      case StatisticsReport(noMethods, noFunctions, noPredicates, noDomains, noFields) => println("raw message: " + m)
-      case _ =>
-    }
-    case _ => println("other message")
   }
 }

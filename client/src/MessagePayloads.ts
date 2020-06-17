@@ -1,5 +1,4 @@
 import { Helper } from "./Helper";
-import * as vscode from "vscode";
 
 export class FileData {
   filePath: string;
@@ -8,35 +7,6 @@ export class FileData {
   constructor() {
     this.filePath = Helper.getFilePath();
     this.fileUri = Helper.getFileUri();
-  }
-}
-
-
-export class ClientConfig {
-  backend: string;
-  serverMode: boolean;
-  z3Exe: string;
-  boogieExe: string;
-  debug: boolean;
-  eraseGhost: boolean;
-  unparse: boolean;
-  printInternal: boolean;
-  printViper: boolean;
-  parseOnly: boolean;
-  logLevel: string;
-
-  constructor(config: vscode.WorkspaceConfiguration) {
-    this.backend = config.get("backend");
-    this.serverMode = config.get("serverMode");
-    this.z3Exe = "D:\\Daten_Silas\\Downloads\\ViperToolsWin\\z3\\bin\\z3.exe";
-    this.boogieExe = "D:\\Daten_Silas\\Downloads\\ViperToolsWin\\boogie\\Binaries\\Boogie.exe";
-    this.debug = config.get("debug");
-    this.eraseGhost = config.get("eraseGhost");
-    this.unparse = config.get("unparse");
-    this.printInternal = config.get("printInternal");
-    this.printViper = config.get("printViper");
-    this.parseOnly = config.get("parseOnly");
-    this.logLevel = config.get("loglevel");
   }
 }
 
@@ -68,14 +38,17 @@ export interface GobraSettings {
 }
 
 export interface PathSettings {
-  viperToolsPath: PlatformDependendPath;
+  gobraToolsPath: PlatformDependendPath;
+  stableBuildPath: PlatformDependendPath;
+  nightlyBuildPath: PlatformDependendPath;
   z3Executable: PlatformDependendPath;
   boogieExecutable: PlatformDependendPath;
+  serverJar: PlatformDependendPath;
 }
 
 export interface GobraDependencies {
-  viperToolsPaths: PathSettings;
-  viperToolsProvider: PlatformDependendPath;
+  gobraToolsPaths: PathSettings;
+  gobraToolsProvider: PlatformDependendPath;
 }
 
 export interface PlatformDependendPath {
@@ -85,10 +58,12 @@ export interface PlatformDependendPath {
 }
 
 export class OverallVerificationResult {
+  fileUri: string;
   success: boolean;
   message: string;
 
-  constructor(success: boolean, message: string) {
+  constructor(fileUri: string, success: boolean, message: string) {
+    this.fileUri = fileUri;
     this.success = success;
     this.message = message;
   }

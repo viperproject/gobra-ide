@@ -128,6 +128,8 @@ class GobraServerService extends IdeLanguageClientAware {
     println("verifyGobraFile")
     val config: VerifierConfig = gson.fromJson(configJson, classOf[VerifierConfig])
 
+    VerifierState.updateVerificationInformation(config.fileData.fileUri, Left(0))
+
     VerifierState.jobQueue.synchronized {
       VerifierState.jobQueue.enqueue((FileType.Gobra, config))
       VerifierState.jobQueue.notify()
@@ -139,6 +141,8 @@ class GobraServerService extends IdeLanguageClientAware {
     println("verifyGoFile")
 
     val config: VerifierConfig = gson.fromJson(configJson, classOf[VerifierConfig])
+
+    VerifierState.updateVerificationInformation(config.fileData.fileUri, Left(0))
 
     VerifierState.jobQueue.synchronized {
       VerifierState.jobQueue.enqueue((FileType.Go, config))
@@ -173,7 +177,7 @@ class GobraServerService extends IdeLanguageClientAware {
     VerifierState.openFileUri = fileData.fileUri
 
     VerifierState.publishDiagnostics(VerifierState.openFileUri)
-    VerifierState.sendOverallResult(VerifierState.openFileUri)
+    VerifierState.sendVerificationInformation(VerifierState.openFileUri)
   }
 
   @JsonNotification("gobraServer/flushCache")

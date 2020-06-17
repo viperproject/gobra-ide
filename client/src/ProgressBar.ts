@@ -1,7 +1,8 @@
 import * as vscode from "vscode";
+import { Texts, Color } from "./Helper";
 
 
-export class StatusBarButton {
+export class ProgressBar {
     
   public item: vscode.StatusBarItem;
 
@@ -12,31 +13,20 @@ export class StatusBarButton {
     this.updateItem();
   }
 
-  public setCommand(commandId: string, context: vscode.ExtensionContext) {
-    this.item.command = commandId;
-    context.subscriptions.push(this.item);
-
-    context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(this.updateItem));
-    context.subscriptions.push(vscode.window.onDidChangeTextEditorSelection(this.updateItem));
-    this.updateItem();
-  }
-
   public setProperties(text: string, color: string) {
     this.item.text = text;
     this.item.color = color;
     this.updateItem();
   }
 
-  public addHourGlass() {
-    this.item.text = "\u231B" + this.item.text;
-    this.updateItem();
-  }
+  public progress(fileName: string, progress: number) {
+    let clampedProgress = Math.min(100, Math.max(0, progress))
+    let completed = Math.floor(clampedProgress / 10);
+    let progressDisplay = " " + clampedProgress + "% " + "⚫".repeat(completed) + "⚪".repeat(10 - completed);
 
-  public removeHourGlass() {
-    if (this.item.text.charAt(0) == '\u231B') {
-      this.item.text = this.item.text.substring(1);
-      this.updateItem();
-    }
+    this.item.text = Texts.runningVerification + fileName + progressDisplay;
+    this.item.color = Color.darkgreen;
+    this.updateItem();
   }
 
   public updateItem() {

@@ -5,8 +5,16 @@ import { VerifierConfig, OverallVerificationResult, FileData, GobraSettings, Pla
 
 export class Helper {
   public static isWin = /^win/.test(process.platform);
-    public static isLinux = /^linux/.test(process.platform);
-    public static isMac = /^darwin/.test(process.platform);
+  public static isLinux = /^linux/.test(process.platform);
+  public static isMac = /^darwin/.test(process.platform);
+
+  public static isServerMode(): boolean {
+    return vscode.workspace.getConfiguration("gobraSettings").get("serverMode");
+  }
+
+  public static isNightly(): boolean {
+    return vscode.workspace.getConfiguration("gobraSettings").get("buildVersion") == "nightly";
+  }
 
 
   public static registerCommand(commandId: string, command: (...args: any[]) => any, context: vscode.ExtensionContext): void {
@@ -19,6 +27,10 @@ export class Helper {
     } else {
       return "";
     }
+  }
+
+  public static getFileName(path: string): string {
+    return path.split('/').pop();
   }
 
   public static getFileUri(): string {
@@ -46,54 +58,68 @@ export class Helper {
     return <GobraSettings> gobraSettings;
   }
 
-  public static getGobraDependencies(): GobraDependencies {
+
+  /**
+    * Helper functions to get Paths of the dependencies.
+    */
+  private static getGobraDependencies(): GobraDependencies {
     let gobraDependencies: unknown = vscode.workspace.getConfiguration("gobraDependencies");
     return <GobraDependencies> gobraDependencies;
   }
 
-  public static getPlatformPath(paths: PlatformDependendPath): string {
+  private static getPlatformPath(paths: PlatformDependendPath): string {
     if (Helper.isWin && paths.windows) return paths.windows;
     if (Helper.isLinux && paths.linux) return paths.linux;
     if (Helper.isMac && paths.mac) return paths.mac;
-
     return null;
   }
 
-  public static getViperToolsProvider(): string {
-    let gobraDependencies: unknown = vscode.workspace.getConfiguration("gobraDependencies");
-    let viperToolsProvider = Helper.getGobraDependencies().viperToolsProvider;
-
-    return Helper.getPlatformPath(viperToolsProvider);
+  /**
+    * Specifies the Path added by the zip extractor.
+    */
+  private static extractionAddition(): string {
+    return Helper.isWin ? "\\Gobra\\GobraTools" : "/Gobra/GobraTools"
   }
 
-  public static extractionAddition(): string {
-    return Helper.isWin ? "\\Viper\\ViperTools" : "/Viper/ViperTools"
+  // TODO: add nightly and stable folder to buildPath in package.json when the zips are available.
+  private static getBuildPath(nightly: boolean = false): string {
+    let buildPaths = nightly ?
+      Helper.getGobraDependencies().gobraToolsPaths.nightlyBuildPath : Helper.getGobraDependencies().gobraToolsPaths.stableBuildPath;
+
+    return Helper.getPlatformPath(buildPaths).replace("$gobraTools$", Helper.getGobraToolsPath() + Helper.extractionAddition());
   }
 
-  public static getViperToolsPath(): string {
-    let viperToolsPaths = Helper.getGobraDependencies().viperToolsPaths.viperToolsPath;
-
-    return Helper.getPlatformPath(viperToolsPaths);
+  /**
+    * Get URL of repository where Gobra Tools are hosted.
+    */
+  public static getGobraToolsProvider(): string {
+    let gobraToolsProvider = Helper.getGobraDependencies().gobraToolsProvider;
+    return Helper.getPlatformPath(gobraToolsProvider);
   }
 
-  public static getBoogiePath(): string {
-    let boogiePaths = Helper.getGobraDependencies().viperToolsPaths.boogieExecutable;
-    let viperToolsPath = Helper.getViperToolsPath();
-
-    return Helper.getPlatformPath(boogiePaths).replace("$viperTools$", viperToolsPath + Helper.extractionAddition());
+  /**
+    * Get Location where Gobra Tools will be installed.
+    */
+  public static getGobraToolsPath(): string {
+    let gobraToolsPaths = Helper.getGobraDependencies().gobraToolsPaths.gobraToolsPath;
+    return Helper.getPlatformPath(gobraToolsPaths);
   }
 
-  public static getZ3Path(): string {
-    let z3Paths = Helper.getGobraDependencies().viperToolsPaths.z3Executable;
-    let viperToolsPath = Helper.getViperToolsPath();
-
-    return Helper.getPlatformPath(z3Paths).replace("$viperTools$", viperToolsPath + Helper.extractionAddition());
+  public static getServerJarPath(nightly: boolean = false): string {
+    let serverJarPaths = Helper.getGobraDependencies().gobraToolsPaths.serverJar;
+    return Helper.getPlatformPath(serverJarPaths).replace("$buildPath$", Helper.getBuildPath(nightly));
   }
 
-  public static isServerMode(): boolean {
-    return vscode.workspace.getConfiguration("gobraSettings").get("serverMode");
+  
+  public static getBoogiePath(nightly: boolean = false): string {
+    let boogiePaths = Helper.getGobraDependencies().gobraToolsPaths.boogieExecutable;
+    return Helper.getPlatformPath(boogiePaths).replace("$buildPath$", Helper.getBuildPath(nightly));
   }
 
+  public static getZ3Path(nightly: boolean = false): string {
+    let z3Paths = Helper.getGobraDependencies().gobraToolsPaths.z3Executable;
+    return Helper.getPlatformPath(z3Paths).replace("$buildPath$", Helper.getBuildPath(nightly));
+  }
 
 }
 
@@ -112,8 +138,9 @@ export class Commands {
   /**
     * Commands handled by Client (VSCode)
     */
-  public static overallResultNotification = "gobraServer/overallResultNotification";
-  public static noVerificationResult = "gobraServer/noVerificationResult";
+  public static overallResult = "gobraServer/overallResult";
+  public static noVerificationInformation = "gobraServer/noVerificationInformation";
+  public static verificationProgress = "gobraServer/verificationProgress";
   public static finishedVerification = "gobraServer/finishedVerification";
   public static verificationException = "gobraServer/verificationException";
   public static finishedGoifying = "gobraServer/finishedGoifying";
@@ -122,18 +149,22 @@ export class Commands {
 
 // Defines the texts in statusbars ...
 export class Texts {
+  public static runningVerification = "Verification of ";
   public static helloGobra = "Hello from Gobra";
   public static flushCache = "Flush Cache";
-  public static updatingViperTools = "Updating Viper Tools for Gobra";
-  public static installingViperTools = "Installing Viper Tools for Gobra";
-  public static successfulUpdatingViperTools = "Successfully updated Viper Tools. Please restart the IDE.";
-  public static successfulInstallingViperTools = "Successfully installed Viper Tools.";
+  public static updatingGobraTools = "Updating Gobra Tools";
+  public static installingGobraTools = "Installing Gobra Tools";
+  public static successfulUpdatingGobraTools = "Successfully updated Gobra Tools. Please restart the IDE.";
+  public static successfulInstallingGobraTools = "Successfully installed Gobra Tools.";
+  public static changedBuildVersion = "Changed the build version of Gobra Tools. Please restart the IDE.";
 }
 
 export class Color {
   public static green = "lightgreen";
   public static white = "white";
   public static red = "red";
+  public static orange = "orange";
+  public static darkgreen = "green";
 }
 
 
@@ -145,7 +176,7 @@ export class ContributionCommands {
   public static goifyFile = "gobra.goifyFile";
   public static gobrafyFile = "gobra.gobrafyFile";
   public static verifyFile = "gobra.verifyFile";
-  public static updateViperTools = "gobra.updateViperTools"
+  public static updateGobraTools = "gobra.updateGobraTools"
 }
 
 

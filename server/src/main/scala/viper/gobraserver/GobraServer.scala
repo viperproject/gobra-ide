@@ -55,9 +55,9 @@ object GobraServer extends GobraFrontend {
 
     if (fileUri == VerifierState.openFileUri) {
       VerifierState.publishDiagnostics(fileUri)
-      VerifierState.sendOverallResult(fileUri)
+      VerifierState.sendVerificationInformation(fileUri)
     }
-    Helper.sendFinishedVerification(fileUri)
+    
   }
 
   private def errorToDiagnostic(error: VerifierError, fileType: FileType.Value): Diagnostic = fileType match {
@@ -118,12 +118,13 @@ object GobraServer extends GobraFrontend {
             // only update diagnostics cache when ViperServer is used as a backend.
             if (config.backend == ViperBackends.ViperServerBackend) VerifierState.addDiagnosticsCache(fileUri, sortedErrs, diagnostics)
         }
-        VerifierState.toggleVerificationRunning
+        VerifierState.verificationRunning = false
         // remove all filechanges associated to this file which occured during the verification.
         VerifierState.changes = VerifierState.changes.filter({case (uri, _) => uri != fileUri})
         
-        val overallResult = Helper.getOverallVerificationResult(result, endTime - startTime)
-        VerifierState.addOverallResult(fileUri, overallResult)
+        val overallResult = Helper.getOverallVerificationResult(fileUri, result, endTime - startTime)
+        VerifierState.updateVerificationInformation(fileUri, Right(overallResult))
+        //VerifierState.addOverallResult(fileUri, overallResult)
 
         publishResults(fileUri)
 
@@ -132,8 +133,9 @@ object GobraServer extends GobraFrontend {
         exception match {
           case e: Violation$LogicException => {
             VerifierState.removeDiagnostics(fileUri)
-            val overallResult = Helper.getOverallVerificationResultFromException(e)
-            VerifierState.addOverallResult(fileUri, overallResult)
+            val overallResult = Helper.getOverallVerificationResultFromException(fileUri, e)
+            //VerifierState.addOverallResult(fileUri, overallResult)
+            VerifierState.updateVerificationInformation(fileUri, Right(overallResult))
 
             publishResults(fileUri)
           }
@@ -161,8 +163,7 @@ object GobraServer extends GobraFrontend {
     val fileUri = verifierConfig.fileData.fileUri
     val filePath = verifierConfig.fileData.filePath
 
-    VerifierState.toggleVerificationRunning
-    
+    VerifierState.verificationRunning = true
     
     val startTime = System.currentTimeMillis()
 
@@ -221,11 +222,13 @@ object GobraServer extends GobraFrontend {
     val filePath = fileData.filePath
     val fileUri = fileData.fileUri
 
+    //val newFilePath = filePath + ".gobra"
+    //val newFileUri = fileUri + ".gobra"
     val newFilePath = Helper.gobraFileExtension(filePath)
     val newFileUri = Helper.gobraFileExtension(fileUri)
 
     VerifierState.removeDiagnostics(newFileUri)
-    VerifierState.removeOverallResult(newFileUri)
+    VerifierState.removeVerificationInformation(newFileUri)
 
     publishResults(newFileUri)
 
@@ -255,8 +258,9 @@ object GobraServer extends GobraFrontend {
     */
   def verifyGo(verifierConfig: VerifierConfig): Future[VerifierResult] = {
     val filePath = verifierConfig.fileData.filePath
+    val fileUri = verifierConfig.fileData.fileUri
 
-    VerifierState.toggleVerificationRunning
+    VerifierState.verificationRunning = true
 
     val fileContents = Source.fromFile(filePath).mkString
     val gobrafiedContents = GobrafierRunner.gobrafyFileContents(fileContents)
@@ -270,10 +274,6 @@ object GobraServer extends GobraFrontend {
 
     resultFuture
   }
-
-
-
-
 
 
   def stop() {
