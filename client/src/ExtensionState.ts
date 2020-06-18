@@ -27,8 +27,10 @@ export class State {
 
   public static verifierConfig: VerifierConfig;
 
-  public static updateFileData(): void {
+  public static updateFileData(fileUri?: string): void {
     this.verifierConfig.fileData = new FileData();
+
+    if (fileUri) this.verifierConfig.fileData.fileUri = fileUri;
   }
 
   public static updateConfiguration(): void {

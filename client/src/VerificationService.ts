@@ -45,7 +45,6 @@ export class Verifier {
     State.context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(Verifier.changeFile));
     // open event
     State.context.subscriptions.push(vscode.workspace.onDidOpenTextDocument(document => {
-      console.log("opened " + document.uri.toString());
       Verifier.verifyFile(document.uri.toString(), IdeEvents.Open)
     }));
     // save event
@@ -98,14 +97,15 @@ export class Verifier {
     if (!fileUri.endsWith(".gobra") && !(fileUri.endsWith(".go") && event == IdeEvents.Manual)) return;
 
     State.updateConfiguration();
+    State.updateFileData(fileUri);
 
     // return if file is currently getting gobrafied.
     if (State.runningGobrafications.has(State.verifierConfig.fileData.filePath)) return
     
     if (!State.runningVerifications.has(fileUri)) {
       
-      
       State.runningVerifications.add(fileUri);
+      Verifier.verifyItem.progress(Helper.getFileName(fileUri), 0);
 
       vscode.window.activeTextEditor.document.save().then((saved: boolean) => {
         console.log("sending verification request");
