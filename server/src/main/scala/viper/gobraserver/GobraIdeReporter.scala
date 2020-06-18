@@ -20,13 +20,14 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
 
   // amount of process a non verification message contributes to the progress
   private def nonVerificationEntityProgress: Int = ((1 - verificationFraction) * 20).round.toInt
+  private def preprocessEntityProgress: Int = (0.5 * nonVerificationEntityProgress).round.toInt
 
   private var progress: Int = 0
   private val finishedProgress: Int = 100
   private var totalEntities: Int = 0
 
   private def verificationEntityProgress: Int =
-    (100 * verificationFraction).round.toInt * (if (totalEntities == 0) 1 else (1 / totalEntities))
+    ((100 * verificationFraction) * (if (totalEntities == 0) 1 else (1.0 / totalEntities))).round.toInt
 
   
   private def updateProgress(update: Int): Unit = {
@@ -37,10 +38,10 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
   override def report(msg: GobraMessage): Unit = msg match {
     case CopyrightReport(text) => println(text)
 
-    case PreprocessedInputMessage(_, _) => updateProgress(nonVerificationEntityProgress)
+    case PreprocessedInputMessage(_, _) => updateProgress(preprocessEntityProgress)
 
     case ParsedInputMessage(file, program) =>
-      updateProgress(nonVerificationEntityProgress)
+      updateProgress(preprocessEntityProgress)
       if (unparse) write(file, "unparsed", program().formatted)
 
     case TypeCheckSuccessMessage(file, _, erasedGhostCode) =>
