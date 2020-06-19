@@ -1,24 +1,42 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "type": "extensionHost",
-            "request": "launch",
-            "name": "Launch Client",
-            "runtimeExecutable": "${execPath}",
-            "args": [
-                "--extensionDevelopmentPath=${workspaceRoot}"
-            ],
-            "outFiles": [
-                "${workspaceRoot}/out/**/*.js"
-            ],
-            "preLaunchTask": {
-                "type": "npm",
-                "script": "watch"
-            }
-        }
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "extensionHost",
+      "request": "launch",
+      "name": "Launch Client",
+      "runtimeExecutable": "${execPath}",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceRoot}"
+      ],
+      "outFiles": [
+        "${workspaceRoot}/out/**/*.js"
+      ],
+      "preLaunchTask": {
+        "type": "npm",
+        "script": "watch"
+      }
+    },
+    {
+      "name": "Evaluate Extension",
+      "type": "extensionHost",
+      "request": "launch",
+      "runtimeExecutable": "${execPath}",
+      "args": [
+        "--trace-deprecation",
+        "--extensionDevelopmentPath=${workspaceFolder}",
+        "--extensionTestsPath=${workspaceFolder}/out/evaluate"
+      ],
+      "outFiles": [
+        "${workspaceFolder}/out/evaluate/**/*.js"
+      ],
+      "preLaunchTask": {
+        "type": "npm",
+        "script": "watch"
+      }
+    }
     ]
 }

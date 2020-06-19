@@ -11,9 +11,10 @@ import { Dependency, InstallerSequence, FileDownloader, ZipExtractor, withProgre
 export class Verifier {
   public static verifyItem: ProgressBar;
 
-  public static initialize(verifierConfig: VerifierConfig, fileUri: string, timeout: number): void {
+  public static initialize(context: vscode.ExtensionContext, verifierConfig: VerifierConfig, fileUri: string, timeout: number): void {
     // add file data of current file to the state
     State.verifierConfig = verifierConfig;
+    State.context = context;
 
     // Initialize Verification Button in Statusbar
     Verifier.verifyItem = new ProgressBar(Texts.helloGobra, 10);

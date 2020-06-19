@@ -7,8 +7,10 @@ import { Helper } from './Helper';
 
 
 let fileSystemWatcher: vscode.FileSystemWatcher;
+let timeout: number = 1000;
 
 export function activate(context: vscode.ExtensionContext) {
+
 	// Uri of the file which triggered the plugin activation.
 	let fileUri: string = Helper.getFileUri();
 
@@ -17,12 +19,12 @@ export function activate(context: vscode.ExtensionContext) {
 
 		// creating Gobra Server
 		fileSystemWatcher = vscode.workspace.createFileSystemWatcher("**/*.{gobra, go}");
-		State.startLanguageServer(context, fileSystemWatcher);
+		State.startLanguageServer(fileSystemWatcher);
 
 		// wait for server to start completely until next steps
 		State.client.onReady().then(() =>{
 			let verifierConfig = new VerifierConfig();
-			Verifier.initialize(verifierConfig, fileUri, 1000);
+			Verifier.initialize(context, verifierConfig, fileUri, timeout);
 		});
 	});
 	

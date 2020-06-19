@@ -56,8 +56,7 @@ export class State {
 
 
   // creates the language client and starts the server
-  public static startLanguageServer(context: vscode.ExtensionContext, fileSystemWatcher: vscode.FileSystemWatcher): Promise<any> {
-    this.context = context;
+  public static startLanguageServer(fileSystemWatcher: vscode.FileSystemWatcher): Promise<any> {
 
     this.updatingGobraTools = false;
 
@@ -71,7 +70,11 @@ export class State {
 
     // TODO: change this once the zip downloads are ready.
     //let serverBin = Helper.getServerJarPath(Helper.isNightly());
-    let serverBin = State.context.asAbsolutePath(path.join('../', 'server', 'target', 'scala-2.12', 'server.jar'));
+    //let serverBin = State.context.asAbsolutePath(path.join('../', 'server', 'target', 'scala-2.12', 'server.jar'));
+
+    // NOTE: this is only hardcoded for the moment to be able to test the extension, evaluate it. later this will be replaced by the stable, nightly bin as above.
+    let prefix = __dirname.split("client")[0];
+    let serverBin = path.join(prefix, 'server', 'target', 'scala-2.12', 'server.jar')
 
     let serverOptions = () => State.startServerProcess(serverBin);
 
@@ -124,7 +127,9 @@ export class State {
 
 
         // Send raw output to a file (for testing purposes only, change or remove later)------------------
-				let logFile = this.context.asAbsolutePath('gobraServer.log');
+        let prefix = __dirname.substring(0, __dirname.length - 3);
+        //let logFile = this.context.asAbsolutePath('gobraServer.log');
+        let logFile = prefix + "gobraServer.log";
 				let logStream = fs.createWriteStream(logFile, { flags: 'w' });
 	
 				serverProcess.stdout.pipe(logStream);
@@ -132,6 +137,7 @@ export class State {
 	
         console.log(`Storing log in '${logFile}'`);
         // -----------------------------------------------------------------------------------------------
+
       })
     });
   }

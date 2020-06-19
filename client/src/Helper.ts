@@ -134,6 +134,7 @@ export class Commands {
   public static flushCache = "gobraServer/flushCache";
   public static goifyFile = "gobraServer/goifyFile";
   public static gobrafyFile = "gobraServer/gobrafyFile";
+  public static setOpenFileUri = "gobraServer/setOpenFileUri";
 
   /**
     * Commands handled by Client (VSCode)

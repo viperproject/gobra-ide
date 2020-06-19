@@ -104,6 +104,11 @@ class GobraServerService extends IdeLanguageClientAware {
     }
   }
 
+  @JsonNotification("gobraServer/setOpenFileUri")
+  def setOpenFileUri(fileUri: String): Unit = {
+    VerifierState.openFileUri = fileUri
+  }
+
   @JsonNotification("textDocument/didClose")
   def didClose(params: DidCloseTextDocumentParams): Unit = {
     println("didClose")
