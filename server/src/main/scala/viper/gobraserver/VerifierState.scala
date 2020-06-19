@@ -77,7 +77,6 @@ object VerifierState {
   }
   
   
-
   /**
     * Diagnostics of the verification stored per file in a key value pair.
     */

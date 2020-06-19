@@ -291,8 +291,6 @@ export class Verifier {
   }
 
   private static handleVerificationProgressNotification(fileUri: string, progress: number): void {
-    //console.log("Verification progress for file " + fileUri + " arrived: " + progress);
-
     Verifier.verifyItem.progress(Helper.getFileName(fileUri), progress);
   }
 
