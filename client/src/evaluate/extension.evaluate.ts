@@ -80,15 +80,15 @@ suite('Evaluation Suite', () => {
 });
 
 class EvaluationHelper {
-  public static repetitions = 10;
+  public static repetitions = 20;
 
-  public static backend = "CARBON";
+  public static backend = "SILICON";
   public static serverMode = true;
 
   /**
     * Paths to files used in evaluation.
     */
-  public static evaluationFilesDir = path.join(__dirname.split("out")[0], "src", "evaluate", "evaluationFiles", (EvaluationHelper.backend == "SILICON") ? "silicon" : "carbon");
+  public static evaluationFilesDir = path.join(__dirname.split("out")[0], "src", "evaluate", "evaluationFiles");
   public static workingFilePath = path.join(EvaluationHelper.evaluationFilesDir, "working.gobra");
   private static evaluationResultsPath = __dirname.split("out")[0];
   public static evaluationResultsFile =
