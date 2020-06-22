@@ -50,32 +50,23 @@ object GobraServer extends GobraFrontend {
   }
 
 
+  private def errorToDiagnostic(error: VerifierError, fileType: FileType.Value): Diagnostic = {
+    val startPos = new Position(
+      error.position.start.line - 1,
+      if (fileType == FileType.Gobra) error.position.start.column - 1 else 0
+    )
 
-  private def publishResults(fileUri: String) {
-
-    if (fileUri == VerifierState.openFileUri) {
-      VerifierState.publishDiagnostics(fileUri)
+    val endPos = error.position.end match {
+      case Some(pos) => new Position(
+        pos.line - 1,
+        if (fileType == FileType.Gobra) pos.column - 1 else Int.MaxValue
+      )
+      case None => startPos
     }
-    
+
+    new Diagnostic(new Range(startPos, endPos), error.message, DiagnosticSeverity.Error, "")
   }
 
-  private def errorToDiagnostic(error: VerifierError, fileType: FileType.Value): Diagnostic = fileType match {
-    case FileType.Gobra =>
-      val startPos = new Position(error.position.start.line-1, error.position.start.column-1)
-      val endPos = error.position.end match {
-        case Some(pos) => new Position(pos.line-1, pos.column-1)
-        case None => startPos
-      }
-      new Diagnostic(new Range(startPos, endPos), error.message, DiagnosticSeverity.Error, "")
-
-    case FileType.Go =>
-      val startPos = new Position(error.position.start.line-1, 0)
-      val endPos = error.position.end match {
-        case Some(pos) => new Position(pos.line-1, Int.MaxValue)
-        case None => startPos
-      }
-      new Diagnostic(new Range(startPos, endPos), error.message, DiagnosticSeverity.Error, "")
-  }
 
   private def displayVerificationResult(fileData: FileData, config: Config, startTime: Long, resultFuture: Future[VerifierResult]) {
 
@@ -123,9 +114,9 @@ object GobraServer extends GobraFrontend {
         
         val overallResult = Helper.getOverallVerificationResult(fileUri, result, endTime - startTime)
         VerifierState.updateVerificationInformation(fileUri, Right(overallResult))
-        //VerifierState.addOverallResult(fileUri, overallResult)
 
-        publishResults(fileUri)
+
+        if (fileUri == VerifierState.openFileUri) VerifierState.publishDiagnostics(fileUri)
 
       case Failure(exception) =>
 
@@ -133,10 +124,11 @@ object GobraServer extends GobraFrontend {
           case e: Violation$LogicException => {
             VerifierState.removeDiagnostics(fileUri)
             val overallResult = Helper.getOverallVerificationResultFromException(fileUri, e)
-            //VerifierState.addOverallResult(fileUri, overallResult)
+
             VerifierState.updateVerificationInformation(fileUri, Right(overallResult))
 
-            publishResults(fileUri)
+
+            if (fileUri == VerifierState.openFileUri) VerifierState.publishDiagnostics(fileUri)
           }
           case e => {
             println("Exception occured: " + e)
@@ -166,7 +158,7 @@ object GobraServer extends GobraFrontend {
     
     val startTime = System.currentTimeMillis()
 
-    val config = Helper.verificationConfigFromTask(verifierConfig)
+    val config = Helper.verificationConfigFromTask(verifierConfig, startTime)
     val resultFuture = verifier.verify(config)
 
     displayVerificationResult(verifierConfig.fileData, config, startTime, resultFuture)
@@ -221,15 +213,13 @@ object GobraServer extends GobraFrontend {
     val filePath = fileData.filePath
     val fileUri = fileData.fileUri
 
-    //val newFilePath = filePath + ".gobra"
-    //val newFileUri = fileUri + ".gobra"
     val newFilePath = Helper.gobraFileExtension(filePath)
     val newFileUri = Helper.gobraFileExtension(fileUri)
 
     VerifierState.removeDiagnostics(newFileUri)
     VerifierState.removeVerificationInformation(newFileUri)
 
-    publishResults(newFileUri)
+    if (newFileUri == VerifierState.openFileUri) VerifierState.publishDiagnostics(newFileUri)
 
     try {
       val fileContents = Source.fromFile(filePath).mkString
@@ -266,7 +256,7 @@ object GobraServer extends GobraFrontend {
 
     val startTime = System.currentTimeMillis()
 
-    val config = Helper.verificationConfigFromTask(verifierConfig)
+    val config = Helper.verificationConfigFromTask(verifierConfig, startTime)
     val resultFuture = verifier.verify(gobrafiedContents, config)
 
     displayVerificationResult(verifierConfig.fileData, config, startTime, resultFuture)

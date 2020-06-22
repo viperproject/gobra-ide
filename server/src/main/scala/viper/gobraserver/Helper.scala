@@ -14,7 +14,7 @@ import ch.qos.logback.classic.Level
 
 object Helper {
 
-  def verificationConfigFromTask(verifierConfig: VerifierConfig): Config = {
+  def verificationConfigFromTask(verifierConfig: VerifierConfig, startTime: Long): Config = {
     verifierConfig match {
       case VerifierConfig(
         FileData(path, fileUri),
@@ -29,16 +29,6 @@ object Helper {
         val shouldViperEncode = shouldDesugar
         val shouldVerify = shouldViperEncode
 
-        val reporter = GobraIdeReporter(
-          fileUri = fileUri,
-          unparse = unparse,
-          eraseGhost = eraseGhost,
-          goify = goify,
-          debug = debug,
-          printInternal = printInternal,
-          printVpr = printViper
-        )
-
         val backend =
           if (serverMode) {
             ViperBackends.ViperServerBackend
@@ -49,6 +39,18 @@ object Helper {
               case _ => ViperBackends.SiliconBackend
             }
           }
+
+        val reporter = GobraIdeReporter(
+          startTime = startTime,
+          fileUri = fileUri,
+          backend = backend,
+          unparse = unparse,
+          eraseGhost = eraseGhost,
+          goify = goify,
+          debug = debug,
+          printInternal = printInternal,
+          printVpr = printViper
+        )
 
         val backendConfig = 
           if (serverMode) {
