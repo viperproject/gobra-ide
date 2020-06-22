@@ -23,7 +23,7 @@ suite('Evaluation Suite', () => {
   test('Evaluate Sequential Verification', async () => {
     var now = require("performance-now");
 
-    let writeStream = fs.createWriteStream(EvaluationHelper.sequentialEvaluationResultsFile);
+    let writeStream = fs.createWriteStream(EvaluationHelper.evaluationResultsFile);
 
     /**
       * Start language server.
@@ -80,10 +80,10 @@ suite('Evaluation Suite', () => {
 });
 
 class EvaluationHelper {
-  public static repetitions = 20;
+  public static repetitions = 10;
 
-  public static backend = "SILICON";
-  public static serverMode = true;
+  public static backend = "CARBON";
+  public static serverMode = false;
 
   /**
     * Paths to files used in evaluation.
@@ -91,9 +91,9 @@ class EvaluationHelper {
   public static evaluationFilesDir = path.join(__dirname.split("out")[0], "src", "evaluate", "evaluationFiles", (EvaluationHelper.backend == "SILICON") ? "silicon" : "carbon");
   public static workingFilePath = path.join(EvaluationHelper.evaluationFilesDir, "working.gobra");
   private static evaluationResultsPath = __dirname.split("out")[0];
-  public static sequentialEvaluationResultsFile =
+  public static evaluationResultsFile =
     path.join(EvaluationHelper.evaluationResultsPath, 
-      "sequentialEvaluationResults" + EvaluationHelper.backend + (EvaluationHelper.serverMode ? "serverMode" : "") + ".txt");
+      "evaluationResults" + EvaluationHelper.backend + (EvaluationHelper.serverMode ? "serverMode" : "") + ".txt");
 
   
   public static fileSystemWatcher = vscode.workspace.createFileSystemWatcher("**/*.{gobra, go}");
