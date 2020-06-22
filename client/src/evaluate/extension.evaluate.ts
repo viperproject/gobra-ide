@@ -83,7 +83,7 @@ class EvaluationHelper {
   public static repetitions = 10;
 
   public static backend = "CARBON";
-  public static serverMode = false;
+  public static serverMode = true;
 
   /**
     * Paths to files used in evaluation.

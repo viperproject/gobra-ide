@@ -1,3 +1,7 @@
 gobraServer.log
 node_modules/
 out/
+evaluationResultsCARBON.txt
+evaluationResultsCARBONserverMode.txt
+evaluationResultsSILICON.txt
+evaluationResultsSILICONserverMode.txt
