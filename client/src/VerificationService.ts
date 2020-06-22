@@ -302,6 +302,8 @@ export class Verifier {
   private static handleVerificationExceptionNotification(fileUri: string): void {
     State.runningVerifications.delete(fileUri);
 
+    Verifier.verifyItem.setProperties(Texts.helloGobra, Color.white);
+
     Verifier.reverifyFile(fileUri);
   }
 

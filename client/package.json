@@ -246,14 +246,14 @@
               "mac": "$gobraTools$"
             },
             "z3Executable": {
-              "windows": "$gobraTools$\\z3\\bin\\z3.exe",
-              "linux": "$gobraTools$/z3/bin/z3",
-              "mac": "$gobraTools$/z3/bin/z3"
+              "windows": "$buildPath$\\z3\\bin\\z3.exe",
+              "linux": "$buildPath$/z3/bin/z3",
+              "mac": "$buildPath$/z3/bin/z3"
             },
             "boogieExecutable": {
-              "windows": "$gobraTools$\\boogie\\Binaries\\Boogie.exe",
-              "linux": "$gobraTools$/boogie/Binaries/Boogie.exe",
-              "mac": "$gobraTools$/boogie/Binaries/Boogie"
+              "windows": "$buildPath$\\boogie\\Binaries\\Boogie.exe",
+              "linux": "$buildPath$/boogie/Binaries/Boogie.exe",
+              "mac": "$buildPath$/boogie/Binaries/Boogie"
             },
             "serverJar": {
               "windows": "$buildPath$\\server\\server.jar",
