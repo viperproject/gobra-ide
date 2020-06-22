@@ -86,6 +86,9 @@ export class Verifier {
     * Verifies the file with the given fileUri
     */
   public static verifyFile(fileUri: string, event: IdeEvents): void {
+    State.verificationRequests.delete(fileUri);
+
+
     State.clearVerificationRequestTimeout();
 
     // return when no text editor is active

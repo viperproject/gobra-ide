@@ -55,7 +55,6 @@ object GobraServer extends GobraFrontend {
 
     if (fileUri == VerifierState.openFileUri) {
       VerifierState.publishDiagnostics(fileUri)
-      VerifierState.sendVerificationInformation(fileUri)
     }
     
   }

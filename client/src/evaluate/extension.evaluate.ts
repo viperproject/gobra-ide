@@ -23,16 +23,28 @@ suite('Evaluation Suite', () => {
   test('Evaluate Sequential Verification', async () => {
     var now = require("performance-now");
 
+    let writeStream = fs.createWriteStream(EvaluationHelper.sequentialEvaluationResultsFile);
+
     /**
       * Start language server.
       */
     State.startLanguageServer(EvaluationHelper.fileSystemWatcher);
     await State.client.onReady();
 
+    if (fs.existsSync(EvaluationHelper.workingFilePath))
+      await vscode.workspace.fs.delete(URI.file(EvaluationHelper.workingFilePath));
+
     /**
       * Iterate over all files in the evaluationFiles directory
       */
     let fileArray = await vscode.workspace.fs.readDirectory(URI.file(EvaluationHelper.evaluationFilesDir));
+
+    for (let i = 0; i < fileArray.length; i++) {
+      let file = fileArray[i][0];
+      writeStream.write(file + ((i < fileArray.length - 1) ? ", " : ""));
+    }
+    writeStream.write("\n");
+
 
     for (let j = 0; j < EvaluationHelper.repetitions; j++) {
       Verifier.flushCache();
@@ -53,7 +65,11 @@ suite('Evaluation Suite', () => {
         let elapsedTime = (endTime - startTime) / 1000.0;
 
         console.log("Elapsed time for " + file + ": " + elapsedTime.toFixed(3) + "s");
+
+        //writeStream.write("Elapsed time for " + file + ": " + elapsedTime.toFixed(3) + "s\n");
+        writeStream.write(elapsedTime.toFixed(3) + ((i < fileArray.length - 1) ? ", " : ""));
       }
+      writeStream.write("\n");
     }
 
     await vscode.workspace.fs.delete(URI.file(EvaluationHelper.workingFilePath));
@@ -64,14 +80,20 @@ suite('Evaluation Suite', () => {
 });
 
 class EvaluationHelper {
-  public static repetitions = 1;
+  public static repetitions = 20;
+
+  public static backend = "SILICON";
+  public static serverMode = true;
 
   /**
     * Paths to files used in evaluation.
     */
-  public static evaluationFilesDir = path.join(__dirname.split("out")[0], "src", "evaluate", "evaluationFiles");
+  public static evaluationFilesDir = path.join(__dirname.split("out")[0], "src", "evaluate", "evaluationFiles", (EvaluationHelper.backend == "SILICON") ? "silicon" : "carbon");
   public static workingFilePath = path.join(EvaluationHelper.evaluationFilesDir, "working.gobra");
-  public static evaluationResultsFile = path.join(__dirname.split("out")[0], "evaluationResults.txt");
+  private static evaluationResultsPath = __dirname.split("out")[0];
+  public static sequentialEvaluationResultsFile =
+    path.join(EvaluationHelper.evaluationResultsPath, 
+      "sequentialEvaluationResults" + EvaluationHelper.backend + (EvaluationHelper.serverMode ? "serverMode" : "") + ".txt");
 
   
   public static fileSystemWatcher = vscode.workspace.createFileSystemWatcher("**/*.{gobra, go}");
@@ -86,6 +108,9 @@ class EvaluationHelper {
     config.fileData.fileUri = fileUri;
     config.fileData.filePath = filePath;
 
+    let settings = new EvaluationGobraSettings(this.serverMode, this.backend);
+    config.gobraSettings = settings;
+
     State.client.sendNotification(Commands.setOpenFileUri, fileUri);
     State.client.sendNotification(Commands.verifyGobraFile, Helper.configToJson(config));
 
@@ -98,4 +123,21 @@ class EvaluationHelper {
 
 
   
+}
+
+class EvaluationGobraSettings implements GobraSettings {
+  serverMode: boolean;
+  debug: boolean = false;
+  eraseGhost: boolean = false;
+  unparse: boolean = false;
+  printInternal: boolean = false;
+  printViper: boolean = false;
+  parseOnly: boolean = false;
+  loglevel: string = "OFF";
+  backend: string;
+
+  constructor(serverMode: boolean, backend: string) {
+    this.serverMode = serverMode;
+    this.backend = backend;
+  }
 }

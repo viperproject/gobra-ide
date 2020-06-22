@@ -130,7 +130,7 @@ export class State {
         let prefix = __dirname.substring(0, __dirname.length - 3);
         //let logFile = this.context.asAbsolutePath('gobraServer.log');
         let logFile = prefix + "gobraServer.log";
-				let logStream = fs.createWriteStream(logFile, { flags: 'w' });
+        let logStream = fs.createWriteStream(logFile, { flags: 'w' });
 	
 				serverProcess.stdout.pipe(logStream);
 				serverProcess.stderr.pipe(logStream);
