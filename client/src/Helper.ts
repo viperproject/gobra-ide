@@ -81,20 +81,14 @@ export class Helper {
     return Helper.isWin ? "\\Gobra\\GobraTools" : "/Gobra/GobraTools"
   }
 
-  // TODO: add nightly and stable folder to buildPath in package.json when the zips are available.
-  private static getBuildPath(nightly: boolean = false): string {
-    let buildPaths = nightly ?
-      Helper.getGobraDependencies().gobraToolsPaths.nightlyBuildPath : Helper.getGobraDependencies().gobraToolsPaths.stableBuildPath;
-
-    return Helper.getPlatformPath(buildPaths).replace("$gobraTools$", Helper.getGobraToolsPath() + Helper.extractionAddition());
-  }
-
+  // TODO: change paths of providers to actual zips when they exist and also use server from this zip
+  
   /**
     * Get URL of repository where Gobra Tools are hosted.
     */
-  public static getGobraToolsProvider(): string {
+  public static getGobraToolsProvider(nightly: boolean = false): string {
     let gobraToolsProvider = Helper.getGobraDependencies().gobraToolsProvider;
-    return Helper.getPlatformPath(gobraToolsProvider);
+    return Helper.getPlatformPath(nightly ? gobraToolsProvider.nightly : gobraToolsProvider.stable);
   }
 
   /**
@@ -107,18 +101,18 @@ export class Helper {
 
   public static getServerJarPath(nightly: boolean = false): string {
     let serverJarPaths = Helper.getGobraDependencies().gobraToolsPaths.serverJar;
-    return Helper.getPlatformPath(serverJarPaths).replace("$buildPath$", Helper.getBuildPath(nightly));
+    return Helper.getPlatformPath(serverJarPaths).replace("$gobraTools$", Helper.getGobraToolsPath() + Helper.extractionAddition());
   }
 
   
   public static getBoogiePath(nightly: boolean = false): string {
     let boogiePaths = Helper.getGobraDependencies().gobraToolsPaths.boogieExecutable;
-    return Helper.getPlatformPath(boogiePaths).replace("$buildPath$", Helper.getBuildPath(nightly));
+    return Helper.getPlatformPath(boogiePaths).replace("$gobraTools$", Helper.getGobraToolsPath() + Helper.extractionAddition());
   }
 
   public static getZ3Path(nightly: boolean = false): string {
     let z3Paths = Helper.getGobraDependencies().gobraToolsPaths.z3Executable;
-    return Helper.getPlatformPath(z3Paths).replace("$buildPath$", Helper.getBuildPath(nightly));
+    return Helper.getPlatformPath(z3Paths).replace("$gobraTools$", Helper.getGobraToolsPath() + Helper.extractionAddition());
   }
 
 }

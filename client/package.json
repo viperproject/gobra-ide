@@ -235,30 +235,20 @@
               "linux": "/usr/local",
               "mac": "/Users/Shared"
             },
-            "stableBuildPath": {
-              "windows": "$gobraTools$",
-              "linux": "$gobraTools$",
-              "mac": "$gobraTools$"
-            },
-            "nightlyBuildPath": {
-              "windows": "$gobraTools$",
-              "linux": "$gobraTools$",
-              "mac": "$gobraTools$"
-            },
             "z3Executable": {
-              "windows": "$buildPath$\\z3\\bin\\z3.exe",
-              "linux": "$buildPath$/z3/bin/z3",
-              "mac": "$buildPath$/z3/bin/z3"
+              "windows": "$gobraTools$\\z3\\bin\\z3.exe",
+              "linux": "$gobraTools$/z3/bin/z3",
+              "mac": "$gobraTools$/z3/bin/z3"
             },
             "boogieExecutable": {
-              "windows": "$buildPath$\\boogie\\Binaries\\Boogie.exe",
-              "linux": "$buildPath$/boogie/Binaries/Boogie.exe",
-              "mac": "$buildPath$/boogie/Binaries/Boogie"
+              "windows": "$gobraTools$\\boogie\\Binaries\\Boogie.exe",
+              "linux": "$gobraTools$/boogie/Binaries/Boogie.exe",
+              "mac": "$gobraTools$/boogie/Binaries/Boogie"
             },
             "serverJar": {
-              "windows": "$buildPath$\\server\\server.jar",
-              "linux": "$buildPath$/server/server.jar",
-              "mac": "$buildPath$/server/server.jar"
+              "windows": "$gobraTools$\\server\\server.jar",
+              "linux": "$gobraTools$/server/server.jar",
+              "mac": "$gobraTools$/server/server.jar"
             }
           },
           "description": "Paths to the dependencies."
@@ -266,11 +256,20 @@
         "gobraDependencies.gobraToolsProvider": {
           "type": "object",
           "default": {
-            "windows": "http://viper.ethz.ch/downloads/ViperToolsWin.zip",
-            "linux": "http://viper.ethz.ch/downloads/ViperToolsLinux.zip",
-            "mac": "http://viper.ethz.ch/downloads/ViperToolsMac.zip"
+            "stable": {
+              "windows": "http://viper.ethz.ch/downloads/ViperToolsWin.zip",
+              "linux": "http://viper.ethz.ch/downloads/ViperToolsLinux.zip",
+              "mac": "http://viper.ethz.ch/downloads/ViperToolsMac.zip"
+            },
+            "nightly": {
+              "windows": "http://viper.ethz.ch/downloads/ViperToolsWin.zip",
+              "linux": "http://viper.ethz.ch/downloads/ViperToolsLinux.zip",
+              "mac": "http://viper.ethz.ch/downloads/ViperToolsMac.zip"
+            }
           }
         }
+
+        
       }
     }
   }

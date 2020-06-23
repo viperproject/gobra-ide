@@ -39,16 +39,19 @@ export interface GobraSettings {
 
 export interface PathSettings {
   gobraToolsPath: PlatformDependendPath;
-  stableBuildPath: PlatformDependendPath;
-  nightlyBuildPath: PlatformDependendPath;
   z3Executable: PlatformDependendPath;
   boogieExecutable: PlatformDependendPath;
   serverJar: PlatformDependendPath;
 }
 
+export interface ProviderSettings {
+  stable: PlatformDependendPath;
+  nightly: PlatformDependendPath;
+}
+
 export interface GobraDependencies {
   gobraToolsPaths: PathSettings;
-  gobraToolsProvider: PlatformDependendPath;
+  gobraToolsProvider: ProviderSettings;
 }
 
 export interface PlatformDependendPath {

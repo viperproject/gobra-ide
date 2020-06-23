@@ -66,7 +66,8 @@ export class Verifier {
 
     // change of build version
     State.context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(e => {
-      if (e.affectsConfiguration("gobraSettings.buildVersion")) vscode.window.showInformationMessage(Texts.changedBuildVersion);
+      if (e.affectsConfiguration("gobraSettings.buildVersion"))
+        Verifier.updateGobraTools(true, Texts.changedBuildVersion);
     }))
 
 
@@ -220,14 +221,20 @@ export class Verifier {
   /**
     * Update GobraTools by downloading them if necessary. 
     */
-  public static async updateGobraTools(shouldUpdate: boolean): Promise<Location> {
+  public static async updateGobraTools(shouldUpdate: boolean, notificationText?: string): Promise<Location> {
     State.updatingGobraTools = true;
 
 
-    let gobraToolsProvider = Helper.getGobraToolsProvider();
+    let gobraToolsProvider = Helper.getGobraToolsProvider(Helper.isNightly());
     let gobraToolsPath = Helper.getGobraToolsPath();
     let boogiePath = Helper.getBoogiePath();
     let z3Path = Helper.getZ3Path();
+
+    console.log(gobraToolsProvider);
+    console.log(gobraToolsPath);
+    console.log(boogiePath);
+    console.log(z3Path);
+    console.log(Helper.getServerJarPath());
 
     if (!fs.existsSync(gobraToolsPath)) {
       fs.mkdirSync(gobraToolsPath);
@@ -255,7 +262,9 @@ export class Verifier {
     }
 
     if (didReportProgress) {
-      if (shouldUpdate) {
+      if (notificationText) {
+        vscode.window.showInformationMessage(notificationText);
+      } else if (shouldUpdate) {
         vscode.window.showInformationMessage(Texts.successfulUpdatingGobraTools);
       } else {
         vscode.window.showInformationMessage(Texts.successfulInstallingGobraTools);
