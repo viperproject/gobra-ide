@@ -107,7 +107,7 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
 
   private def finishedVerification(result: VerifierResult) : Unit = {
     VerifierState.verificationRunning = false
-    VerifierState.changes.filter(_._1 != fileUri)
+    VerifierState.changes = VerifierState.changes.filter(_._1 != fileUri)
 
     val endTime = System.currentTimeMillis()
     val overallResult = Helper.getOverallVerificationResult(fileUri, result, endTime - startTime)
@@ -117,9 +117,7 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
   /**
     * Function handling the reports arriving from the verification.
     */
-  override def report(msg: GobraMessage): Unit = {
-    println(msg)
-    msg match {
+  override def report(msg: GobraMessage): Unit = msg match {
     case CopyrightReport(text) => println(text)
 
     case PreprocessedInputMessage(_, _) => updateProgress(preprocessEntityProgress)
@@ -128,14 +126,18 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
       updateProgress(preprocessEntityProgress)
       if (unparse) write(file, "unparsed", program().formatted)
 
+    case ParserErrorMessage(file, result) =>
+      updateDiagnostics(VerifierResult.Failure(result))
+      finishedVerification(VerifierResult.Failure(result))
+
     case TypeCheckSuccessMessage(file, _, erasedGhostCode) =>
       updateProgress(nonVerificationEntityProgress)
       if (eraseGhost) write(file, "ghostLess", erasedGhostCode())
       if (goify) write(file, "go", erasedGhostCode())
 
     case TypeCheckFailureMessage(_, _, result) =>
-      //updateDiagnostics(VerifierResult.Failure(result))
-      //finishedVerification(VerifierResult.Failure(result))
+      updateDiagnostics(VerifierResult.Failure(result))
+      finishedVerification(VerifierResult.Failure(result))
 
     case DesugaredMessage(file, internal) =>
       updateProgress(nonVerificationEntityProgress)
@@ -147,20 +149,18 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
 
     
     case GobraOverallSuccessMessage(_) =>
-      //updateProgress(finishedProgress)
-      //VerifierState.removeDiagnostics(fileUri)
-      //finishedVerification(VerifierResult.Success)
+      VerifierState.removeDiagnostics(fileUri)
+      finishedVerification(VerifierResult.Success)
 
     case GobraOverallFailureMessage(_, result) =>
-      //updateProgress(finishedProgress)
-      //updateDiagnostics(result)
-      //finishedVerification(result)
+      updateDiagnostics(result)
+      finishedVerification(result)
 
     case GobraEntitySuccessMessage(_, _) => updateProgress(verificationEntityProgress)
 
     case GobraEntityFailureMessage(_, _, result) =>
       updateProgress(verificationEntityProgress)
-      //updateDiagnostics(result)
+      updateDiagnostics(result)
 
     case RawMessage(m) => m match {
       case StatisticsReport(nOfMethods, nOfFunctions, nOfPredicates, nOfDomains, nOfFields) =>
@@ -170,6 +170,5 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
     }
 
     case _ => // ignore
-  }
   }
 }
