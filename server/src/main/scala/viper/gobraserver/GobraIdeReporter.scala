@@ -105,9 +105,11 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
 
   }
 
-  private def finishedVerification(result: VerifierResult) : Unit = {
+  private def finishedVerification() : Unit = {
     VerifierState.verificationRunning = false
     VerifierState.changes = VerifierState.changes.filter(_._1 != fileUri)
+
+    val result = if (reportedErrors.isEmpty) VerifierResult.Success else VerifierResult.Failure(reportedErrors.toVector)
 
     val endTime = System.currentTimeMillis()
     val overallResult = Helper.getOverallVerificationResult(fileUri, result, endTime - startTime)
@@ -128,7 +130,7 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
 
     case ParserErrorMessage(file, result) =>
       updateDiagnostics(VerifierResult.Failure(result))
-      finishedVerification(VerifierResult.Failure(result))
+      finishedVerification()
 
     case TypeCheckSuccessMessage(file, _, erasedGhostCode) =>
       updateProgress(nonVerificationEntityProgress)
@@ -137,7 +139,9 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
 
     case TypeCheckFailureMessage(_, _, result) =>
       updateDiagnostics(VerifierResult.Failure(result))
-      finishedVerification(VerifierResult.Failure(result))
+      finishedVerification()
+
+    case TypeCheckDebugMessage(file, _, debugTypeInfo) if debug => write(file, "debugType", debugTypeInfo())
 
     case DesugaredMessage(file, internal) =>
       updateProgress(nonVerificationEntityProgress)
@@ -150,11 +154,12 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
     
     case GobraOverallSuccessMessage(_) =>
       VerifierState.removeDiagnostics(fileUri)
-      finishedVerification(VerifierResult.Success)
+      if (fileUri == VerifierState.openFileUri) VerifierState.publishDiagnostics(fileUri)
+      finishedVerification()
 
     case GobraOverallFailureMessage(_, result) =>
       updateDiagnostics(result)
-      finishedVerification(result)
+      finishedVerification()
 
     case GobraEntitySuccessMessage(_, _) => updateProgress(verificationEntityProgress)
 
