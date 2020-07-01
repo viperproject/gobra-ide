@@ -1,4 +1,5 @@
 import { Helper } from "./Helper";
+import * as vscode from 'vscode';
 
 export class FileData {
   filePath: string;
@@ -23,6 +24,21 @@ export class VerifierConfig {
     this.z3Executable = Helper.getZ3Path();
     this.boogieExecutable = Helper.getBoogiePath();
   }
+}
+
+export class PreviewData {
+  fileData: FileData;
+  selections: vscode.Range[];
+
+  constructor(fileData: FileData, selections: vscode.Range[]) {
+    this.fileData = fileData;
+    this.selections = selections;
+  }
+}
+
+export interface HighlightingPosition {
+  startIndex: number;
+  length: number;
 }
 
 export interface GobraSettings {

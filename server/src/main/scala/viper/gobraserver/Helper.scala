@@ -84,7 +84,6 @@ object Helper {
         Config(
           inputFile = new File(path),
           reporter = reporter,
-          //reporter = GobraIdeReporter(fileUri = fileUri),
           backend = backend,
           backendConfig = backendConfig,
           z3Exe = z3Exe,
@@ -107,6 +106,19 @@ object Helper {
       inputFile = new File(fileData.filePath),
       shouldDesugar = false,
       shouldViperEncode = false,
+      shouldVerify = false,
+      reporter = reporter
+    )
+  }
+
+  def previewConfigFromTask(fileData: FileData, viperPreview: Boolean, selections: List[Range]): Config = {
+    val reporter = PreviewReporter(
+      viperPreview = viperPreview,
+      selections = selections
+    )
+
+    Config(
+      inputFile = new File(fileData.filePath),
       shouldVerify = false,
       reporter = reporter
     )

@@ -32,3 +32,13 @@ case class OverallVerificationResult(
   success: Boolean,
   message: String
 )
+
+case class PreviewData (
+  fileData: FileData,
+  selections: Array[Array[Position]]
+)
+
+case class HighlightingPosition(
+  startIndex: Int,
+  length: Int
+)

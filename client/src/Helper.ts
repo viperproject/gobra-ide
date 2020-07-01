@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { URI } from 'vscode-uri';
-import { VerifierConfig, OverallVerificationResult, FileData, GobraSettings, PlatformDependendPath, GobraDependencies } from "./MessagePayloads";
+import { VerifierConfig, OverallVerificationResult, FileData, GobraSettings, PlatformDependendPath, GobraDependencies, PreviewData, HighlightingPosition } from "./MessagePayloads";
 
 
 export class Helper {
@@ -49,7 +49,15 @@ export class Helper {
     return JSON.stringify(fileData);
   }
 
+  public static previewDataToJson(previewData: PreviewData): string {
+    return JSON.stringify(previewData);
+  }
+
   public static jsonToOverallResult(json: string): OverallVerificationResult {
+    return JSON.parse(json);
+  }
+
+  public static jsonToHighlightingPositions(json: string): HighlightingPosition[] {
     return JSON.parse(json);
   }
 
@@ -129,6 +137,7 @@ export class Commands {
   public static goifyFile = "gobraServer/goifyFile";
   public static gobrafyFile = "gobraServer/gobrafyFile";
   public static setOpenFileUri = "gobraServer/setOpenFileUri";
+  public static viperCodePreview = "gobraServer/viperCodePreview";
 
   /**
     * Commands handled by Client (VSCode)
@@ -140,6 +149,7 @@ export class Commands {
   public static verificationException = "gobraServer/verificationException";
   public static finishedGoifying = "gobraServer/finishedGoifying";
   public static finishedGobrafying = "gobraServer/finishedGobrafying";
+  public static finishedViperCodePreview = "gobraServer/finishedViperCodePreview";
 }
 
 // Defines the texts in statusbars ...
@@ -171,7 +181,23 @@ export class ContributionCommands {
   public static goifyFile = "gobra.goifyFile";
   public static gobrafyFile = "gobra.gobrafyFile";
   public static verifyFile = "gobra.verifyFile";
-  public static updateGobraTools = "gobra.updateGobraTools"
+  public static updateGobraTools = "gobra.updateGobraTools";
+  public static showViperCodePreview = "gobra.showViperCodePreview";
+}
+
+
+/**
+  * File schemes used for displaying the preview of the translations.
+  */
+export class FileSchemes {
+  public static viper = "viperPreview";
+}
+
+/**
+  * Uris for the files which are used for the preview of code.
+  */
+export class PreviewUris {
+  public static viper = vscode.Uri.parse(FileSchemes.viper + ":viperPreview");
 }
 
 

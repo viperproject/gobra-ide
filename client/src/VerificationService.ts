@@ -1,9 +1,9 @@
 import { State } from "./ExtensionState";
-import { Helper, Commands, ContributionCommands, Texts, Color } from "./Helper";
+import { Helper, Commands, ContributionCommands, Texts, Color, PreviewUris } from "./Helper";
 import { ProgressBar } from "./ProgressBar";
 import * as vscode from 'vscode';
 import * as fs from 'fs';
-import { VerifierConfig, OverallVerificationResult, FileData, GobraSettings } from "./MessagePayloads";
+import { VerifierConfig, OverallVerificationResult, FileData, GobraSettings, PreviewData } from "./MessagePayloads";
 import { IdeEvents } from "./IdeEvents";
 
 import { Dependency, InstallerSequence, FileDownloader, ZipExtractor, withProgressInWindow, Location } from 'vs-verification-toolbox';
@@ -27,6 +27,7 @@ export class Verifier {
     Helper.registerCommand(ContributionCommands.gobrafyFile, Verifier.gobrafyFile, State.context);
     Helper.registerCommand(ContributionCommands.verifyFile, Verifier.manualVerifyFile, State.context);
     Helper.registerCommand(ContributionCommands.updateGobraTools, () => Verifier.updateGobraTools(true), State.context);
+    Helper.registerCommand(ContributionCommands.showViperCodePreview, Verifier.showViperCodePreview, State.context);
 
     /**
       * Register Notification handlers for Gobra-Server notifications.
@@ -38,6 +39,7 @@ export class Verifier {
 
     State.client.onNotification(Commands.finishedGoifying, Verifier.handleFinishedGoifyingNotification);
     State.client.onNotification(Commands.finishedGobrafying, Verifier.handleFinishedGobrafyingNotification);
+    State.client.onNotification(Commands.finishedViperCodePreview, Verifier.handleFinishedViperPreviewNotification);
 
 
     /**
@@ -230,12 +232,6 @@ export class Verifier {
     let boogiePath = Helper.getBoogiePath();
     let z3Path = Helper.getZ3Path();
 
-    console.log(gobraToolsProvider);
-    console.log(gobraToolsPath);
-    console.log(boogiePath);
-    console.log(z3Path);
-    console.log(Helper.getServerJarPath());
-
     if (!fs.existsSync(gobraToolsPath)) {
       fs.mkdirSync(gobraToolsPath);
     }
@@ -274,6 +270,22 @@ export class Verifier {
     return location;
   }
 
+
+  /**
+    * Shows the preview of the selected code in the translated Viper code.
+    */
+  public static showViperCodePreview(): void {
+    let selections = [vscode.window.activeTextEditor.selection].map(s => new vscode.Range(s.start, s.end));
+    
+    let selectedText = vscode.window.activeTextEditor.document.getText(selections[0]);
+    //State.viperPreviewProvider.updateCodePreview(PreviewUris.viper, selectedText)
+
+    State.updateFileData();
+    vscode.window.activeTextEditor.document.save().then((saved: boolean) => {
+      //console.log(Helper.previewDataToJson(new PreviewData(State.verifierConfig.fileData, selections)));
+      State.client.sendNotification(Commands.viperCodePreview, Helper.previewDataToJson(new PreviewData(State.verifierConfig.fileData, selections)));
+    });
+  }
   
 
   /**
@@ -312,7 +324,7 @@ export class Verifier {
     State.runningVerifications.delete(fileUri);
 
     Verifier.verifyItem.setProperties(Texts.helloGobra, Color.white);
-
+    
     Verifier.reverifyFile(fileUri);
   }
 
@@ -340,12 +352,20 @@ export class Verifier {
   }
 
 
-  private static delay(ms: number) {
-    return new Promise( resolve => setTimeout(resolve, ms) );
-}
+  private static handleFinishedViperPreviewNotification(ast: string, highlightedJson: string): void {
+    let highlightedPositions = Helper.jsonToHighlightingPositions(highlightedJson);
 
+    State.viperPreviewProvider.updateCodePreview(PreviewUris.viper, ast, highlightedPositions);
 
+    /*
+    let highlightedPositions =
+      Helper.jsonToHighlightingPositions(highlightedJson)
+      .map(pos => new vscode.Range(pos.startIndex, pos.startIndex + pos.length));
+    */
 
+    //console.log(highlightedJson);
+    //console.log(highlightedPositions);
+  }
 
 }
 

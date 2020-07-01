@@ -29,4 +29,6 @@ trait IdeLanguageClient extends LanguageClient {
   @JsonNotification("gobraServer/finishedGobrafying")
   def finishedGobrafying(oldFilePath: String, newFilePath: String, success: Boolean): Unit
 
+  @JsonNotification("gobraServer/finishedViperCodePreview")
+  def finishedViperCodePreview(ast: String, highlighted: String): Unit
 }

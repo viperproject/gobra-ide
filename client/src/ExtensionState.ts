@@ -5,9 +5,10 @@ import * as path from 'path';
 import * as net from 'net';
 import * as child_process from "child_process";
 import { FileData, VerifierConfig, GobraSettings } from "./MessagePayloads";
-import { Helper } from "./Helper";
+import { Helper, FileSchemes } from "./Helper";
 import { IdeEvents } from "./IdeEvents";
 import { Verifier } from "./VerificationService";
+import { CodePreviewProvider } from "./CodePreviewProvider";
 
 
 export class State {
@@ -15,6 +16,8 @@ export class State {
   public static context: vscode.ExtensionContext;
   public static disposableServer: vscode.Disposable;
   public static updatingGobraTools: boolean;
+
+  public static viperPreviewProvider: CodePreviewProvider;
 
   public static runningVerifications: Set<string>;
   // tracks the verification requests which were made when a verification was already running.
@@ -67,6 +70,11 @@ export class State {
     this.runningGobrafications = new Set<string>();
 
     this.verificationRequestTimeout = null;
+
+    this.viperPreviewProvider = new CodePreviewProvider();
+    vscode.workspace.registerTextDocumentContentProvider(FileSchemes.viper, this.viperPreviewProvider);
+
+
 
     // TODO: change this once the zip downloads are ready.
     //let serverBin = Helper.getServerJarPath(Helper.isNightly());

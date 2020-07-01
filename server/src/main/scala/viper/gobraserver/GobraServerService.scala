@@ -20,7 +20,8 @@ import org.eclipse.lsp4j.{
   TextDocumentSyncKind,
   TextDocumentContentChangeEvent,
   MessageParams,
-  MessageType
+  MessageType,
+  Range
 }
 
 import scala.util.{ Success, Failure }
@@ -195,6 +196,16 @@ class GobraServerService extends IdeLanguageClientAware {
       case Some(c) => c.showMessage(new MessageParams(MessageType.Info, "Successfully flushed ViperServer Cache."))
       case None =>
     }
+  }
+
+  @JsonNotification("gobraServer/viperCodePreview")
+  def viperCodePreview(previewDataJson: String): Unit = {
+    println("viperCodePreview")
+
+    val previewData: PreviewData = gson.fromJson(previewDataJson, classOf[PreviewData])
+    val selections = previewData.selections.map(selection => new Range(selection(0), selection(1))).toList
+
+    GobraServer.viperCodePreview(previewData.fileData, selections)
   }
 
 

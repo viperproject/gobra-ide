@@ -214,10 +214,10 @@ object GobraServer extends GobraFrontend {
     var success = false
 
     val filePath = fileData.filePath
-    val fileUri = fileData.fileUri
+    //val fileUri = fileData.fileUri
 
     val newFilePath = Helper.gobraFileExtension(filePath)
-    val newFileUri = Helper.gobraFileExtension(fileUri)
+    val newFileUri = Helper.gobraFileExtension(fileData.fileUri)
 
     VerifierState.removeDiagnostics(newFileUri)
     VerifierState.removeVerificationInformation(newFileUri)
@@ -267,6 +267,16 @@ object GobraServer extends GobraFrontend {
     //displayVerificationResult(verifierConfig.fileData, config, startTime, resultFuture)
 
     resultFuture
+  }
+
+
+  /**
+    * Get preview of Viper Code.
+    */
+  def viperCodePreview(fileData: FileData, selections: List[Range]) {
+    val config = Helper.previewConfigFromTask(fileData, true, selections)
+
+    val previewFuture = verifier.verify(config)
   }
 
 
