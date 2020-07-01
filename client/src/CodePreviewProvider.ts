@@ -3,8 +3,7 @@ import { HighlightingPosition } from './MessagePayloads';
 
 export class CodePreviewProvider implements vscode.TextDocumentContentProvider {
   private static decoration = vscode.window.createTextEditorDecorationType({
-    backgroundColor: 'green',
-    border: '2px solid white',
+    backgroundColor: 'green'
   });
 
   codePreview = "";

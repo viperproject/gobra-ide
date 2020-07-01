@@ -1,7 +1,7 @@
 package viper.gobraserver
 
 import viper.gobra.reporting._
-import viper.silver.ast.{ AbstractSourcePosition, Program }
+import viper.silver.ast.{ AbstractSourcePosition, Program, Positioned, Node }
 
 import com.google.gson.Gson
 import org.eclipse.lsp4j.{ Range, Position }
@@ -13,6 +13,7 @@ case class PreviewReporter(name: String = "preview_reporter",
                            selections: List[Range]) extends GobraReporter {
 
   private val gson = new Gson()
+  private val highlightingPositions = ListBuffer[HighlightingPosition]()
 
   private def isHighlighted(position: AbstractSourcePosition): Boolean = {
     val startLine = position.start.line
@@ -28,20 +29,33 @@ case class PreviewReporter(name: String = "preview_reporter",
     false
   }
 
-  private def getPositionHighlighting(ast: Program, astFormatted: String): Array[HighlightingPosition] = {
-    val highlightingPositions = ListBuffer[HighlightingPosition]()
+  private def appendPosition(members: Seq[Node], astFormatted: String): Unit = members.foreach(m => {
+    val (position, _, _) = m.getPrettyMetadata
 
-    ast.methods.foreach(method => {
-      if (isHighlighted(method.pos.asInstanceOf[AbstractSourcePosition])) {
-        val startIndex = astFormatted.indexOfSlice(method.toString())
-        highlightingPositions += HighlightingPosition(startIndex, method.toString().length)
-      }
-    })
+    position match {
+      case pos: AbstractSourcePosition if isHighlighted(pos) =>
+        val startIndex = astFormatted.indexOfSlice(m.toString())
+        highlightingPositions += HighlightingPosition(startIndex, m.toString().length)
+      
+      case _ => // ignore
+    }
+  })
+
+  private def getPositionHighlighting(ast: Program, astFormatted: String): Array[HighlightingPosition] = {
+    
+    appendPosition(ast.methods, astFormatted)
+    appendPosition(ast.functions, astFormatted)
+    appendPosition(ast.predicates, astFormatted)
+    
+    //TODO: look that these cases work correctly
+    //appendPosition(ast.fields, astFormatted)
+    //appendPosition(ast.domains, astFormatted)
+    //appendPosition(ast.extensions, astFormatted)
+
+    // TODO: make highlighting of submethods, subfunctions, ... possible
 
     highlightingPositions.toArray
   }
-
-//domains: Seq[Domain], fields: Seq[Field], functions: Seq[Function], predicates: Seq[Predicate], methods: Seq[Method], extensions: Seq[ExtensionMember]
 
   override def report(msg: GobraMessage): Unit = msg match {
     case m@GeneratedViperMessage(file, ast) if viperPreview =>
