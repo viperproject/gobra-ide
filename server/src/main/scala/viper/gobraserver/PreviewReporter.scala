@@ -15,6 +15,8 @@ case class PreviewReporter(name: String = "preview_reporter",
   private val gson = new Gson()
   private val highlightingPositions = ListBuffer[HighlightingPosition]()
 
+  private var vprAstFormatted: String = ""
+
   private def isHighlighted(position: AbstractSourcePosition): Boolean = {
     val startLine = position.start.line
     val endLine = position.end.getOrElse(position.start).line
@@ -29,40 +31,34 @@ case class PreviewReporter(name: String = "preview_reporter",
     false
   }
 
-  private def appendPosition(members: Seq[Node], astFormatted: String): Unit = members.foreach(m => {
+  private def memberHighlighting(members: Seq[Node]): Unit = members.foreach(m => {
     val (position, _, _) = m.getPrettyMetadata
 
     position match {
       case pos: AbstractSourcePosition if isHighlighted(pos) =>
-        val startIndex = astFormatted.indexOfSlice(m.toString())
+        val startIndex = vprAstFormatted.indexOfSlice(m.toString())
         highlightingPositions += HighlightingPosition(startIndex, m.toString().length)
       
       case _ => // ignore
     }
   })
 
-  private def getPositionHighlighting(ast: Program, astFormatted: String): Array[HighlightingPosition] = {
-    
-    appendPosition(ast.methods, astFormatted)
-    appendPosition(ast.functions, astFormatted)
-    appendPosition(ast.predicates, astFormatted)
-    
-    //TODO: look that these cases work correctly
-    //appendPosition(ast.fields, astFormatted)
-    //appendPosition(ast.domains, astFormatted)
-    //appendPosition(ast.extensions, astFormatted)
-
-    // TODO: make highlighting of submethods, subfunctions, ... possible
-
-    highlightingPositions.toArray
-  }
 
   override def report(msg: GobraMessage): Unit = msg match {
     case m@GeneratedViperMessage(file, ast) if viperPreview =>
-      val highlightingPositions = getPositionHighlighting(ast(), m.vprAstFormatted)
+      val vprAst = ast()
+      vprAstFormatted = m.vprAstFormatted
+
+      memberHighlighting(vprAst.methods)
+      memberHighlighting(vprAst.functions)
+      memberHighlighting(vprAst.predicates)
+      memberHighlighting(vprAst.fields)
+      memberHighlighting(vprAst.domains)
+      memberHighlighting(vprAst.extensions)
 
       VerifierState.client match {
-        case Some(c) => c.finishedViperCodePreview(m.vprAstFormatted, gson.toJson(highlightingPositions))
+        case Some(c) => c.finishedViperCodePreview(m.vprAstFormatted, gson.toJson(highlightingPositions.toArray))
+        case None =>
       }
     
 

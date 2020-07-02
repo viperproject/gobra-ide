@@ -275,9 +275,10 @@ export class Verifier {
     * Shows the preview of the selected code in the translated Viper code.
     */
   public static showViperCodePreview(): void {
-    let selections = [vscode.window.activeTextEditor.selection].map(s => new vscode.Range(s.start, s.end));
+    //let selections = [vscode.window.activeTextEditor.selection].map(s => new vscode.Range(s.start, s.end));
+    let selections = vscode.window.activeTextEditor.selections.map(s => new vscode.Range(s.start, s.end));
     
-    let selectedText = vscode.window.activeTextEditor.document.getText(selections[0]);
+    //let selectedText = vscode.window.activeTextEditor.document.getText(selections[0]);
     //State.viperPreviewProvider.updateCodePreview(PreviewUris.viper, selectedText)
 
     State.updateFileData();
@@ -363,7 +364,7 @@ export class Verifier {
       .map(pos => new vscode.Range(pos.startIndex, pos.startIndex + pos.length));
     */
 
-    //console.log(highlightedJson);
+    console.log(highlightedJson);
     //console.log(highlightedPositions);
   }
 
