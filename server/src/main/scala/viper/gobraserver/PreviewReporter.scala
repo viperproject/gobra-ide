@@ -1,7 +1,7 @@
 package viper.gobraserver
 
 import viper.gobra.reporting._
-import viper.silver.ast.{ AbstractSourcePosition, Program, Positioned, Node }
+import viper.silver.ast.{ AbstractSourcePosition, Program, Positioned, Node, Stmt, _ }
 
 import com.google.gson.Gson
 import org.eclipse.lsp4j.{ Range, Position }
@@ -13,7 +13,7 @@ case class PreviewReporter(name: String = "preview_reporter",
                            selections: List[Range]) extends GobraReporter {
 
   private val gson = new Gson()
-  private val highlightingPositions = ListBuffer[HighlightingPosition]()
+  private val highlightedRanges = ListBuffer[HighlightingPosition]()
 
   private var vprAstFormatted: String = ""
 
@@ -31,15 +31,47 @@ case class PreviewReporter(name: String = "preview_reporter",
     false
   }
 
-  private def memberHighlighting(members: Seq[Node]): Unit = members.foreach(m => {
-    val (position, _, _) = m.getPrettyMetadata
+  private def highlightBlock(body: Option[Seqn], methodIndex: Int, method: String): Unit = body match {
+    case Some(block) => block.deepCollect {case s: Stmt => s}.foreach(b => {
+      b.pos match {
+        case pos: AbstractSourcePosition if isHighlighted(pos) =>
+
+          val indentedBlock = Helper.indentBlock(method, b.toString())
+          val startIndex = method.indexOfSlice(indentedBlock)
+
+          highlightedRanges += HighlightingPosition(methodIndex + startIndex, indentedBlock.length)
+
+        case _ => // ignore
+      }
+    })
+    case None => // ignore
+  }
+
+  // implement LocalVarDecl, Exp -> these are used for most parts in method, function and predicates. This is then used in the parts below.
+  
+
+  private def highlightMember(members: Seq[Node]): Unit = members.foreach(mem => {
+    val (position, _, _) = mem.getPrettyMetadata
 
     position match {
       case pos: AbstractSourcePosition if isHighlighted(pos) =>
-        val startIndex = vprAstFormatted.indexOfSlice(m.toString())
-        highlightingPositions += HighlightingPosition(startIndex, m.toString().length)
+        val startIndex = vprAstFormatted.indexOfSlice(mem.toString())
+        highlightedRanges += HighlightingPosition(startIndex, mem.toString().length)
       
-      case _ => // ignore
+      case _ => mem match {
+        case Method(_, formalArgs, formalReturns, pres, posts, body) =>
+          val method = mem.toString()
+          val methodIndex = vprAstFormatted.indexOfSlice(method)
+
+          highlightBlock(body, methodIndex, method)
+
+        case Function(_, formalArgs, _, pres, posts, body) => // formalArgs: Seq[LocalVarDecl], pres: Seq[Exp], posts: Seq[Exp], body: Option[Exp]
+
+        case Predicate(_, formalArgs, body) => // formalArgs: Seq[LocalVarDecl], body: Option[Exp]
+
+        case _ => // ignore
+      }
+
     }
   })
 
@@ -49,15 +81,16 @@ case class PreviewReporter(name: String = "preview_reporter",
       val vprAst = ast()
       vprAstFormatted = m.vprAstFormatted
 
-      memberHighlighting(vprAst.methods)
-      memberHighlighting(vprAst.functions)
-      memberHighlighting(vprAst.predicates)
-      memberHighlighting(vprAst.fields)
-      memberHighlighting(vprAst.domains)
-      memberHighlighting(vprAst.extensions)
+      highlightMember(vprAst.methods)
+      highlightMember(vprAst.functions)
+      highlightMember(vprAst.predicates)
+      highlightMember(vprAst.fields)
+      //highlightMember(vprAst.domains)
+      //highlightMember(vprAst.extensions)
+      
 
       VerifierState.client match {
-        case Some(c) => c.finishedViperCodePreview(m.vprAstFormatted, gson.toJson(highlightingPositions.toArray))
+        case Some(c) => c.finishedViperCodePreview(m.vprAstFormatted, gson.toJson(highlightedRanges.toArray))
         case None =>
       }
     

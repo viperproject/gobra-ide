@@ -123,6 +123,14 @@ export class Helper {
     return Helper.getPlatformPath(z3Paths).replace("$gobraTools$", Helper.getGobraToolsPath() + Helper.extractionAddition());
   }
 
+
+  /**
+    * Function to delay for 200ms to resolve weird bugs with switching of tabs.
+    */
+  public static delay() {
+    return new Promise((resolve, reject) => setTimeout(resolve, 400));
+  }
+
 }
 
 
@@ -197,7 +205,7 @@ export class FileSchemes {
   * Uris for the files which are used for the preview of code.
   */
 export class PreviewUris {
-  public static viper = vscode.Uri.parse(FileSchemes.viper + ":viperPreview");
+  public static viper = vscode.Uri.parse(FileSchemes.viper + ":viperPreview/");
 }
 
 

@@ -41,7 +41,6 @@ export class Verifier {
     State.client.onNotification(Commands.finishedGobrafying, Verifier.handleFinishedGobrafyingNotification);
     State.client.onNotification(Commands.finishedViperCodePreview, Verifier.handleFinishedViperPreviewNotification);
 
-
     /**
       * Register VSCode Event listeners.
       */
@@ -56,6 +55,17 @@ export class Verifier {
     }));
     // filechange event
     State.context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(change => {
+      if (change.document.uri.toString() == PreviewUris.viper.toString()) {
+        vscode.window.showTextDocument(PreviewUris.viper, { preview: false, preserveFocus: false }).then(() => {
+          vscode.commands.executeCommand('workbench.action.closeActiveEditor').then(() => {
+            State.viperPreviewProvider.setDecorations(PreviewUris.viper);
+          });
+        });
+
+        //State.viperPreviewProvider.setDecorations(PreviewUris.viper);
+        return;
+      }
+
       // don't set timeout when file was saved
       if (change.contentChanges.length == 0) return;
 
@@ -277,13 +287,13 @@ export class Verifier {
   public static showViperCodePreview(): void {
     //let selections = [vscode.window.activeTextEditor.selection].map(s => new vscode.Range(s.start, s.end));
     let selections = vscode.window.activeTextEditor.selections.map(s => new vscode.Range(s.start, s.end));
-    
+
     //let selectedText = vscode.window.activeTextEditor.document.getText(selections[0]);
     //State.viperPreviewProvider.updateCodePreview(PreviewUris.viper, selectedText)
 
     State.updateFileData();
     vscode.window.activeTextEditor.document.save().then((saved: boolean) => {
-      //console.log(Helper.previewDataToJson(new PreviewData(State.verifierConfig.fileData, selections)));
+      console.log(Helper.previewDataToJson(new PreviewData(State.verifierConfig.fileData, selections)));
       State.client.sendNotification(Commands.viperCodePreview, Helper.previewDataToJson(new PreviewData(State.verifierConfig.fileData, selections)));
     });
   }
@@ -364,7 +374,7 @@ export class Verifier {
       .map(pos => new vscode.Range(pos.startIndex, pos.startIndex + pos.length));
     */
 
-    console.log(highlightedJson);
+    //console.log(highlightedJson);
     //console.log(highlightedPositions);
   }
 

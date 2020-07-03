@@ -160,4 +160,10 @@ object Helper {
     val dropSuffix = if (uri.endsWith(".go")) uri.dropRight(3) else uri
     if (dropSuffix.endsWith(".gobra")) dropSuffix else dropSuffix + ".gobra"
   }
+
+  def indentBlock(code: String, block: String): String = {
+    var tmp = block
+    while (!code.contains(tmp)) tmp = " " + tmp.replaceAll("\n", "\n ")
+    return tmp
+  }
 }
