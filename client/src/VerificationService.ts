@@ -293,7 +293,7 @@ export class Verifier {
 
     State.updateFileData();
     vscode.window.activeTextEditor.document.save().then((saved: boolean) => {
-      console.log(Helper.previewDataToJson(new PreviewData(State.verifierConfig.fileData, selections)));
+      //console.log(Helper.previewDataToJson(new PreviewData(State.verifierConfig.fileData, selections)));
       State.client.sendNotification(Commands.viperCodePreview, Helper.previewDataToJson(new PreviewData(State.verifierConfig.fileData, selections)));
     });
   }

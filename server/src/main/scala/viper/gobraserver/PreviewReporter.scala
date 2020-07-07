@@ -31,12 +31,12 @@ case class PreviewReporter(name: String = "preview_reporter",
     false
   }
 
-  private def highlightBlock(body: Option[Seqn], methodIndex: Int, method: String): Unit = body match {
+  private def highlightSeqn(body: Option[Seqn], methodIndex: Int, method: String): Unit = body match {
     case Some(block) => block.deepCollect {case s: Stmt => s}.foreach(b => {
       b.pos match {
         case pos: AbstractSourcePosition if isHighlighted(pos) =>
 
-          val indentedBlock = Helper.indentBlock(method, b.toString())
+          val indentedBlock = Helper.indent(method, b.toString())
           val startIndex = method.indexOfSlice(indentedBlock)
 
           highlightedRanges += HighlightingPosition(methodIndex + startIndex, indentedBlock.length)
@@ -46,6 +46,19 @@ case class PreviewReporter(name: String = "preview_reporter",
     })
     case None => // ignore
   }
+
+  private def highlightExp(exp: Seq[Exp], methodIndex: Int, method: String): Unit = exp.foreach(e => {
+    e.pos match {
+      case pos: AbstractSourcePosition if isHighlighted(pos) =>
+        val indentedExp = Helper.indent(method, e.toString())
+        val startIndex = method.indexOfSlice(indentedExp)
+
+        highlightedRanges += HighlightingPosition(methodIndex + startIndex, indentedExp.length)
+
+      case _ => // ignore
+    }
+  })
+  
 
   // implement LocalVarDecl, Exp -> these are used for most parts in method, function and predicates. This is then used in the parts below.
   
@@ -63,11 +76,23 @@ case class PreviewReporter(name: String = "preview_reporter",
           val method = mem.toString()
           val methodIndex = vprAstFormatted.indexOfSlice(method)
 
-          highlightBlock(body, methodIndex, method)
+          highlightSeqn(body, methodIndex, method)
+          highlightExp(pres, methodIndex, method)
+          highlightExp(posts, methodIndex, method)
 
         case Function(_, formalArgs, _, pres, posts, body) => // formalArgs: Seq[LocalVarDecl], pres: Seq[Exp], posts: Seq[Exp], body: Option[Exp]
+          val function = mem.toString()
+          val functionIndex = vprAstFormatted.indexOfSlice(function)
+
+          highlightExp(pres, functionIndex, function)
+          highlightExp(posts, functionIndex, function)
+          highlightExp(Helper.optToSeq(body), functionIndex, function)
 
         case Predicate(_, formalArgs, body) => // formalArgs: Seq[LocalVarDecl], body: Option[Exp]
+          val predicate = mem.toString()
+          val predicateIndex = vprAstFormatted.indexOfSlice(predicate)
+
+          highlightExp(Helper.optToSeq(body), predicateIndex, predicate)
 
         case _ => // ignore
       }
@@ -79,6 +104,46 @@ case class PreviewReporter(name: String = "preview_reporter",
   override def report(msg: GobraMessage): Unit = msg match {
     case m@GeneratedViperMessage(file, ast) if viperPreview =>
       val vprAst = ast()
+
+      vprAstFormatted = HighlightingPrettyPrinter.pretty(vprAst)
+      //vprAstFormatted = HighlightingPrettyPrinter.testApplyPositions(vprAst)
+
+      //vprAstFormatted = vprAstFormatted.replaceAll("\n\\s*\n", "\n\n")
+
+      val positionStore = HighlightingPrettyPrinter.positionStore
+      //println(selections)
+      //println(positionStore)
+      //println("------------------------------------------------------------------------------------------------------------------------")
+
+      //val testHighlightedRanges = positionStore.filter({case (pos, _) if pos.isInstanceOf[AbstractSourcePosition] => isHighlighted(pos.asInstanceOf[AbstractSourcePosition])
+      //                                                  case _ => false}).map(_._2)
+
+      //println(testHighlightedRanges)
+      
+      positionStore.keySet.foreach(key => {
+        positionStore.get(key) match {
+          case Some(viperPos) =>
+            key match {
+              case pos: AbstractSourcePosition if isHighlighted(pos) => viperPos.toList.map({case (startPos, length) => highlightedRanges += HighlightingPosition(startPos, length)})
+              case _ => // ignore
+            }
+          case None => // ignore
+        }
+/*
+        val (gobraPos, viperPos) = entry
+        val (startPos, length) = viperPos
+
+        gobraPos match {
+          case pos: AbstractSourcePosition if isHighlighted(pos) => highlightedRanges += HighlightingPosition(startPos, length)
+          case _ => // ignore
+        }
+        */
+      })
+
+      //println(highlightedRanges)
+      
+
+/*
       vprAstFormatted = m.vprAstFormatted
 
       highlightMember(vprAst.methods)
@@ -87,10 +152,10 @@ case class PreviewReporter(name: String = "preview_reporter",
       highlightMember(vprAst.fields)
       //highlightMember(vprAst.domains)
       //highlightMember(vprAst.extensions)
-      
-
+*/
       VerifierState.client match {
-        case Some(c) => c.finishedViperCodePreview(m.vprAstFormatted, gson.toJson(highlightedRanges.toArray))
+        case Some(c) => c.finishedViperCodePreview(vprAstFormatted, gson.toJson(highlightedRanges.toArray))
+        //case Some(c) => c.finishedViperCodePreview(testPrint, gson.toJson(testHighlightedRanges.toArray))
         case None =>
       }
     
@@ -98,3 +163,10 @@ case class PreviewReporter(name: String = "preview_reporter",
     case _ => // ignore
   }
 }
+
+
+//import viper.silver.ast.pretty._
+//object HighlightingFastPrettyPrinter extends FastPrettyPrinter {
+
+//}
+

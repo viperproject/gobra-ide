@@ -18,8 +18,10 @@ export class CodePreviewProvider implements vscode.TextDocumentContentProvider {
     vscode.window.showTextDocument(uri, { preview: false, viewColumn: vscode.ViewColumn.Two }).then(editor => {
       let decorationRanges = this.highlightedPositions.map(pos =>
         new vscode.Range(
-          editor.document.positionAt(pos.startIndex),
-          editor.document.positionAt(pos.startIndex + pos.length)
+          new vscode.Position(editor.document.positionAt(pos.startIndex).line, 0),
+          new vscode.Position(editor.document.positionAt(pos.startIndex).line, 1000)
+          //editor.document.positionAt(pos.startIndex),
+          //editor.document.positionAt(pos.startIndex + pos.length)
         ));
 
       editor.setDecorations(CodePreviewProvider.decoration, decorationRanges);

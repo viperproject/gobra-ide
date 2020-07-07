@@ -161,9 +161,14 @@ object Helper {
     if (dropSuffix.endsWith(".gobra")) dropSuffix else dropSuffix + ".gobra"
   }
 
-  def indentBlock(code: String, block: String): String = {
+  def indent(code: String, block: String): String = {
     var tmp = block
     while (!code.contains(tmp)) tmp = " " + tmp.replaceAll("\n", "\n ")
     return tmp
+  }
+
+  def optToSeq[A](singleton: Option[A]): Seq[A] = singleton match {
+    case Some(s) => Seq(s)
+    case None => Seq()
   }
 }
