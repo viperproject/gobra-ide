@@ -48,13 +48,9 @@ trait PrettyPrintPrimitives {
 
   type ViperPosition = (Position, Width)
 
-  //val gobraPositions = ListBuffer[GobraPosition]()
-  //val viperPositions = ListBuffer[ViperPosition]()
   val positionStore = Map[GobraPosition, ListBuffer[ViperPosition]]()
 
   def addPosition(gobraPos: GobraPosition, viperPos: ViperPosition) {
-    //println("Adding gobra position: " + gobraPos + ", with viperpos: " + viperPos)
-
     positionStore.get(gobraPos) match {
       case Some(b) => b += viperPos
       case None => positionStore += (gobraPos -> ListBuffer(viperPos))
@@ -69,25 +65,12 @@ trait PrettyPrintPrimitives {
             nil(iw)((p: Position) =>
               (dq: Dq) => {
                 addPosition(pos, (p, 1))
-
-                println(n)
-                println("Position: " + p + ", Length: " + n.toString().length)
-                println("----------------------------------------------------------------------------------------")
-
-                
                 c(p)(dq)
               })
 
       case _ => nil
     }
   }
-
-/*
-    def nil: Cont =
-    (_: IW) =>
-      (c: TreeCont) =>
-        Done(c)
-*/
 
   implicit def text(t: String): Cont = {
     if (t == "") {
@@ -121,11 +104,9 @@ trait PrettyPrintPrimitives {
                     t <- c(r - repl.length)
                   } yield repl +: t)
               } else {
-                //val test: Int = c(w - i)
                 Call(() =>
                   for {
                     t <- c(w - i)
-                  //} yield "\n" +: (" " * i) +: t )
                   } yield "\n" +: (" " * i) +: t )
               }
             })
@@ -166,7 +147,6 @@ trait PrettyPrintPrimitives {
   def scan(l: Width, out: OutGroup) (c: TreeCont): Bounce[TreeCont] =
     step(
       (p: Position) => {
-        //viperPositions += ((p, l))
         (dq: Dq) => {
           if (dq.isEmpty){
             Call(() =>
@@ -366,14 +346,6 @@ trait HighlightingPrettyPrinterBase extends PrettyPrintPrimitives {
   def linebreak : Cont =
     line ("\n")
 
-
-
-  def printPosition(d: Cont) : Cont =
-    (iw: IW) =>
-      (c: TreeCont) =>
-        d(iw)((p: Position) => {println(p);c(p)})
-  //Position => Dq => Bounce[Out]
-
   implicit class ContOps(dl: Cont) {
     def <>(dr: Cont) : Cont =
       (iw: IW) =>
@@ -394,22 +366,6 @@ trait HighlightingPrettyPrinterBase extends PrettyPrintPrimitives {
 
   def line: Cont = line(" ")
 
-/*
-(iw: IW) =>
-          (c: TreeCont) =>
-            d(iw)((p: Position) =>
-              (dq: Dq) => {
-                addPosition(pos, (p, 1))
-
-                println(n)
-                println("Position: " + p)
-                println("----------------------------------------------------------------------------------------")
-
-
-                c(p)(dq)
-              })
-      
-*/
 }
 
 /**
@@ -464,77 +420,31 @@ object HighlightingPrettyPrinter extends HighlightingPrettyPrinterBase with Brac
     super.text(t)
   }
 
-  //var positionStore = List[(GobraPosition, ViperPosition)]()
-
   /** Pretty-print any AST node. */
   def pretty(n: Node): String = {
     positionStore.clear()
-    val pretty = super.pretty(defaultWidth, show(n))
-    //positionStore = gobraPositions.toList zip viperPositions.toList
-    pretty
+    super.pretty(defaultWidth, show(n))
   }
 
 
   /** Show any AST node. */
-  def show(n: Node): Cont = {
-    /*
-    //println(n)
-    println("------------------------------------------------------------------------------------------------")
-    val (pos, _, _) = n.getPrettyMetadata
-    //gobraPositions += pos
-    pos match {
-      case p: viper.silver.ast.AbstractSourcePosition =>
-        println(p.start)
-        println(p.end.getOrElse("no endposition"))
-
-      case _ => println("the position was of another type")
-    }
-    */
-    n match {
-      case exp: Exp => toParenDoc(exp, n)
-      case stmt: Stmt => showStmt(stmt)
-      case typ: Type => showType(typ)
-      case p: Program => showProgram(p)
-      case m: Member => showMember(m)
-      case v: LocalVarDecl => showVar(v)
-      case dm: DomainMember => showDomainMember(dm)
-      case Trigger(exps) =>
-        updatePositionStore(n) <> (text("{") <+> ssep(exps map show, char (',')) <+> "}")
-      case null => uninitialized
-    }
-
-    
-
-    //updatePositionStore(cont, n)
-
-    /*
-    n match {
-      case exp: Exp => toParenDoc(exp)
-      case stmt: Stmt => showStmt(stmt)
-      case typ: Type => showType(typ)
-      case p: Program => showProgram(p)
-      case m: Member => showMember(m)
-      case v: LocalVarDecl => showVar(v)
-      case dm: DomainMember => showDomainMember(dm)
-      case Trigger(exps) =>
-        text("{") <+> ssep(exps map show, char (',')) <+> "}"
-      case null => uninitialized
-    }
-    */
-  }
+  def show(n: Node): Cont = n match {
+    case exp: Exp => toParenDoc(exp, n)
+    case stmt: Stmt => showStmt(stmt)
+    case typ: Type => showType(typ)
+    case p: Program => showProgram(p)
+    case m: Member => showMember(m)
+    case v: LocalVarDecl => showVar(v)
+    case dm: DomainMember => showDomainMember(dm)
+    case Trigger(exps) =>
+      updatePositionStore(n) <> (text("{") <+> ssep(exps map show, char (',')) <+> "}")
+    case null => uninitialized
+  }  
 
   /** Show a program. */
   def showProgram(p: Program): Cont = {
     val Program(domains, fields, functions, predicates, methods, extensions) = p
-    /*
-    val (comment, isNil) = showComment(p)
-    val dr = ssep((domains ++ fields ++ functions ++ predicates ++ methods) map show, line <> line)
 
-    if (isNil)
-      comment <> dr
-    else
-      comment <@> dr
-      */
     updatePositionStore(p) <>
     (showComment(p) <@>
       ssep((domains ++ fields ++ functions ++ predicates ++ methods) map show, line <> line))
@@ -557,14 +467,6 @@ object HighlightingPrettyPrinter extends HighlightingPrettyPrinterBase with Brac
             line <> show(exp)
           ) <> line)
     }
-    /*
-    val (comment, isNil) = showComment(m)
-
-    if (isNil)
-      comment <> memberDoc
-    else
-      comment <@> memberDoc
-*/
 
     updatePositionStore(m) <> (showComment(m) <@> memberDoc)
   }
@@ -621,14 +523,6 @@ object HighlightingPrettyPrinter extends HighlightingPrettyPrinterBase with Brac
         showDomain(d)
       case t:ExtensionMember => nil
     }
-    /*
-    val (comment, isNil) = showComment(m)
-
-    if (isNil)
-      comment <> memberDoc
-    else
-      comment <@> memberDoc
-    */
 
     updatePositionStore(m) <> (showComment(m) <@> memberDoc)
   }
@@ -753,14 +647,7 @@ object HighlightingPrettyPrinter extends HighlightingPrettyPrinterBase with Brac
       case e: ExtensionStmt => e.prettyPrint
       case null => uninitialized
     }
-    /*
-    val (comment, isNil) = showComment(stmt)
 
-    if (isNil)
-      comment <> stmtDoc
-    else
-      comment <@> stmtDoc
-    */
     updatePositionStore(stmt) <> (showComment(stmt) <@> stmtDoc)
   }
 
@@ -773,25 +660,16 @@ object HighlightingPrettyPrinter extends HighlightingPrettyPrinterBase with Brac
 
   /** Outputs the comments attached to `n` if there is at least one. */
   def showComment(n: Infoed): Cont = {
-    var isNil = false
-    val cont = if (n == null) {
-      isNil = true
+    if (n == null)
       nil
-    } else {
+    else {
       val comment = n.info.comment
       if (comment.nonEmpty) {
         val docs = comment map (c => if (c.isEmpty) nil else text("//") <+> c)
         ssep(docs, line)
       }
-      else {
-        isNil = true 
-        nil
-      }
+      else nil
     }
-
-    cont
-
-    //(updatePositionStore(cont, n.asInstanceOf[Node]), isNil)
   }
 
   override def toParenDoc(e: PrettyExpression, n: Node): Cont = updatePositionStore(n) <> (e match {

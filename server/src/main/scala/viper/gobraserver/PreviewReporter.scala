@@ -31,6 +31,7 @@ case class PreviewReporter(name: String = "preview_reporter",
     false
   }
 
+/*
   private def highlightSeqn(body: Option[Seqn], methodIndex: Int, method: String): Unit = body match {
     case Some(block) => block.deepCollect {case s: Stmt => s}.foreach(b => {
       b.pos match {
@@ -99,27 +100,16 @@ case class PreviewReporter(name: String = "preview_reporter",
 
     }
   })
-
+*/
 
   override def report(msg: GobraMessage): Unit = msg match {
     case m@GeneratedViperMessage(file, ast) if viperPreview =>
       val vprAst = ast()
 
       vprAstFormatted = HighlightingPrettyPrinter.pretty(vprAst)
-      //vprAstFormatted = HighlightingPrettyPrinter.testApplyPositions(vprAst)
-
-      //vprAstFormatted = vprAstFormatted.replaceAll("\n\\s*\n", "\n\n")
 
       val positionStore = HighlightingPrettyPrinter.positionStore
-      //println(selections)
-      //println(positionStore)
-      //println("------------------------------------------------------------------------------------------------------------------------")
 
-      //val testHighlightedRanges = positionStore.filter({case (pos, _) if pos.isInstanceOf[AbstractSourcePosition] => isHighlighted(pos.asInstanceOf[AbstractSourcePosition])
-      //                                                  case _ => false}).map(_._2)
-
-      //println(testHighlightedRanges)
-      
       positionStore.keySet.foreach(key => {
         positionStore.get(key) match {
           case Some(viperPos) =>
@@ -129,18 +119,8 @@ case class PreviewReporter(name: String = "preview_reporter",
             }
           case None => // ignore
         }
-/*
-        val (gobraPos, viperPos) = entry
-        val (startPos, length) = viperPos
-
-        gobraPos match {
-          case pos: AbstractSourcePosition if isHighlighted(pos) => highlightedRanges += HighlightingPosition(startPos, length)
-          case _ => // ignore
-        }
-        */
       })
 
-      //println(highlightedRanges)
       
 
 /*
@@ -155,7 +135,6 @@ case class PreviewReporter(name: String = "preview_reporter",
 */
       VerifierState.client match {
         case Some(c) => c.finishedViperCodePreview(vprAstFormatted, gson.toJson(highlightedRanges.toArray))
-        //case Some(c) => c.finishedViperCodePreview(testPrint, gson.toJson(testHighlightedRanges.toArray))
         case None =>
       }
     
@@ -163,10 +142,4 @@ case class PreviewReporter(name: String = "preview_reporter",
     case _ => // ignore
   }
 }
-
-
-//import viper.silver.ast.pretty._
-//object HighlightingFastPrettyPrinter extends FastPrettyPrinter {
-
-//}
 

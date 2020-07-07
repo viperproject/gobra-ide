@@ -16,13 +16,12 @@ export class CodePreviewProvider implements vscode.TextDocumentContentProvider {
 
   setDecorations(uri: vscode.Uri): void {
     vscode.window.showTextDocument(uri, { preview: false, viewColumn: vscode.ViewColumn.Two }).then(editor => {
-      let decorationRanges = this.highlightedPositions.map(pos =>
-        new vscode.Range(
-          new vscode.Position(editor.document.positionAt(pos.startIndex).line, 0),
-          new vscode.Position(editor.document.positionAt(pos.startIndex).line, 1000)
-          //editor.document.positionAt(pos.startIndex),
-          //editor.document.positionAt(pos.startIndex + pos.length)
-        ));
+      let decorationRanges = this.highlightedPositions.map(pos => {
+        let line = editor.document.positionAt(pos.startIndex).line;
+        return new vscode.Range(
+          new vscode.Position(line, 0),
+          new vscode.Position(line, 1000)
+        )});
 
       editor.setDecorations(CodePreviewProvider.decoration, decorationRanges);
         
