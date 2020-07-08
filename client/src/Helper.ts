@@ -37,6 +37,10 @@ export class Helper {
     return URI.file(Helper.getFilePath()).toString();
   }
 
+  public static getSelections(): vscode.Range[] {
+    return vscode.window.activeTextEditor.selections.map(s => new vscode.Range(s.start, s.end));
+  }
+
   public static configToJson(config: VerifierConfig): string {
     return JSON.stringify(config);
   }
@@ -145,7 +149,7 @@ export class Commands {
   public static goifyFile = "gobraServer/goifyFile";
   public static gobrafyFile = "gobraServer/gobrafyFile";
   public static setOpenFileUri = "gobraServer/setOpenFileUri";
-  public static viperCodePreview = "gobraServer/viperCodePreview";
+  public static codePreview = "gobraServer/codePreview";
 
   /**
     * Commands handled by Client (VSCode)
@@ -158,6 +162,7 @@ export class Commands {
   public static finishedGoifying = "gobraServer/finishedGoifying";
   public static finishedGobrafying = "gobraServer/finishedGobrafying";
   public static finishedViperCodePreview = "gobraServer/finishedViperCodePreview";
+  public static finishedInternalCodePreview = "gobraServer/finishedInternalCodePreview";
 }
 
 // Defines the texts in statusbars ...
@@ -191,6 +196,7 @@ export class ContributionCommands {
   public static verifyFile = "gobra.verifyFile";
   public static updateGobraTools = "gobra.updateGobraTools";
   public static showViperCodePreview = "gobra.showViperCodePreview";
+  public static showInternalCodePreview = "gobra.showInternalCodePreview";
 }
 
 
@@ -199,6 +205,7 @@ export class ContributionCommands {
   */
 export class FileSchemes {
   public static viper = "viperPreview";
+  public static internal = "internalPreview";
 }
 
 /**
@@ -206,6 +213,7 @@ export class FileSchemes {
   */
 export class PreviewUris {
   public static viper = vscode.Uri.parse(FileSchemes.viper + ":viperPreview/");
+  public static internal = vscode.Uri.parse(FileSchemes.internal + ":internalPreview/");
 }
 
 

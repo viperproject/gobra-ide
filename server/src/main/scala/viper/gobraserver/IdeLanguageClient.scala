@@ -18,11 +18,6 @@ trait IdeLanguageClient extends LanguageClient {
   def verificationException(fileUri: String): Unit
 
 
-
-  
-
-  
-
   @JsonNotification("gobraServer/finishedGoifying")
   def finishedGoifying(fileUri: String, success: Boolean): Unit
 
@@ -31,4 +26,7 @@ trait IdeLanguageClient extends LanguageClient {
 
   @JsonNotification("gobraServer/finishedViperCodePreview")
   def finishedViperCodePreview(ast: String, highlighted: String): Unit
+
+  @JsonNotification("gobraServer/finishedInternalCodePreview")
+  def finishedInternalCodePreview(internal: String, highlighted: String): Unit
 }

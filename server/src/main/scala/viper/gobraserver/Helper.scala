@@ -111,8 +111,9 @@ object Helper {
     )
   }
 
-  def previewConfigFromTask(fileData: FileData, viperPreview: Boolean, selections: List[Range]): Config = {
+  def previewConfigFromTask(fileData: FileData, internalPreview: Boolean, viperPreview: Boolean, selections: List[Range]): Config = {
     val reporter = PreviewReporter(
+      internalPreview = internalPreview,
       viperPreview = viperPreview,
       selections = selections
     )
@@ -120,6 +121,7 @@ object Helper {
     Config(
       inputFile = new File(fileData.filePath),
       shouldVerify = false,
+      shouldViperEncode = viperPreview,
       reporter = reporter
     )
   }

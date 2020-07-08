@@ -28,11 +28,15 @@ export class VerifierConfig {
 
 export class PreviewData {
   fileData: FileData;
+  internalPreview: boolean;
+  viperPreview: boolean;
   selections: vscode.Range[];
 
-  constructor(fileData: FileData, selections: vscode.Range[]) {
+  constructor(fileData: FileData, internalPreview: boolean, viperPreview: boolean, selections: vscode.Range[]) {
     this.fileData = fileData;
     this.selections = selections;
+    this.internalPreview = internalPreview;
+    this.viperPreview = viperPreview;
   }
 }
 

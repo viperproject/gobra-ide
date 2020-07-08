@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import { HighlightingPosition } from './MessagePayloads';
-import { Helper } from './Helper';
 
 export class CodePreviewProvider implements vscode.TextDocumentContentProvider {
   private static decoration = vscode.window.createTextEditorDecorationType({

@@ -1,7 +1,6 @@
 package viper.gobraserver
 
-import scala.collection.mutable.Queue
-import scala.concurrent.{ Future, ExecutionContext }
+import scala.concurrent.ExecutionContext
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
@@ -32,13 +31,10 @@ class VerificationWorker extends Runnable {
           Await.result(resultFuture, Duration.Inf)
         }
 
-        //val resultFuture = GobraServer.verify(verificationJob)
-        //Await.result(resultFuture, Duration.Inf)
-
       }
     } catch {
       case e: InterruptedException => println("VerificationWorker got interrupted.")
-      case _ => run() // restart the verification worker
+      case _: Throwable => run() // restart the verification worker
     }
 
   }

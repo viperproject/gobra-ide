@@ -3,7 +3,7 @@ import { Helper, Commands, ContributionCommands, Texts, Color, PreviewUris } fro
 import { ProgressBar } from "./ProgressBar";
 import * as vscode from 'vscode';
 import * as fs from 'fs';
-import { VerifierConfig, OverallVerificationResult, FileData, GobraSettings, PreviewData } from "./MessagePayloads";
+import { VerifierConfig, OverallVerificationResult, PreviewData } from "./MessagePayloads";
 import { IdeEvents } from "./IdeEvents";
 
 import { Dependency, InstallerSequence, FileDownloader, ZipExtractor, withProgressInWindow, Location } from 'vs-verification-toolbox';
@@ -28,6 +28,7 @@ export class Verifier {
     Helper.registerCommand(ContributionCommands.verifyFile, Verifier.manualVerifyFile, State.context);
     Helper.registerCommand(ContributionCommands.updateGobraTools, () => Verifier.updateGobraTools(true), State.context);
     Helper.registerCommand(ContributionCommands.showViperCodePreview, Verifier.showViperCodePreview, State.context);
+    Helper.registerCommand(ContributionCommands.showInternalCodePreview, Verifier.showInternalCodePreview, State.context);
 
     /**
       * Register Notification handlers for Gobra-Server notifications.
@@ -40,11 +41,20 @@ export class Verifier {
     State.client.onNotification(Commands.finishedGoifying, Verifier.handleFinishedGoifyingNotification);
     State.client.onNotification(Commands.finishedGobrafying, Verifier.handleFinishedGobrafyingNotification);
     State.client.onNotification(Commands.finishedViperCodePreview, Verifier.handleFinishedViperPreviewNotification);
+    State.client.onNotification(Commands.finishedInternalCodePreview, Verifier.handleFinishedInternalPreviewNotification);
 
     /**
       * Register VSCode Event listeners.
       */
-    State.context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(Verifier.changeFile));
+    State.context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(editor => {
+      if (editor.document.uri.toString() === PreviewUris.viper.toString()) {
+        State.viperPreviewProvider.setDecorations(PreviewUris.viper);
+      } else if (editor.document.uri.toString() == PreviewUris.internal.toString()) {
+        State.internalPreviewProvider.setDecorations(PreviewUris.internal);
+      } else {
+        Verifier.changeFile();
+      }
+    }));
     // open event
     State.context.subscriptions.push(vscode.workspace.onDidOpenTextDocument(document => {
       Verifier.verifyFile(document.uri.toString(), IdeEvents.Open)
@@ -55,14 +65,13 @@ export class Verifier {
     }));
     // filechange event
     State.context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(change => {
-      if (change.document.uri.toString() == PreviewUris.viper.toString()) {
-        vscode.window.showTextDocument(PreviewUris.viper, { preview: false, preserveFocus: false }).then(() => {
+      
+      if (change.document.uri.toString() === PreviewUris.viper.toString() || change.document.uri.toString() === PreviewUris.internal.toString()) {
+        vscode.window.showTextDocument(change.document.uri, { preview: false, preserveFocus: false }).then(() => {
           vscode.commands.executeCommand('workbench.action.closeActiveEditor').then(() => {
-            State.viperPreviewProvider.setDecorations(PreviewUris.viper);
+            State.viperPreviewProvider.setDecorations(change.document.uri);
           });
         });
-
-        //State.viperPreviewProvider.setDecorations(PreviewUris.viper);
         return;
       }
 
@@ -285,16 +294,23 @@ export class Verifier {
     * Shows the preview of the selected code in the translated Viper code.
     */
   public static showViperCodePreview(): void {
-    //let selections = [vscode.window.activeTextEditor.selection].map(s => new vscode.Range(s.start, s.end));
-    let selections = vscode.window.activeTextEditor.selections.map(s => new vscode.Range(s.start, s.end));
-
-    //let selectedText = vscode.window.activeTextEditor.document.getText(selections[0]);
-    //State.viperPreviewProvider.updateCodePreview(PreviewUris.viper, selectedText)
+    let selections = Helper.getSelections();
 
     State.updateFileData();
     vscode.window.activeTextEditor.document.save().then((saved: boolean) => {
-      //console.log(Helper.previewDataToJson(new PreviewData(State.verifierConfig.fileData, selections)));
-      State.client.sendNotification(Commands.viperCodePreview, Helper.previewDataToJson(new PreviewData(State.verifierConfig.fileData, selections)));
+      State.client.sendNotification(Commands.codePreview, Helper.previewDataToJson(new PreviewData(State.verifierConfig.fileData, false, true, selections)));
+    });
+  }
+
+  /**
+    * Shows the preview of the selected code in the translated Internal representation. 
+    */
+  public static showInternalCodePreview(): void {
+    let selections = Helper.getSelections();
+
+    State.updateFileData();
+    vscode.window.activeTextEditor.document.save().then((saved: boolean) => {
+      State.client.sendNotification(Commands.codePreview, Helper.previewDataToJson(new PreviewData(State.verifierConfig.fileData, true, false, selections)));
     });
   }
   
@@ -365,17 +381,12 @@ export class Verifier {
 
   private static handleFinishedViperPreviewNotification(ast: string, highlightedJson: string): void {
     let highlightedPositions = Helper.jsonToHighlightingPositions(highlightedJson);
-
     State.viperPreviewProvider.updateCodePreview(PreviewUris.viper, ast, highlightedPositions);
+  }
 
-    /*
-    let highlightedPositions =
-      Helper.jsonToHighlightingPositions(highlightedJson)
-      .map(pos => new vscode.Range(pos.startIndex, pos.startIndex + pos.length));
-    */
-
-    //console.log(highlightedJson);
-    //console.log(highlightedPositions);
+  private static handleFinishedInternalPreviewNotification(internal: string, highlightedJson: string): void {
+    let highlightedPositions = Helper.jsonToHighlightingPositions(highlightedJson);
+    State.internalPreviewProvider.updateCodePreview(PreviewUris.internal, internal, highlightedPositions);
   }
 
 }

@@ -18,6 +18,7 @@ export class State {
   public static updatingGobraTools: boolean;
 
   public static viperPreviewProvider: CodePreviewProvider;
+  public static internalPreviewProvider: CodePreviewProvider;
 
   public static runningVerifications: Set<string>;
   // tracks the verification requests which were made when a verification was already running.
@@ -73,6 +74,9 @@ export class State {
 
     this.viperPreviewProvider = new CodePreviewProvider();
     vscode.workspace.registerTextDocumentContentProvider(FileSchemes.viper, this.viperPreviewProvider);
+
+    this.internalPreviewProvider = new CodePreviewProvider();
+    vscode.workspace.registerTextDocumentContentProvider(FileSchemes.internal, this.internalPreviewProvider);
 
 
 

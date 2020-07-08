@@ -57,20 +57,19 @@ trait PrettyPrintPrimitives {
     }
   }
 
-  def updatePositionStore(n: Node): Cont = {
-    n.getPrettyMetadata._1 match {
-      case pos: AbstractSourcePosition =>
-        (iw: IW) =>
-          (c: TreeCont) =>
-            nil(iw)((p: Position) =>
-              (dq: Dq) => {
-                addPosition(pos, (p, 1))
-                c(p)(dq)
-              })
+  def updatePositionStore(n: Node): Cont = n.getPrettyMetadata._1 match {
+    case pos: AbstractSourcePosition =>
+      (iw: IW) =>
+        (c: TreeCont) =>
+          nil(iw)((p: Position) =>
+            (dq: Dq) => {
+              addPosition(pos, (p, 1))
+              c(p)(dq)
+            })
 
-      case _ => nil
-    }
+    case _ => nil
   }
+
 
   implicit def text(t: String): Cont = {
     if (t == "") {
@@ -428,7 +427,7 @@ object HighlightingPrettyPrinter extends HighlightingPrettyPrinterBase with Brac
 
 
   /** Show any AST node. */
-  def show(n: Node): Cont = n match {
+  def show(n: Node): Cont = updatePositionStore(n) <> (n match {
     case exp: Exp => toParenDoc(exp, n)
     case stmt: Stmt => showStmt(stmt)
     case typ: Type => showType(typ)
@@ -437,17 +436,15 @@ object HighlightingPrettyPrinter extends HighlightingPrettyPrinterBase with Brac
     case v: LocalVarDecl => showVar(v)
     case dm: DomainMember => showDomainMember(dm)
     case Trigger(exps) =>
-      updatePositionStore(n) <> (text("{") <+> ssep(exps map show, char (',')) <+> "}")
+      text("{") <+> ssep(exps map show, char (',')) <+> "}"
     case null => uninitialized
-  }  
+  })
 
   /** Show a program. */
   def showProgram(p: Program): Cont = {
     val Program(domains, fields, functions, predicates, methods, extensions) = p
-
-    updatePositionStore(p) <>
-    (showComment(p) <@>
-      ssep((domains ++ fields ++ functions ++ predicates ++ methods) map show, line <> line))
+    showComment(p) <@>
+      ssep((domains ++ fields ++ functions ++ predicates ++ methods) map show, line <> line)
 
   }
 
@@ -468,7 +465,7 @@ object HighlightingPrettyPrinter extends HighlightingPrettyPrinterBase with Brac
           ) <> line)
     }
 
-    updatePositionStore(m) <> (showComment(m) <@> memberDoc)
+    showComment(m) <@> memberDoc
   }
 
 
@@ -524,7 +521,7 @@ object HighlightingPrettyPrinter extends HighlightingPrettyPrinterBase with Brac
       case t:ExtensionMember => nil
     }
 
-    updatePositionStore(m) <> (showComment(m) <@> memberDoc)
+    showComment(m) <@> memberDoc
   }
 
   /** Shows contracts and use `name` as the contract name (usually `requires` or `ensures`). */
@@ -548,7 +545,7 @@ object HighlightingPrettyPrinter extends HighlightingPrettyPrinterBase with Brac
   /** Show a list of formal arguments. */
   def showVars(vars: Seq[LocalVarDecl]): Cont = ssep(vars map showVar, char (',') <> space)
   /** Show a variable name with the type of the variable (e.g. to be used in formal argument lists). */
-  def showVar(v: LocalVarDecl): Cont = updatePositionStore(v) <> (text(v.name) <> ":" <+> showType(v.typ))
+  def showVar(v: LocalVarDecl): Cont = text(v.name) <> ":" <+> showType(v.typ)
 
   /** Show field name */
   private def showLocation(loc: Location): Cont = loc.name
@@ -648,7 +645,7 @@ object HighlightingPrettyPrinter extends HighlightingPrettyPrinterBase with Brac
       case null => uninitialized
     }
 
-    updatePositionStore(stmt) <> (showComment(stmt) <@> stmtDoc)
+    showComment(stmt) <@> stmtDoc
   }
 
   def showElse(els: Stmt): Cont = els match {
@@ -672,7 +669,7 @@ object HighlightingPrettyPrinter extends HighlightingPrettyPrinterBase with Brac
     }
   }
 
-  override def toParenDoc(e: PrettyExpression, n: Node): Cont = updatePositionStore(n) <> (e match {
+  override def toParenDoc(e: PrettyExpression, n: Node): Cont = e match {
     case IntLit(i) => value(i)
     case BoolLit(b) => value(b)
     case NullLit() => value(null)
@@ -777,7 +774,7 @@ object HighlightingPrettyPrinter extends HighlightingPrettyPrinterBase with Brac
     case b: PrettyBinaryExpression => showPrettyBinaryExp(b, n)
     case e: ExtensionExp => e.prettyPrint
     case _ => sys.error(s"unknown expression: ${e.getClass}")
-  })
+  }
 
   def showPrettyUnaryExp(u: PrettyUnaryExpression, n: Node): Cont = {
     val ed =

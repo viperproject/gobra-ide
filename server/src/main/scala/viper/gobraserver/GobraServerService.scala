@@ -198,14 +198,14 @@ class GobraServerService extends IdeLanguageClientAware {
     }
   }
 
-  @JsonNotification("gobraServer/viperCodePreview")
-  def viperCodePreview(previewDataJson: String): Unit = {
-    println("viperCodePreview")
+  @JsonNotification("gobraServer/codePreview")
+  def codePreview(previewDataJson: String): Unit = {
+    println("codePreview")
 
     val previewData: PreviewData = gson.fromJson(previewDataJson, classOf[PreviewData])
     val selections = previewData.selections.map(selection => new Range(selection(0), selection(1))).toList
 
-    GobraServer.viperCodePreview(previewData.fileData, selections)
+    GobraServer.codePreview(previewData.fileData, previewData.internalPreview, previewData.viperPreview, selections)
   }
 
 

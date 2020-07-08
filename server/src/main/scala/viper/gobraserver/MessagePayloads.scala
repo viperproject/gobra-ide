@@ -35,6 +35,8 @@ case class OverallVerificationResult(
 
 case class PreviewData (
   fileData: FileData,
+  internalPreview: Boolean,
+  viperPreview: Boolean,
   selections: Array[Array[Position]]
 )
 

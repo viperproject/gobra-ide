@@ -95,6 +95,11 @@
         "command": "gobra.showViperCodePreview",
         "title": "Show Viper Code Preview",
         "category": "Gobra"
+      },
+      {
+        "command": "gobra.showInternalCodePreview",
+        "title": "Show Internal Representation Preview",
+        "category": "Gobra"
       }
     ],
     "menus": {
@@ -127,11 +132,20 @@
         {
           "command": "gobra.showViperCodePreview",
           "when": "false"
+        },
+        {
+          "command": "gobra.showInternalCodePreview",
+          "when": "false"
         }
       ],
       "editor/context": [
         {
           "command": "gobra.showViperCodePreview",
+          "group": "Gobra@1",
+          "when": "editorHasSelection && resourceLangId == gobra"
+        },
+        {
+          "command": "gobra.showInternalCodePreview",
           "group": "Gobra@1",
           "when": "editorHasSelection && resourceLangId == gobra"
         }

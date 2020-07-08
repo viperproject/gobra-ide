@@ -4,9 +4,7 @@ import viper.gobra.Gobra
 import viper.gobra.GobraFrontend
 import viper.gobra.reporting.VerifierResult
 import viper.gobra.backend.ViperBackends
-import viper.gobra.reporting.VerifierError
 import viper.gobra.util.Violation$LogicException
-import viper.gobra.frontend.Config
 
 import java.io._
 import scala.io.Source
@@ -14,7 +12,7 @@ import scala.io.Source
 import viper.server.{ ViperCoreServer, ViperConfig }
 import viper.gobra.backend.ViperBackends
 
-import org.eclipse.lsp4j.{ Diagnostic, Position, Range, DiagnosticSeverity, PublishDiagnosticsParams, MessageParams, MessageType }
+import org.eclipse.lsp4j.{ Range, MessageParams, MessageType }
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext
@@ -48,77 +46,16 @@ object GobraServer extends GobraFrontend {
     _server.start()
     VerifierState.flushCachedDiagnostics()
   }
-
-/*
-  private def errorToDiagnostic(error: VerifierError, fileType: FileType.Value): Diagnostic = {
-    val startPos = new Position(
-      error.position.start.line - 1,
-      if (fileType == FileType.Gobra) error.position.start.column - 1 else 0
-    )
-
-    val endPos = error.position.end match {
-      case Some(pos) => new Position(
-        pos.line - 1,
-        if (fileType == FileType.Gobra) pos.column - 1 else Int.MaxValue
-      )
-      case None => startPos
-    }
-
-    new Diagnostic(new Range(startPos, endPos), error.message, DiagnosticSeverity.Error, "")
-  }
-*/
+  
 
   private def serverExceptionHandling(fileData: FileData, resultFuture: Future[VerifierResult]) {
 
     val fileUri = fileData.fileUri
     val filePath = fileData.filePath
-/*
-    val fileType = if (fileUri.endsWith(".gobra")) FileType.Gobra else FileType.Go
-*/
+
     resultFuture.onComplete {
       case Success(result) => // ignore -> handled by reporter
-/*
-        val endTime = System.currentTimeMillis()
 
-        result match {
-          case VerifierResult.Success => {
-            VerifierState.removeDiagnostics(fileUri)
-          }
-          case VerifierResult.Failure(errors) =>
-
-            val cachedErrors = errors.filter(_.cached).toList
-            val nonCachedErrors = errors.filterNot(_.cached).toList
-
-            val diagnosticsCache = VerifierState.getDiagnosticsCache(fileUri)
-            val cachedDiagnostics = cachedErrors.map(err => diagnosticsCache.get(err) match {
-              case Some(diagnostic) => diagnostic
-              case None =>
-                println("Caches not consistent!")
-                throw GobraServerCacheInconsistentException()
-            }).toList
-
-            val nonCachedDiagnostics = nonCachedErrors.map(err => errorToDiagnostic(err, fileType)).toList
-
-            // Filechanges which happened during the verification.
-            val fileChanges = VerifierState.changes.filter({case (uri, _) => uri == fileUri}).flatMap({case (_, change) => change})
-
-            val diagnostics = cachedDiagnostics ++ VerifierState.translateDiagnostics(fileChanges, nonCachedDiagnostics)
-            val sortedErrs = cachedErrors ++ nonCachedErrors
-
-            VerifierState.addDiagnostics(fileUri, diagnostics)
-            // only update diagnostics cache when ViperServer is used as a backend.
-            if (config.backend == ViperBackends.ViperServerBackend) VerifierState.addDiagnosticsCache(fileUri, sortedErrs, diagnostics)
-        }
-        VerifierState.verificationRunning = false
-        // remove all filechanges associated to this file which occured during the verification.
-        VerifierState.changes = VerifierState.changes.filter({case (uri, _) => uri != fileUri})
-        
-        val overallResult = Helper.getOverallVerificationResult(fileUri, result, endTime - startTime)
-        VerifierState.updateVerificationInformation(fileUri, Right(overallResult))
-
-
-        if (fileUri == VerifierState.openFileUri) VerifierState.publishDiagnostics(fileUri)
-*/
       case Failure(exception) =>
 
         exception match {
@@ -271,11 +208,11 @@ object GobraServer extends GobraFrontend {
 
 
   /**
-    * Get preview of Viper Code.
+    * Get preview of Code which then gets displayed on the client side.
+    * Currently the internal representation and the viper encoding can be previewed.
     */
-  def viperCodePreview(fileData: FileData, selections: List[Range]) {
-    val config = Helper.previewConfigFromTask(fileData, true, selections)
-
+  def codePreview(fileData: FileData, internalPreview: Boolean, viperPreview: Boolean, selections: List[Range]) {
+    val config = Helper.previewConfigFromTask(fileData, internalPreview, viperPreview, selections)
     val previewFuture = verifier.verify(config)
   }
 
