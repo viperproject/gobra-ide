@@ -21,11 +21,10 @@ export class CodePreviewProvider implements vscode.TextDocumentContentProvider {
         let line = editor.document.positionAt(pos.startIndex).line;
         return new vscode.Range(
           new vscode.Position(line, 0),
-          new vscode.Position(line, 1000)
+          new vscode.Position(line, 1)
         )});
 
-
-      let firstHighlighting = decorationRanges.map(r => r.start.line).sort()[0];
+      let firstHighlighting = decorationRanges.map(r => r.start.line).sort((a, b) => a - b)[0];
       var cursorPosition = editor.selection.active.with(firstHighlighting, 0);
       editor.revealRange(new vscode.Range(cursorPosition, cursorPosition), vscode.TextEditorRevealType.AtTop);
 
