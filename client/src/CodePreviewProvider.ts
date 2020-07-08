@@ -4,6 +4,7 @@ import { Helper } from './Helper';
 
 export class CodePreviewProvider implements vscode.TextDocumentContentProvider {
   private static decoration = vscode.window.createTextEditorDecorationType({
+    isWholeLine: true,
     backgroundColor: 'green'
   });
 
@@ -22,6 +23,11 @@ export class CodePreviewProvider implements vscode.TextDocumentContentProvider {
           new vscode.Position(line, 0),
           new vscode.Position(line, 1000)
         )});
+
+
+      let firstHighlighting = decorationRanges.map(r => r.start.line).sort()[0];
+      var cursorPosition = editor.selection.active.with(firstHighlighting, 0);
+      editor.revealRange(new vscode.Range(cursorPosition, cursorPosition), vscode.TextEditorRevealType.AtTop);
 
       editor.setDecorations(CodePreviewProvider.decoration, decorationRanges);
         
