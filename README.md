@@ -8,8 +8,8 @@ translation of Gobra are available.
 
 ### Assemble the server:
 1. Navigate to the server folder: `cd server`
-2. Create a symlink to your local Gobra checkout:
-   Windows: `mklink /D .\gobra \path\to\gobra`
+2. Create a symlink to your local Gobra checkout:  
+   Windows: `mklink /D .\gobra \path\to\gobra`  
    Mac: `ln -s /path/to/gobra ./gobra`
 3. Assemble the binary: `sbt assembly`
 4. Navigate back to Gobra-IDE directory: `cd ..`
