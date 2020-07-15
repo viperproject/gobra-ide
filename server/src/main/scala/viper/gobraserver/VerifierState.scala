@@ -162,12 +162,12 @@ object VerifierState {
               * Before the first character of the Diagnostic.
               */
             if (cEndC <= startC && cEndL == endL) {
-                startC = startC - deletedCharacters
+              startC = startC - deletedCharacters
 
-                /**
-                  * Delete line, so diagnostic may not start at the beginning of the line.
-                  */
-                if (cStartL < cEndL && cStartL < startL) startC = startC + cStartC
+              /**
+                * Delete line, so diagnostic may not start at the beginning of the line.
+                */
+              if (cStartL < cEndL && cStartL < startL) startC = startC + cStartC
             }
                
             /**

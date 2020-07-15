@@ -106,7 +106,7 @@
       "commandPalette": [
         {
           "command": "gobra.flushCache",
-          "when": "resourceLangId == gobra",
+          "when": "resourceLangId == gobra || resourceLangId == go",
           "group": "Gobra"
         },
         {
