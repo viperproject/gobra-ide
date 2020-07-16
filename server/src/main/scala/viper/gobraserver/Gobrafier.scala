@@ -99,12 +99,15 @@ object GobrafierRunner {
       * back to the function results.
       */
     newFileContents = ghostResultsRegex.replaceAllIn(newFileContents, m => {
+      println(m.group("funcResults"))
+
       "\n" + // added to maintain line consistency
       m.group("spec") +
       m.group("funcName") +
       parens(m.group("funcArgs")) +
       " " +
-      parens((if (m.group("funcResults") == "") "" else ", ") +
+      parens(m.group("funcResults") +
+      (if (m.group("funcResults") == "") "" else ", ") +
       m.group("ghostResults"))
       
     })
@@ -157,36 +160,4 @@ object GobrafierRunner {
   }
 
 
-
-/*
-  def main(args: Array[String]): Unit = {
-    if (args.length > 0) {
-      val uri = args(0)
-
-      if (!uri.endsWith(".go")) {
-        println("Error: Can only Gobrafy Go files.")
-        sys.exit(1)
-      }
-
-      try {
-        val fileContents = Source.fromFile(uri).mkString
-
-        val gobraFile = new File("gobrafied_" + uri)
-        val bw = new BufferedWriter(new FileWriter(gobraFile))
-
-        bw.write(gobrafyFileContents(fileContents))
-        bw.close()
-
-        sys.exit(0)
-      } catch {
-        case e: java.io.FileNotFoundException =>
-          println("File with the uri: " + uri + " could not be found.")
-          sys.exit(1)
-      }
-    }
-
-    println("Error no file uri was given.")
-    sys.exit(1)
-  }
-*/
 }
