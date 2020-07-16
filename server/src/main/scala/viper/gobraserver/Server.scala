@@ -5,7 +5,6 @@ import java.util.NoSuchElementException
 import java.net.Socket
 
 import org.eclipse.lsp4j.jsonrpc.Launcher
-import org.eclipse.lsp4j.services.LanguageClient
 
 object Server {
   def main(args: Array[String]): Unit = {

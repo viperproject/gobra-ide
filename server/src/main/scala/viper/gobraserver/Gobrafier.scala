@@ -1,7 +1,5 @@
 package viper.gobraserver
 
-import scala.io.Source
-import java.io._
 import scala.util.matching.Regex
 
 object GobrafierRunner {

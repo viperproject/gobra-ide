@@ -6,14 +6,11 @@ import org.eclipse.lsp4j.{
     Diagnostic,
     Position,
     Range,
-    DiagnosticSeverity,
     PublishDiagnosticsParams,
     TextDocumentContentChangeEvent
 }
 
 import scala.collection.mutable.Map
-import scala.collection.immutable.{Map => ImmMap}
-import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Queue
 import collection.JavaConverters._
 

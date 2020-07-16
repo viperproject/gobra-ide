@@ -18,13 +18,11 @@ import org.eclipse.lsp4j.{
   InitializeResult,
   ServerCapabilities,
   TextDocumentSyncKind,
-  TextDocumentContentChangeEvent,
   MessageParams,
   MessageType,
   Range
 }
 
-import scala.util.{ Success, Failure }
 import collection.JavaConverters._
 import scala.concurrent.{ExecutionContext, Future}
 

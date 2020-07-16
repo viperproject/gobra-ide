@@ -7,7 +7,7 @@ import viper.gobra.util.OutputUtil
 
 import scala.collection.mutable.Set
 
-import org.eclipse.lsp4j.{ Diagnostic, Position, Range, DiagnosticSeverity, PublishDiagnosticsParams, MessageParams, MessageType }
+import org.eclipse.lsp4j.{ Diagnostic, Position, Range, DiagnosticSeverity }
 
 import org.apache.commons.io.FileUtils
 import java.io.File
@@ -28,7 +28,7 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
   /**
     * State and Helper functions used for tracking the progress of the Verification.
     */
-  private def nonVerificationEntityProgress: Int = ((1 - verificationFraction) * 20).round.toInt
+  private def nonVerificationEntityProgress: Int = ((1 - verificationFraction) * 25).round.toInt
   private def preprocessEntityProgress: Int = (0.5 * nonVerificationEntityProgress).round.toInt
 
   private var progress: Int = 0
@@ -132,10 +132,10 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
       updateDiagnostics(VerifierResult.Failure(result))
       finishedVerification()
 
-    case TypeCheckSuccessMessage(file, _, erasedGhostCode) =>
+    case TypeCheckSuccessMessage(file, _, erasedGhostCode, goifiedGhostCode) =>
       updateProgress(nonVerificationEntityProgress)
       if (eraseGhost) write(file, "ghostLess", erasedGhostCode())
-      if (goify) write(file, "go", erasedGhostCode())
+      if (goify) write(file, "go", goifiedGhostCode())
 
     case TypeCheckFailureMessage(_, _, result) =>
       updateDiagnostics(VerifierResult.Failure(result))
