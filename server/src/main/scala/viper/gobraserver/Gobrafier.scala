@@ -39,7 +39,6 @@ object GobrafierRunner {
   private val ghostResultsRegex = s"(?s)${singlelineComment(s"$ghost_results\\s*(.*?)\\n$spec$functionDecl")}".r
   private val returnGhostRegex = s"(?m)$return_keyword\\s*$args${singlelineComment(s"$with_keyword\\s*$args")}$$".r
   private val pureKeywordRegex = s"(?s)${singlelineComment(s"$pure_keyword$spec$func_keyword")}".r
-  //private val assignGhostRegex = s"(?m)$vars\\s*$assignment\\s*$vars\\s*${singlelineComment}"
   private val assignGhostRegex = s"(?m)$assignment\\s*${singlelineComment(s"$with_keyword\\s*$assignment\\s*$goifiedComment")}$$".r
 
   private val addressableVariablesRegex = s"(?m)(^.*?)\\s*${singlelineComment(addressable_variables)}$vars$$".r
