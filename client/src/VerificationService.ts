@@ -372,7 +372,9 @@ export class Verifier {
     State.runningGobrafications.delete(oldFilePath);
 
     if (success) {
-      vscode.window.showTextDocument(vscode.Uri.file(newFilePath));
+      vscode.window.showTextDocument(vscode.Uri.file(newFilePath)).then(editor => {
+        Verifier.verifyFile(editor.document.uri.toString(), IdeEvents.Open);
+      });
     } else {
       vscode.window.showErrorMessage("An error occured during the Gobrafication of " + oldFilePath);
     }

@@ -138,8 +138,9 @@ object GobrafierRunner {
       (if (m.group(1) == "") "" else ", ") +
       m.group(4) + " " +
       m.group(2) + " " +
-      m.group(3) + " " +
-      (if (m.group(6).compareTo(m.group(3)) == 0) "" else ", " + m.group(6)) + // only add RHS if it is not equal to LHS
+      m.group(3) +
+      (if (m.group(3) == "" || m.group(6) == "" || m.group(6) == null) "" else ", ") +
+      (if (m.group(6) == "" || m.group(6) == null) "" else  m.group(6)) +
       (if (m.group(8) == "" || m.group(8) == null) "" else "//@ " + m.group(8))
     })
 
