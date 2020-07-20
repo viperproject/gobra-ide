@@ -147,7 +147,7 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
       updateProgress(nonVerificationEntityProgress)
       if (printInternal) write(file, "internal", internal().formatted)
 
-    case m@GeneratedViperMessage(file, _) =>
+    case m@GeneratedViperMessage(file, ast, backtrack) =>
       updateProgress(nonVerificationEntityProgress)
       if (printVpr) write(file, "vpr", m.vprAstFormatted)
 
