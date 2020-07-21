@@ -15,6 +15,8 @@ import scala.collection.mutable.Queue
 import collection.JavaConverters._
 
 import viper.gobra.reporting.VerifierError
+import viper.silver.ast.Program
+import viper.gobra.reporting.BackTranslator.BackTrackInfo
 
 import scala.math.max
 
@@ -32,10 +34,10 @@ object VerifierState {
     */
   var changes: List[(String, List[TextDocumentContentChangeEvent])] = List()
 
-  var verificationRunning: Boolean = false
+  var verificationRunning: Int = 0
 
-  private val _jobQueue = Queue[(FileType.Value, VerifierConfig)]()
-  def jobQueue: Queue[(FileType.Value, VerifierConfig)] = _jobQueue
+  private val _jobQueue = Queue[(() => Program, () => BackTrackInfo, Long, VerifierConfig)]()
+  def jobQueue: Queue[(() => Program, () => BackTrackInfo, Long, VerifierConfig)] = _jobQueue
 
   private var _client: Option[IdeLanguageClient] = None
   def client: Option[IdeLanguageClient] = _client

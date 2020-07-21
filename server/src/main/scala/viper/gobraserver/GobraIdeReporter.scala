@@ -15,6 +15,7 @@ import java.nio.charset.StandardCharsets.UTF_8
 
 case class GobraIdeReporter(name: String = "gobraide_reporter",
                             startTime: Long,
+                            verifierConfig: VerifierConfig,
                             fileUri: String,
                             backend: ViperBackend,
                             verificationFraction: Double = 0.75,
@@ -106,7 +107,7 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
   }
 
   private def finishedVerification() : Unit = {
-    VerifierState.verificationRunning = false
+    VerifierState.verificationRunning -= 1
     VerifierState.changes = VerifierState.changes.filter(_._1 != fileUri)
 
     val result = if (reportedErrors.isEmpty) VerifierResult.Success else VerifierResult.Failure(reportedErrors.toVector)
@@ -150,6 +151,11 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
     case m@GeneratedViperMessage(file, ast, backtrack) =>
       updateProgress(nonVerificationEntityProgress)
       if (printVpr) write(file, "vpr", m.vprAstFormatted)
+
+      VerifierState.jobQueue.synchronized {
+        VerifierState.jobQueue.enqueue((ast, backtrack, startTime, verifierConfig))
+        VerifierState.jobQueue.notify()
+      }
 
     
     case GobraOverallSuccessMessage(_) =>

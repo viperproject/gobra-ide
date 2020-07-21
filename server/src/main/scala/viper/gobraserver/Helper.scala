@@ -14,7 +14,7 @@ import ch.qos.logback.classic.Level
 
 object Helper {
 
-  def verificationConfigFromTask(verifierConfig: VerifierConfig, startTime: Long): Config = {
+  def verificationConfigFromTask(verifierConfig: VerifierConfig, startTime: Long, verify: Boolean): Config = {
     verifierConfig match {
       case VerifierConfig(
         FileData(path, fileUri),
@@ -27,7 +27,7 @@ object Helper {
         val shouldTypeCheck = !parseOnly
         val shouldDesugar = shouldTypeCheck
         val shouldViperEncode = shouldDesugar
-        val shouldVerify = shouldViperEncode
+        val shouldVerify = shouldViperEncode && verify
 
         val backend =
           if (serverMode) {
@@ -42,6 +42,7 @@ object Helper {
 
         val reporter = GobraIdeReporter(
           startTime = startTime,
+          verifierConfig = verifierConfig,
           fileUri = fileUri,
           backend = backend,
           unparse = unparse,

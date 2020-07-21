@@ -4,33 +4,27 @@ import scala.concurrent.ExecutionContext
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
+import viper.silver.ast.Program
+import viper.gobra.reporting.BackTranslator.BackTrackInfo
 
 class VerificationWorker extends Runnable {
   implicit val exectuionContext = ExecutionContext.global
 
-  private var verificationJob: VerifierConfig = null
-  private var fileType: FileType.Value = null
+  private var verificationJob: (() => Program, () => BackTrackInfo, Long, VerifierConfig) = _
 
   def run() {
     try {
       while(true) {
         VerifierState.jobQueue.synchronized {
-          if (VerifierState.jobQueue.isEmpty) {
-            VerifierState.jobQueue.wait()
-          }
-          val newJob = VerifierState.jobQueue.dequeue()
-          verificationJob = newJob._2
-          fileType = newJob._1
+          if (VerifierState.jobQueue.isEmpty) VerifierState.jobQueue.wait()
+
+          verificationJob = VerifierState.jobQueue.dequeue()
         }
 
-        if (fileType == FileType.Gobra) {
-          val resultFuture = GobraServer.verify(verificationJob)
-          Await.result(resultFuture, Duration.Inf)
-        } else if (fileType == FileType.Go) {
-          val resultFuture = GobraServer.verifyGo(verificationJob)
-          Await.result(resultFuture, Duration.Inf)
-        }
+        val (ast, backtrack, startTime, verifierConfig) = verificationJob
 
+        val resultFuture = GobraServer.verify(verifierConfig, ast, backtrack, startTime)
+        Await.result(resultFuture, Duration.Inf)
       }
     } catch {
       case e: InterruptedException => println("VerificationWorker got interrupted.")

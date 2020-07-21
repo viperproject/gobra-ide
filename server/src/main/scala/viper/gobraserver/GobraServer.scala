@@ -5,6 +5,9 @@ import viper.gobra.GobraFrontend
 import viper.gobra.reporting.VerifierResult
 import viper.gobra.backend.ViperBackends
 import viper.gobra.util.Violation$LogicException
+import viper.gobra.reporting.BackTranslator.BackTrackInfo
+
+import viper.silver.ast.Program
 
 import java.io._
 import scala.io.Source
@@ -86,27 +89,56 @@ object GobraServer extends GobraFrontend {
   }
 
   /**
-    * Verify file and display potential errors as Diagnostics.
+    * Preprocess file and enqueue the Viper AST whenever it is created.
     */
-  def verify(verifierConfig: VerifierConfig): Future[VerifierResult] = {
+  def preprocess(verifierConfig: VerifierConfig): Unit = {
+    val fileUri = verifierConfig.fileData.fileUri
+
+    VerifierState.verificationRunning += 1
+    VerifierState.removeDiagnostics(fileUri)
+
+    val startTime = System.currentTimeMillis()
+
+    val config = Helper.verificationConfigFromTask(verifierConfig, startTime, false)
+    val preprocessFuture = verifier.verify(config)
+
+    serverExceptionHandling(verifierConfig.fileData, preprocessFuture)
+  }
+
+  /**
+    * Preprocess go file and enqueue the Viper AST whenever it is created.
+    */
+  def preprocessGo(verifierConfig: VerifierConfig): Unit = {
     val fileUri = verifierConfig.fileData.fileUri
     val filePath = verifierConfig.fileData.filePath
 
-    VerifierState.verificationRunning = true
+    VerifierState.verificationRunning += 1
     VerifierState.removeDiagnostics(fileUri)
-    
+
+    val fileContents = Source.fromFile(filePath).mkString
+    val gobrafiedContents = GobrafierRunner.gobrafyFileContents(fileContents)
+
+    println(gobrafiedContents)
+
     val startTime = System.currentTimeMillis()
 
-    val config = Helper.verificationConfigFromTask(verifierConfig, startTime)
-    val resultFuture = verifier.verify(config)
+    val config = Helper.verificationConfigFromTask(verifierConfig, startTime, false)
+    val preprocessFuture = verifier.verify(gobrafiedContents, config)
 
-    serverExceptionHandling(verifierConfig.fileData, resultFuture)
-    //displayVerificationResult(verifierConfig.fileData, config, startTime, resultFuture)
- 
-
-    resultFuture
+    serverExceptionHandling(verifierConfig.fileData, preprocessFuture)
   }
 
+  /**
+    * Verify Viper AST.
+    */
+  def verify(verifierConfig: VerifierConfig, ast: () => Program, backtrack: () => BackTrackInfo, startTime: Long): Future[VerifierResult] = {
+    val config = Helper.verificationConfigFromTask(verifierConfig, startTime, true)
+
+    val resultFuture = verifier.verifyAst(config, ast(), backtrack())
+
+    serverExceptionHandling(verifierConfig.fileData, resultFuture)
+    resultFuture
+  }
 
   /**
     * Goify File and publish potential errors as Diagnostics.
@@ -180,32 +212,6 @@ object GobraServer extends GobraFrontend {
         case None =>
     }
   }
-
-
-  /**
-    * Verify Go File directly.
-    */
-  def verifyGo(verifierConfig: VerifierConfig): Future[VerifierResult] = {
-    val filePath = verifierConfig.fileData.filePath
-    val fileUri = verifierConfig.fileData.fileUri
-
-    VerifierState.verificationRunning = true
-    VerifierState.removeDiagnostics(fileUri)
-
-    val fileContents = Source.fromFile(filePath).mkString
-    val gobrafiedContents = GobrafierRunner.gobrafyFileContents(fileContents)
-
-    val startTime = System.currentTimeMillis()
-
-    val config = Helper.verificationConfigFromTask(verifierConfig, startTime)
-    val resultFuture = verifier.verify(gobrafiedContents, config)
-
-    serverExceptionHandling(verifierConfig.fileData, resultFuture)
-    //displayVerificationResult(verifierConfig.fileData, config, startTime, resultFuture)
-
-    resultFuture
-  }
-
 
   /**
     * Get preview of Code which then gets displayed on the client side.
