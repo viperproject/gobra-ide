@@ -52,9 +52,6 @@ export class EvaluationHelper {
       });
     })
   }
-
-
-  
 }
 
 class EvaluationGobraSettings implements GobraSettings {

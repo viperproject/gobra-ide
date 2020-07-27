@@ -182,7 +182,7 @@ export class Color {
   public static white = "white";
   public static red = "red";
   public static orange = "orange";
-  public static darkgreen = "green";
+  public static darkgreen = "darkgreen";
 }
 
 
