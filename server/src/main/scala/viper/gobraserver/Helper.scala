@@ -14,7 +14,9 @@ import ch.qos.logback.classic.Level
 
 object Helper {
 
-  def verificationConfigFromTask(verifierConfig: VerifierConfig, startTime: Long, verify: Boolean): Config = {
+  val defaultVerificationFraction = 0.75
+
+  def verificationConfigFromTask(verifierConfig: VerifierConfig, startTime: Long, verify: Boolean, progress: Int = 0): Config = {
     verifierConfig match {
       case VerifierConfig(
         FileData(path, fileUri),
@@ -45,6 +47,8 @@ object Helper {
           verifierConfig = verifierConfig,
           fileUri = fileUri,
           backend = backend,
+          verificationFraction = defaultVerificationFraction,
+          progress = progress,
           unparse = unparse,
           eraseGhost = eraseGhost,
           goify = goify,

@@ -18,7 +18,8 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
                             verifierConfig: VerifierConfig,
                             fileUri: String,
                             backend: ViperBackend,
-                            verificationFraction: Double = 0.75,
+                            verificationFraction: Double,
+                            var progress: Int,
                             unparse: Boolean = false,
                             eraseGhost: Boolean = false,
                             goify: Boolean = false,
@@ -32,7 +33,6 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
   private def nonVerificationEntityProgress: Int = ((1 - verificationFraction) * 25).round.toInt
   private def preprocessEntityProgress: Int = (0.5 * nonVerificationEntityProgress).round.toInt
 
-  private var progress: Int = 0
   private val finishedProgress: Int = 100
   private var totalEntities: Int = 0
 

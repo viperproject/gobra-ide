@@ -132,7 +132,8 @@ object GobraServer extends GobraFrontend {
     * Verify Viper AST.
     */
   def verify(verifierConfig: VerifierConfig, ast: () => Program, backtrack: () => BackTrackInfo, startTime: Long): Future[VerifierResult] = {
-    val config = Helper.verificationConfigFromTask(verifierConfig, startTime, true)
+    val completedProgress = (100 * (1 - Helper.defaultVerificationFraction)).toInt
+    val config = Helper.verificationConfigFromTask(verifierConfig, startTime, true, completedProgress)
 
     val resultFuture = verifier.verifyAst(config, ast(), backtrack())
 
