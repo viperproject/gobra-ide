@@ -8,7 +8,7 @@ import { URI } from 'vscode-uri';
 import * as fs from 'fs';
 
 export class EvaluationHelper {
-  public static repetitions = 7;
+  public static repetitions = 5;
   public static multirun = false;
 
   /**
