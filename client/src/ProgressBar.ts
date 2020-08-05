@@ -25,7 +25,7 @@ export class ProgressBar {
     let progressDisplay = " " + clampedProgress + "% " + "⚫".repeat(completed) + "⚪".repeat(10 - completed);
 
     this.item.text = Texts.runningVerification + fileName + progressDisplay;
-    this.item.color = Color.darkgreen;
+    this.item.color = Color.white;
     this.updateItem();
   }
 
