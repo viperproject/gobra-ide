@@ -212,7 +212,7 @@ export class FileSchemes {
   * Uris for the files which are used for the preview of code.
   */
 export class PreviewUris {
-  public static viper = vscode.Uri.parse(FileSchemes.viper + ":viperPreview.sil/");
+  public static viper = vscode.Uri.parse(FileSchemes.viper + ":viperPreview.vpr/");
   public static internal = vscode.Uri.parse(FileSchemes.internal + ":internalPreview.gobra/");
 }
 
