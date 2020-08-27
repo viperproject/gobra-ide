@@ -1,14 +1,12 @@
 package viper.gobraserver
 
-import scala.concurrent.ExecutionContext
-
-import scala.concurrent.Await
+import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor}
 import scala.concurrent.duration.Duration
 import viper.silver.ast.Program
 import viper.gobra.reporting.BackTranslator.BackTrackInfo
 
 class VerificationWorker extends Runnable {
-  implicit val exectuionContext = ExecutionContext.global
+  implicit val exectuionContext: ExecutionContextExecutor = ExecutionContext.global
 
   private var verificationJob: (() => Program, () => BackTrackInfo, Long, VerifierConfig) = _
 

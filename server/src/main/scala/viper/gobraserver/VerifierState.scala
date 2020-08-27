@@ -1,23 +1,13 @@
 package viper.gobraserver
 
 import com.google.gson.Gson
-
-import org.eclipse.lsp4j.{
-    Diagnostic,
-    Position,
-    Range,
-    PublishDiagnosticsParams,
-    TextDocumentContentChangeEvent
-}
-
-import scala.collection.mutable.Map
-import scala.collection.mutable.Queue
-import collection.JavaConverters._
-
+import org.eclipse.lsp4j.{Diagnostic, Position, PublishDiagnosticsParams, Range, TextDocumentContentChangeEvent}
+import viper.gobra.reporting.BackTranslator.BackTrackInfo
 import viper.gobra.reporting.VerifierError
 import viper.silver.ast.Program
-import viper.gobra.reporting.BackTranslator.BackTrackInfo
 
+import scala.collection.JavaConverters._
+import scala.collection.mutable
 import scala.math.max
 
 object FileType extends Enumeration {
@@ -36,8 +26,8 @@ object VerifierState {
 
   var verificationRunning: Int = 0
 
-  private val _jobQueue = Queue[(() => Program, () => BackTrackInfo, Long, VerifierConfig)]()
-  def jobQueue: Queue[(() => Program, () => BackTrackInfo, Long, VerifierConfig)] = _jobQueue
+  private val _jobQueue = mutable.Queue[(() => Program, () => BackTrackInfo, Long, VerifierConfig)]()
+  def jobQueue: mutable.Queue[(() => Program, () => BackTrackInfo, Long, VerifierConfig)] = _jobQueue
 
   private var _client: Option[IdeLanguageClient] = None
   def client: Option[IdeLanguageClient] = _client
@@ -51,7 +41,7 @@ object VerifierState {
     * When a verification is running this is an int representing the progress.
     * When no verification is running this is the verification result.
     */
-  private val _verificationInformation = Map[String, Either[Int, OverallVerificationResult]]()
+  private val _verificationInformation = mutable.Map[String, Either[Int, OverallVerificationResult]]()
 
   def updateVerificationInformation(fileUri: String, info: Either[Int, OverallVerificationResult]): Unit = {
     _verificationInformation += (fileUri -> info)
@@ -69,7 +59,7 @@ object VerifierState {
       _verificationInformation.get(fileUri) match {
         case Some(Left(progress)) => c.verificationProgress(fileUri, progress)
         case Some(Right(result)) => c.overallResult(gson.toJson(result))
-        case None => c.noVerificationInformation
+        case None => c.noVerificationInformation()
       }
 
     case None =>
@@ -79,7 +69,7 @@ object VerifierState {
   /**
     * Diagnostics of the verification stored per file in a key value pair.
     */
-  private var _diagnostics = Map[String, List[Diagnostic]]()
+  private var _diagnostics = mutable.Map[String, List[Diagnostic]]()
 
   def addDiagnostics(fileUri: String, diagnostics: List[Diagnostic]) {
     _diagnostics += (fileUri -> diagnostics)
@@ -98,20 +88,20 @@ object VerifierState {
   /**
     * Cache of the previously used diagnostics.
     */
-  private val _cachedDiagnostics = Map[String, Map[VerifierError, Diagnostic]]()
+  private val _cachedDiagnostics = mutable.Map[String, mutable.Map[VerifierError, Diagnostic]]()
 
   def addDiagnosticsCache(fileUri: String, errors: List[VerifierError], diagnostics: List[Diagnostic]) {
     val diagnosticsMap = (errors zip diagnostics).toMap
     _cachedDiagnostics.get(fileUri) match {
-      case Some(diagnostics) => _cachedDiagnostics += (fileUri -> (diagnostics ++ diagnosticsMap))
-      case None => _cachedDiagnostics += (fileUri -> (Map[VerifierError, Diagnostic]() ++ diagnosticsMap))
+      case Some(cachedDiagnostics) => _cachedDiagnostics += (fileUri -> (cachedDiagnostics ++ diagnosticsMap))
+      case None => _cachedDiagnostics += (fileUri -> (mutable.Map[VerifierError, Diagnostic]() ++ diagnosticsMap))
     }
   }
 
-  def getDiagnosticsCache(fileUri: String): Map[VerifierError, Diagnostic] = {
+  def getDiagnosticsCache(fileUri: String): mutable.Map[VerifierError, Diagnostic] = {
     _cachedDiagnostics.get(fileUri) match {
       case Some(cache) => cache
-      case None => Map[VerifierError, Diagnostic]()
+      case None => mutable.Map[VerifierError, Diagnostic]()
     }
   }
 
@@ -135,13 +125,13 @@ object VerifierState {
     var newDiagnostics = diagnostics
     
     changes.foreach(change => {
-      val range = change.getRange()
+      val range = change.getRange
 
       // Position of File change
       var (cStartL, cStartC) = (Helper.startLine(range), Helper.startChar(range))
       var (cEndL, cEndC) = (Helper.endLine(range), Helper.endChar(range))
 
-      newDiagnostics = change.getText() match {
+      newDiagnostics = change.getText match {
         case "" =>
           /**
             * Delete character or line case.
@@ -150,7 +140,7 @@ object VerifierState {
           val deletedCharacters = max(cEndC - cStartC, 0)
 
           newDiagnostics.map(diagnostic => {
-            val range = diagnostic.getRange()
+            val range = diagnostic.getRange
 
             // Position of the Diagnostic
             var (startL, startC) = (Helper.startLine(range), Helper.startChar(range))
@@ -195,7 +185,7 @@ object VerifierState {
 
             val startPos = new Position(startL, startC)
             val endPos = new Position(endL, endC)
-            new Diagnostic(new Range(startPos, endPos), diagnostic.getMessage(), diagnostic.getSeverity(), "")
+            new Diagnostic(new Range(startPos, endPos), diagnostic.getMessage, diagnostic.getSeverity, "")
             
           })
         case text =>
@@ -214,8 +204,8 @@ object VerifierState {
 
           newDiagnostics.map(diagnostic => {
             // Position of the Diagnostic
-            var (startL, startC) = (diagnostic.getRange().getStart().getLine(), diagnostic.getRange().getStart().getCharacter())
-            var (endL, endC) = (diagnostic.getRange().getEnd().getLine(), diagnostic.getRange().getEnd().getCharacter())    
+            var (startL, startC) = (diagnostic.getRange.getStart.getLine, diagnostic.getRange.getStart.getCharacter)
+            var (endL, endC) = (diagnostic.getRange.getEnd.getLine, diagnostic.getRange.getEnd.getCharacter)
 
             /**
               * Line added before the diagnostic or at the same line
@@ -259,7 +249,7 @@ object VerifierState {
             if (startL < 0 || startC < 0 || endL < 0 || endC < 0) {
               null
             } else {
-              new Diagnostic(new Range(startPos, endPos), diagnostic.getMessage(), diagnostic.getSeverity(), "")
+              new Diagnostic(new Range(startPos, endPos), diagnostic.getMessage, diagnostic.getSeverity, "")
             }
           })
       }
@@ -269,7 +259,7 @@ object VerifierState {
   }
 
   def updateDiagnostics(fileUri: String, changes: List[TextDocumentContentChangeEvent]) {
-    if (changes.length == 0) return
+    if (changes.isEmpty) return
 
     _diagnostics.get(fileUri) match {
       case Some(diagnostics) =>

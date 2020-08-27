@@ -9,22 +9,18 @@ import org.eclipse.lsp4j.jsonrpc.Launcher
 object Server {
   def main(args: Array[String]): Unit = {
     try {
-      var port = Integer.parseInt(args.head)
+      val port = Integer.parseInt(args.head)
 
       runServer(port)
 
     } catch {
-      case e: NoSuchElementException => {
+      case _: NoSuchElementException =>
         println("No port number provided")
         sys.exit(1)
-        return
-      }
 
-      case e: NumberFormatException => {
+      case _: NumberFormatException =>
         println("Invalid port number")
         sys.exit(1)
-        return
-      }
     }
   }
 

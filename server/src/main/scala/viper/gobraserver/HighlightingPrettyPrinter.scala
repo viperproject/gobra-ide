@@ -6,13 +6,14 @@
 
 package viper.gobraserver
 
-import scala.language.implicitConversions
+import viper.silver.ast.pretty._
+import viper.silver.ast.{Position => GobraPosition, _}
+
 import scala.collection.immutable.Queue
 import scala.collection.immutable.Queue.{empty => emptyDq}
-import scala.collection.mutable.{ ListBuffer, Map }
-import viper.silver.ast.{ Position => GobraPosition, _}
-
-import viper.silver.ast.pretty._
+import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
+import scala.language.implicitConversions
 
 
 /**
@@ -48,7 +49,7 @@ trait PrettyPrintPrimitives {
 
   type ViperPosition = (Position, Width)
 
-  val positionStore = Map[GobraPosition, ListBuffer[ViperPosition]]()
+  val positionStore: mutable.Map[GobraPosition, ListBuffer[(Position, Width)]] = mutable.Map[GobraPosition, ListBuffer[ViperPosition]]()
 
   def addPosition(gobraPos: GobraPosition, viperPos: ViperPosition) {
     positionStore.get(gobraPos) match {
@@ -75,7 +76,7 @@ trait PrettyPrintPrimitives {
     if (t == "") {
       nil
     } else {
-      (_: IW) => {
+      _: IW => {
         val l = t.length
         val outText =
           (_: Horizontal) =>
@@ -146,11 +147,11 @@ trait PrettyPrintPrimitives {
   def scan(l: Width, out: OutGroup) (c: TreeCont): Bounce[TreeCont] =
     step(
       (p: Position) => {
-        (dq: Dq) => {
+        dq: Dq => {
           if (dq.isEmpty){
             Call(() =>
               for {
-                t <- c(p + l)(emptyDq);
+                t <- c(p + l)(emptyDq)
                 t2 <- out(false) (t)
               } yield t2)
           }else{
@@ -181,7 +182,7 @@ trait PrettyPrintPrimitives {
           val (s1, grp1) = dq.last
           val (s2, grp2) = dq.init.last
           c(p) (dq.init.init :+ (s2, (h: Horizontal) => {
-            (c0: Out) => {
+            c0: Out => {
               val t = (r: Remaining) => {
                 Call(() =>
                   for {
@@ -297,7 +298,7 @@ trait HighlightingPrettyPrinterBase extends PrettyPrintPrimitives {
       }
 
 
-  def folddoc (ds : Seq[Cont], f : (Cont, Cont) => Cont) =
+  def folddoc (ds : Seq[Cont], f : (Cont, Cont) => Cont): Cont =
     if (ds.isEmpty)
       nil
     else
@@ -469,7 +470,7 @@ object HighlightingPrettyPrinter extends HighlightingPrettyPrinterBase with Brac
   }
 
 
-  def showDomainFunc(f: DomainFunc) = {
+  def showDomainFunc(f: DomainFunc): Cont = {
     val DomainFunc(name, formalArgs, typ, _) = f
     text("function") <+> name <> parens(showVars(formalArgs)) <> ":" <+> show(typ)
   }
@@ -533,7 +534,7 @@ object HighlightingPrettyPrinter extends HighlightingPrettyPrinterBase with Brac
   }
 
   /** Returns `n` lines if at least one element of `s` is non-empty, and an empty document otherwise. */
-  def lineIfSomeNonEmpty[T](s: Seq[T]*)(implicit n: Int = 1) = {
+  def lineIfSomeNonEmpty[T](s: Seq[T]*)(implicit n: Int = 1): Cont = {
     if (s.forall(e => e != null && e.isEmpty)) nil
     else {
       var r = nil
@@ -673,7 +674,7 @@ object HighlightingPrettyPrinter extends HighlightingPrettyPrinterBase with Brac
     case IntLit(i) => value(i)
     case BoolLit(b) => value(b)
     case NullLit() => value(null)
-    case AbstractLocalVar(n) => n
+    case AbstractLocalVar(v) => v
     case FieldAccess(rcv, field) =>
       show(rcv) <> "." <> field.name
     case PredicateAccess(params, predicateName) =>
@@ -735,12 +736,12 @@ object HighlightingPrettyPrinter extends HighlightingPrettyPrinterBase with Brac
       text("[") <> show(low) <> ".." <> show(high) <> ")"
     case SeqIndex(seq, idx) =>
       show(seq) <> brackets(show(idx))
-    case SeqTake(seq, n) =>
-      show(seq) <> brackets(text("..") <> show(n))
+    case SeqTake(seq, i) =>
+      show(seq) <> brackets(text("..") <> show(i))
     case SeqDrop(SeqTake(seq, n1), n2) =>
       show(seq) <> brackets(show(n2) <> ".." <> show(n1))
-    case SeqDrop(seq, n) =>
-      show(seq) <> brackets(show(n) <> "..")
+    case SeqDrop(seq, i) =>
+      show(seq) <> brackets(show(i) <> "..")
     case SeqUpdate(seq, idx, elem) =>
       show(seq) <> brackets(show(idx) <+> ":=" <+> show(elem))
     case SeqLength(seq) =>

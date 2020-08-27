@@ -1,6 +1,6 @@
 package viper.gobraserver
 
-object GobrafierRunner {
+object Gobrafier {
 
   private def multilineComment(str: String): String = s"/\\*@\\s*$str\\s*@\\*/"
   private def singlelineComment(str: String): String = s"//@\\s*$str\\s*"

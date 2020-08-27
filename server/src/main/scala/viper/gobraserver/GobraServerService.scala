@@ -3,28 +3,11 @@ package viper.gobraserver
 import java.util.concurrent.CompletableFuture
 
 import com.google.gson.Gson
-
-import org.eclipse.lsp4j.jsonrpc.services.{
-  JsonNotification,
-  JsonRequest
-}
-import org.eclipse.lsp4j.{ 
-  DidChangeTextDocumentParams,
-  DidCloseTextDocumentParams,
-  DidOpenTextDocumentParams,
-  DidSaveTextDocumentParams,
-  DidChangeWatchedFilesParams,
-  InitializeParams,
-  InitializeResult,
-  ServerCapabilities,
-  TextDocumentSyncKind,
-  MessageParams,
-  MessageType,
-  Range
-}
+import org.eclipse.lsp4j.jsonrpc.services.{JsonNotification, JsonRequest}
+import org.eclipse.lsp4j.{DidChangeTextDocumentParams, DidChangeWatchedFilesParams, DidCloseTextDocumentParams, DidOpenTextDocumentParams, DidSaveTextDocumentParams, InitializeParams, InitializeResult, MessageParams, MessageType, Range, ServerCapabilities, TextDocumentSyncKind}
 
 import collection.JavaConverters._
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 
 class GobraServerService extends IdeLanguageClientAware {
   private val gson: Gson = new Gson()
@@ -32,7 +15,7 @@ class GobraServerService extends IdeLanguageClientAware {
   // thread being responsible for dequeuing jobs and starting the verification.
   private var verificationWorker: Thread = _
 
-  implicit val executionContext = ExecutionContext.global
+  implicit val executionContext: ExecutionContextExecutor = ExecutionContext.global
 
 
   @JsonRequest(value = "initialize")
@@ -88,14 +71,14 @@ class GobraServerService extends IdeLanguageClientAware {
   def didOpen(params: DidOpenTextDocumentParams): Unit = {
     println("didOpen")
 
-    VerifierState.openFileUri = params.getTextDocument().getUri()  
+    VerifierState.openFileUri = params.getTextDocument.getUri
   }
 
   @JsonNotification("textDocument/didChange")
   def didChange(params: DidChangeTextDocumentParams): Unit = {
     Future {
-      val fileUri = params.getTextDocument().getUri()
-      val changes = params.getContentChanges().asScala.toList
+      val fileUri = params.getTextDocument.getUri
+      val changes = params.getContentChanges.asScala.toList
 
       VerifierState.updateDiagnostics(fileUri, changes)
 
@@ -112,7 +95,7 @@ class GobraServerService extends IdeLanguageClientAware {
   def didClose(params: DidCloseTextDocumentParams): Unit = {
     println("didClose")
 
-    val fileUri = params.getTextDocument().getUri()
+    val fileUri = params.getTextDocument.getUri
     // TODO: need to remove diagnostics and forget file in ViperServer
     //VerifierState.removeDiagnostics(fileUri)
   }

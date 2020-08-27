@@ -3,23 +3,19 @@ package viper.gobraserver
 import viper.gobra.Gobra
 import viper.gobra.GobraFrontend
 import viper.gobra.reporting.VerifierResult
-import viper.gobra.backend.ViperBackends
-import viper.gobra.util.Violation$LogicException
+import viper.gobra.util.Violation
 import viper.gobra.reporting.BackTranslator.BackTrackInfo
-
 import viper.silver.ast.Program
-
 import java.io._
+
 import scala.io.Source
-
-import viper.server.{ ViperCoreServer, ViperConfig }
+import viper.server.{ViperConfig, ViperCoreServer}
 import viper.gobra.backend.ViperBackends
-
-import org.eclipse.lsp4j.{ Range, MessageParams, MessageType }
+import org.eclipse.lsp4j.{MessageParams, MessageType, Range}
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext
-import scala.util.{ Success, Failure }
+import scala.util.{Failure, Success}
 
 
 class GobraServerException extends Exception
@@ -30,7 +26,7 @@ case class GobraServerCacheInconsistentException() extends GobraServerException 
 
 
 object GobraServer extends GobraFrontend {
-  implicit val executionContext = ExecutionContext.global
+  implicit val executionContext: ExecutionContext = ExecutionContext.global
 
   private var _verifier: Gobra = _
   def verifier: Gobra = _verifier
@@ -38,9 +34,9 @@ object GobraServer extends GobraFrontend {
   private var _server: ViperCoreServer = _
 
   def init(options: List[String]) {
-    val config = new ViperConfig(options)
-
-    _server = new ViperCoreServer(config)
+    _server = new ViperCoreServer(new ViperConfig(options))
+    //// FIXME: Code for the master branch of viperserver
+    // _server = new ViperCoreServer(options.toArray)
     ViperBackends.ViperServerBackend.setServer(_server)
   }
 
@@ -62,7 +58,7 @@ object GobraServer extends GobraFrontend {
       case Failure(exception) =>
 
         exception match {
-          case e: Violation$LogicException => {
+          case e: Violation.LogicException =>
             VerifierState.removeDiagnostics(fileUri)
             val overallResult = Helper.getOverallVerificationResultFromException(fileUri, e)
 
@@ -70,8 +66,8 @@ object GobraServer extends GobraFrontend {
 
 
             if (fileUri == VerifierState.openFileUri) VerifierState.publishDiagnostics(fileUri)
-          }
-          case e => {
+
+          case e =>
             println("Exception occured: " + e)
             VerifierState.client match {
               case Some(c) =>
@@ -79,7 +75,6 @@ object GobraServer extends GobraFrontend {
                 c.verificationException(fileUri)
               case None =>
             }
-          }
         }
 
         // restart GobraServer
@@ -99,7 +94,7 @@ object GobraServer extends GobraFrontend {
 
     val startTime = System.currentTimeMillis()
 
-    val config = Helper.verificationConfigFromTask(verifierConfig, startTime, false)
+    val config = Helper.verificationConfigFromTask(verifierConfig, startTime, verify = false)
     val preprocessFuture = verifier.verify(config)
 
     serverExceptionHandling(verifierConfig.fileData, preprocessFuture)
@@ -115,14 +110,16 @@ object GobraServer extends GobraFrontend {
     VerifierState.verificationRunning += 1
     VerifierState.removeDiagnostics(fileUri)
 
-    val fileContents = Source.fromFile(filePath).mkString
-    val gobrafiedContents = GobrafierRunner.gobrafyFileContents(fileContents)
+    val fileBuffer = Source.fromFile(filePath)
+    val fileContents = fileBuffer.mkString
+    fileBuffer.close()
+    val gobrafiedContents = Gobrafier.gobrafyFileContents(fileContents)
 
     println(gobrafiedContents)
 
     val startTime = System.currentTimeMillis()
 
-    val config = Helper.verificationConfigFromTask(verifierConfig, startTime, false)
+    val config = Helper.verificationConfigFromTask(verifierConfig, startTime, verify = false)
     val preprocessFuture = verifier.verify(gobrafiedContents, config)
 
     serverExceptionHandling(verifierConfig.fileData, preprocessFuture)
@@ -133,7 +130,7 @@ object GobraServer extends GobraFrontend {
     */
   def verify(verifierConfig: VerifierConfig, ast: () => Program, backtrack: () => BackTrackInfo, startTime: Long): Future[VerifierResult] = {
     val completedProgress = (100 * (1 - Helper.defaultVerificationFraction)).toInt
-    val config = Helper.verificationConfigFromTask(verifierConfig, startTime, true, completedProgress)
+    val config = Helper.verificationConfigFromTask(verifierConfig, startTime, verify = true, completedProgress)
 
     val resultFuture = verifier.verifyAst(config, ast(), backtrack())
 
@@ -160,15 +157,15 @@ object GobraServer extends GobraFrontend {
 
         (result, VerifierState.client) match {
           case (VerifierResult.Success, Some(c)) =>
-            c.finishedGoifying(fileUri, true)
+            c.finishedGoifying(fileUri, success = true)
           case (VerifierResult.Failure(_), Some(c)) =>
-            c.finishedGoifying(fileUri, false)
+            c.finishedGoifying(fileUri, success = false)
           case _ =>
         }
       
       case Failure(_) =>
         VerifierState.client match {
-          case Some(c) => c.finishedGoifying(fileUri, false)
+          case Some(c) => c.finishedGoifying(fileUri, success = false)
           case None =>
         }
     }
@@ -195,12 +192,14 @@ object GobraServer extends GobraFrontend {
     if (newFileUri == VerifierState.openFileUri) VerifierState.publishDiagnostics(newFileUri)
 
     try {
-      val fileContents = Source.fromFile(filePath).mkString
+      val fileBuffer = Source.fromFile(filePath)
+      val fileContents = fileBuffer.mkString
+      fileBuffer.close()
       
       val gobraFile = new File(newFilePath)
       val bw = new BufferedWriter(new FileWriter(gobraFile))
 
-      bw.write(GobrafierRunner.gobrafyFileContents(fileContents))
+      bw.write(Gobrafier.gobrafyFileContents(fileContents))
       bw.close()
 
       success = true  

@@ -23,7 +23,7 @@ object Helper {
         GobraSettings(backendId, serverMode, debug, eraseGhost, goify, unparse, printInternal, printViper, parseOnly, logLevel),
         z3Exe,
         boogieExe
-      ) => {
+      ) =>
 
         val shouldParse = true
         val shouldTypeCheck = !parseOnly
@@ -57,7 +57,7 @@ object Helper {
           printVpr = printViper
         )
 
-        val backendConfig = 
+        val backendConfig =
           if (serverMode) {
             var options: Vector[String] = Vector.empty
 
@@ -72,7 +72,7 @@ object Helper {
                 options ++= Vector("--enableMoreCompleteExhale")
 
                 ViperBackendConfigs.SiliconConfig(options.toList)
-              
+
               case "CARBON" =>
                 //var options: List[String] = List()
                 if (boogieExe != null && Files.exists(Paths.get(boogieExe)))
@@ -100,7 +100,6 @@ object Helper {
           shouldViperEncode = shouldViperEncode,
           shouldVerify = shouldVerify
         )
-      }
     }
   }
 
@@ -153,15 +152,15 @@ object Helper {
     OverallVerificationResult(
       fileUri = fileUri,
       success = false,
-      message = e.getMessage()
+      message = e.getMessage
     )
   }
 
 
-  def startLine(range: Range): Int = range.getStart().getLine()
-  def startChar(range: Range): Int = range.getStart().getCharacter()
-  def endLine(range: Range): Int = range.getEnd().getLine()
-  def endChar(range: Range): Int = range.getEnd().getCharacter()
+  def startLine(range: Range): Int = range.getStart.getLine
+  def startChar(range: Range): Int = range.getStart.getCharacter
+  def endLine(range: Range): Int = range.getEnd.getLine
+  def endChar(range: Range): Int = range.getEnd.getCharacter
 
   def gobraFileExtension(uri: String): String = {
     val dropSuffix = if (uri.endsWith(".go")) uri.dropRight(3) else uri
@@ -171,7 +170,7 @@ object Helper {
   def indent(code: String, block: String): String = {
     var tmp = block
     while (!code.contains(tmp)) tmp = " " + tmp.replaceAll("\n", "\n ")
-    return tmp
+    tmp
   }
 
   def optToSeq[A](singleton: Option[A]): Seq[A] = singleton match {

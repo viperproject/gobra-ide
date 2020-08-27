@@ -1,13 +1,13 @@
 package viper.gobraserver
 
-import viper.gobra.reporting._
-import viper.silver.ast.{ AbstractSourcePosition, Node, Position => GobraPosition, _ }
-import viper.gobra.ast.internal.Node
-
 import com.google.gson.Gson
 import org.eclipse.lsp4j.Range
+import viper.gobra.ast.internal.Node
+import viper.gobra.reporting._
+import viper.silver.ast.{AbstractSourcePosition, Position => GobraPosition}
 
-import scala.collection.mutable.{ ListBuffer, Map }
+import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 
 case class PreviewReporter(name: String = "preview_reporter",
                            internalPreview: Boolean = false,
@@ -33,7 +33,7 @@ case class PreviewReporter(name: String = "preview_reporter",
   }
 
 
-  private def getHighlightedRanges(positionStore: Map[GobraPosition, ListBuffer[ViperPosition]]): ListBuffer[HighlightingPosition] = {
+  private def getHighlightedRanges(positionStore: mutable.Map[GobraPosition, ListBuffer[ViperPosition]]): ListBuffer[HighlightingPosition] = {
     val highlighted = ListBuffer[HighlightingPosition]()
 
     positionStore.toList.map({case (gobraPos, viperPos) =>

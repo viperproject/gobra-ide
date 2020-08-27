@@ -1,17 +1,16 @@
 package viper.gobraserver
 
-import viper.gobra.reporting._
-import viper.gobra.backend.{ ViperBackend, ViperBackends }
-import viper.silver.reporter.StatisticsReport
-import viper.gobra.util.OutputUtil
-
-import scala.collection.mutable.Set
-
-import org.eclipse.lsp4j.{ Diagnostic, Position, Range, DiagnosticSeverity }
-
-import org.apache.commons.io.FileUtils
 import java.io.File
 import java.nio.charset.StandardCharsets.UTF_8
+
+import org.apache.commons.io.FileUtils
+import org.eclipse.lsp4j.{Diagnostic, DiagnosticSeverity, Position, Range}
+import viper.gobra.backend.{ViperBackend, ViperBackends}
+import viper.gobra.reporting._
+import viper.gobra.util.OutputUtil
+import viper.silver.reporter.StatisticsReport
+
+import scala.collection.mutable
 
 case class GobraIdeReporter(name: String = "gobraide_reporter",
                             startTime: Long,
@@ -37,7 +36,7 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
   private var totalEntities: Int = 0
 
   private def verificationEntityProgress: Int =
-    ((100 * verificationFraction) * (if (totalEntities == 0) 1 else (1.0 / totalEntities))).round.toInt
+    ((100 * verificationFraction) * (if (totalEntities == 0) 1 else 1.0 / totalEntities)).round.toInt
 
   
   private def updateProgress(update: Int): Unit = {
@@ -54,7 +53,7 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
   /**
     * State and helper functions used for result streaming.
     */
-  private val reportedErrors = Set[VerifierError]()
+  private val reportedErrors = mutable.Set[VerifierError]()
 
   private def fileType = if (fileUri.endsWith(".gobra")) FileType.Gobra else FileType.Go
 
@@ -85,9 +84,7 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
 
       val diagnosticsCache = VerifierState.getDiagnosticsCache(fileUri)
       val cachedDiagnostics = cachedErrors.map(err =>
-        diagnosticsCache.get(err)
-        .getOrElse(throw GobraServerCacheInconsistentException()))
-        .toList
+        diagnosticsCache.getOrElse(err, throw GobraServerCacheInconsistentException()))
 
       val nonCachedDiagnostics = nonCachedErrors.map(err => errorToDiagnostic(err))
 
@@ -129,7 +126,7 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
       updateProgress(preprocessEntityProgress)
       if (unparse) write(file, "unparsed", program().formatted)
 
-    case ParserErrorMessage(file, result) =>
+    case ParserErrorMessage(_, result) =>
       updateDiagnostics(VerifierResult.Failure(result))
       finishedVerification()
 
