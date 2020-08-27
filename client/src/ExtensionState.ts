@@ -42,11 +42,11 @@ export class State {
     State.verifierConfig.gobraSettings = Helper.getGobraSettings();
   }
 
-  public static setVerificationRequestTimeout(fileUri: string, timeout: number, event: IdeEvents): void {
+  public static setVerificationRequestTimeout(fileUri: string, event: IdeEvents): void {
     State.verificationRequestTimeout = setTimeout(() => {
       Verifier.verifyFile(fileUri, event);
       State.clearVerificationRequestTimeout();
-    }, timeout);
+    }, Helper.getTimeout());
   }
 
   public static clearVerificationRequestTimeout(): void {

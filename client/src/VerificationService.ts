@@ -11,7 +11,7 @@ import { Dependency, InstallerSequence, FileDownloader, ZipExtractor, withProgre
 export class Verifier {
   public static verifyItem: ProgressBar;
 
-  public static initialize(context: vscode.ExtensionContext, verifierConfig: VerifierConfig, fileUri: string, timeout: number): void {
+  public static initialize(context: vscode.ExtensionContext, verifierConfig: VerifierConfig, fileUri: string): void {
     // add file data of current file to the state
     State.verifierConfig = verifierConfig;
     State.context = context;
@@ -57,11 +57,11 @@ export class Verifier {
     }));
     // open event
     State.context.subscriptions.push(vscode.workspace.onDidOpenTextDocument(document => {
-      Verifier.verifyFile(document.uri.toString(), IdeEvents.Open)
+      if (Helper.isAutoVerify()) Verifier.verifyFile(document.uri.toString(), IdeEvents.Open);
     }));
     // save event
     State.context.subscriptions.push(vscode.workspace.onDidSaveTextDocument(document => {
-      Verifier.verifyFile(document.uri.toString(), IdeEvents.Save);
+      if (Helper.isAutoVerify()) Verifier.verifyFile(document.uri.toString(), IdeEvents.Save);
     }));
     // filechange event
     State.context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(change => {
@@ -75,13 +75,16 @@ export class Verifier {
         return;
       }
 
+      // don't set timeout when auto verification is off
+      if (!Helper.isAutoVerify()) return;
+
       // don't set timeout when file was saved
       if (change.contentChanges.length == 0) return;
 
       if (State.verificationRequestTimeout) {
         State.refreshVerificationRequestTimeout();
       } else {
-        State.setVerificationRequestTimeout(change.document.uri.toString(), timeout, IdeEvents.FileChange);
+        State.setVerificationRequestTimeout(change.document.uri.toString(), IdeEvents.FileChange);
       }
     }));
 
@@ -93,7 +96,7 @@ export class Verifier {
 
 
     // verify file which triggered the activation of the plugin
-    Verifier.verifyFile(fileUri.toString(), IdeEvents.Open);    
+    if (Helper.isAutoVerify()) Verifier.verifyFile(fileUri.toString(), IdeEvents.Open);    
   }
 
   /**
@@ -153,7 +156,7 @@ export class Verifier {
     * Verifies the File if it is in the verification requests queue.
     */
   private static reverifyFile(fileUri: string): void {
-    if (State.verificationRequests.has(fileUri)) {
+    if (State.verificationRequests.has(fileUri) && Helper.isAutoVerify()) {
       let event = State.verificationRequests.get(fileUri);
       State.verificationRequests.delete(fileUri);
       Verifier.verifyFile(fileUri, event);
@@ -323,7 +326,7 @@ export class Verifier {
 
     let fileUri = Helper.getFileUri();
 
-    if (!State.runningVerifications.has(fileUri)) {
+    if (!State.runningVerifications.has(fileUri) && Helper.isAutoVerify()) {
       Verifier.verifyFile(fileUri, IdeEvents.Open);
     }
   }
@@ -373,7 +376,7 @@ export class Verifier {
 
     if (success) {
       vscode.window.showTextDocument(vscode.Uri.file(newFilePath)).then(editor => {
-        Verifier.verifyFile(editor.document.uri.toString(), IdeEvents.Open);
+        if (Helper.isAutoVerify()) Verifier.verifyFile(editor.document.uri.toString(), IdeEvents.Open);
       });
     } else {
       vscode.window.showErrorMessage("An error occured during the Gobrafication of " + oldFilePath);

@@ -16,6 +16,14 @@ export class Helper {
     return vscode.workspace.getConfiguration("gobraSettings").get("buildVersion") == "nightly";
   }
 
+  public static isAutoVerify(): boolean {
+    return vscode.workspace.getConfiguration("gobraSettings").get("autoVerify");
+  }
+
+  public static getTimeout(): number {
+    return vscode.workspace.getConfiguration("gobraSettings").get("timeout");
+  }
+
 
   public static registerCommand(commandId: string, command: (...args: any[]) => any, context: vscode.ExtensionContext): void {
     context.subscriptions.push(vscode.commands.registerCommand(commandId, command));

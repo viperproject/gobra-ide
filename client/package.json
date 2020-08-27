@@ -249,6 +249,7 @@
           "description": "Specifies the used Viper backend, one of SILICON, CARBON."
         },
         "gobraSettings.buildVersion": {
+          "scope": "window",
           "type": "string",
           "enum": [
             "stable",
@@ -256,6 +257,18 @@
           ],
           "default": "stable",
           "description": "Select the build version of the Gobra Tools."
+        },
+        "gobraSettings.timeout": {
+          "scope": "window",
+          "type": "integer",
+          "default": 1000,
+          "description": "Duration of File Change Timeout in Milliseconds."
+        },
+        "gobraSettings.autoVerify": {
+          "scope": "window",
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Auto Verification of Gobra files."
         },
         "gobraDependencies.gobraToolsPaths": {
           "type": "object",
