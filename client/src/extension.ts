@@ -7,7 +7,6 @@ import { Helper } from './Helper';
 
 
 let fileSystemWatcher: vscode.FileSystemWatcher;
-let timeout: number = 1000;
 
 export function activate(context: vscode.ExtensionContext) {
 
@@ -24,7 +23,7 @@ export function activate(context: vscode.ExtensionContext) {
 		// wait for server to start completely until next steps
 		State.client.onReady().then(() =>{
 			let verifierConfig = new VerifierConfig();
-			Verifier.initialize(context, verifierConfig, fileUri, timeout);
+			Verifier.initialize(context, verifierConfig, fileUri);
 		});
 	});
 	
