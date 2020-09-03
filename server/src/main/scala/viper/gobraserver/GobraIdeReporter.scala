@@ -59,10 +59,10 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
 
   private def errorToDiagnostic(error: VerifierError): Diagnostic = {
     val startPos = new Position(
-      error.position.start.line - 1,
-      if (fileType == FileType.Gobra) error.position.start.column - 1 else 0
+      error.position.get.start.line - 1,
+      if (fileType == FileType.Gobra) error.position.get.start.column - 1 else 0
     )
-    val endPos = error.position.end match {
+    val endPos = error.position.get.end match {
       case Some(pos) => new Position(
         pos.line - 1,
         if (fileType == FileType.Gobra) pos.column - 1 else Int.MaxValue
@@ -135,7 +135,7 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
       if (eraseGhost) write(file, "ghostLess", erasedGhostCode())
       if (goify) write(file, "go", goifiedGhostCode())
 
-    case TypeCheckFailureMessage(_, _, result) =>
+    case TypeCheckFailureMessage(_, _, _, result) =>
       updateDiagnostics(VerifierResult.Failure(result))
       finishedVerification()
 

@@ -7,9 +7,11 @@ import viper.gobra.util.Violation
 import viper.gobra.reporting.BackTranslator.BackTrackInfo
 import viper.silver.ast.Program
 import java.io._
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 import scala.io.Source
-import viper.server.{ViperConfig, ViperCoreServer}
+import viper.server.ViperCoreServer
 import viper.gobra.backend.ViperBackends
 import org.eclipse.lsp4j.{MessageParams, MessageType, Range}
 
@@ -34,9 +36,7 @@ object GobraServer extends GobraFrontend {
   private var _server: ViperCoreServer = _
 
   def init(options: List[String]) {
-    _server = new ViperCoreServer(new ViperConfig(options))
-    //// FIXME: Code for the master branch of viperserver
-    // _server = new ViperCoreServer(options.toArray)
+    _server = new ViperCoreServer(options.toArray)
     ViperBackends.ViperServerBackend.setServer(_server)
   }
 
@@ -53,7 +53,7 @@ object GobraServer extends GobraFrontend {
     val filePath = fileData.filePath
 
     resultFuture.onComplete {
-      case Success(result) => // ignore -> handled by reporter
+      case Success(_) => // ignore -> handled by reporter
 
       case Failure(exception) =>
 
@@ -68,10 +68,12 @@ object GobraServer extends GobraFrontend {
             if (fileUri == VerifierState.openFileUri) VerifierState.publishDiagnostics(fileUri)
 
           case e =>
-            println("Exception occured: " + e)
+            println("Exception occurred:")
+            e.printStackTrace()
+
             VerifierState.client match {
               case Some(c) =>
-                c.showMessage(new MessageParams(MessageType.Error, "An exception occured during verification: " + e))
+                c.showMessage(new MessageParams(MessageType.Error, "An exception occurred during verification: " + e))
                 c.verificationException(fileUri)
               case None =>
             }
@@ -120,7 +122,19 @@ object GobraServer extends GobraFrontend {
     val startTime = System.currentTimeMillis()
 
     val config = Helper.verificationConfigFromTask(verifierConfig, startTime, verify = false)
-    val preprocessFuture = verifier.verify(gobrafiedContents, config)
+
+    val tempFileName = s"gobrafiedProgram_${DateTimeFormatter.ofPattern("yyyy-MM-dd_HH_mm").format(LocalDateTime.now)}"
+    val tempFi = File.createTempFile(tempFileName, ".gobra")
+    new PrintWriter(tempFi) {
+      try {
+        write(gobrafiedContents)
+      } finally {
+        close()
+      }
+    }
+
+    // FIXME: use temporary file for verification
+    val preprocessFuture = verifier.verify(config)
 
     serverExceptionHandling(verifierConfig.fileData, preprocessFuture)
   }

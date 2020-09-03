@@ -87,7 +87,7 @@ object Helper {
 
 
         Config(
-          inputFile = new File(path),
+          inputFiles = Vector(new File(path)),
           reporter = reporter,
           backend = backend,
           backendConfig = backendConfig,
@@ -107,7 +107,7 @@ object Helper {
     val reporter = FileWriterReporter(goify = true)
 
     Config(
-      inputFile = new File(fileData.filePath),
+      inputFiles = Vector(new File(fileData.filePath)),
       shouldDesugar = false,
       shouldViperEncode = false,
       shouldVerify = false,
@@ -123,7 +123,7 @@ object Helper {
     )
 
     Config(
-      inputFile = new File(fileData.filePath),
+      inputFiles = Vector(new File(fileData.filePath)),
       shouldVerify = false,
       shouldViperEncode = viperPreview,
       reporter = reporter
