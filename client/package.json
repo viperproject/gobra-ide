@@ -285,7 +285,7 @@
             },
             "boogieExecutable": {
               "windows": "$gobraTools$\\boogie\\Binaries\\Boogie.exe",
-              "linux": "$gobraTools$/boogie/Binaries/Boogie.exe",
+              "linux": "$gobraTools$/boogie/Binaries/Boogie",
               "mac": "$gobraTools$/boogie/Binaries/Boogie"
             },
             "serverJar": {
