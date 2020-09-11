@@ -2,7 +2,7 @@ package viper.gobraserver
 
 import viper.gobra.frontend.Config
 import viper.gobra.backend.ViperBackends
-import viper.server.ViperBackendConfigs
+import viper.server.core.ViperBackendConfigs
 import viper.gobra.reporting.{ FileWriterReporter, VerifierResult }
 
 import org.eclipse.lsp4j.Range

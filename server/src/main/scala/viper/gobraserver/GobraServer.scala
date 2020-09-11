@@ -11,7 +11,7 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 import scala.io.Source
-import viper.server.ViperCoreServer
+import viper.server.core.ViperCoreServer
 import viper.gobra.backend.ViperBackends
 import org.eclipse.lsp4j.{MessageParams, MessageType, Range}
 
