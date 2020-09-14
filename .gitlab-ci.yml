@@ -1,0 +1,50 @@
+default:
+  image: 'gobraverifier/gobra-ide-base'
+
+stages:
+  - build
+  - test
+
+build-server:
+  stage: build
+  before-script:
+    - cd server
+    # save current directory such that one can return to it after setting symbolic links:
+    - cwd=$(pwd)
+    # clone Viper dependencies:
+    - git clone https://github.com/viperproject/silver.git ../silver
+    - git clone https://github.com/viperproject/silicon.git ../silicon
+    - git clone https://github.com/viperproject/carbon.git ../carbon
+    - git clone https://github.com/viperproject/viperserver.git ../viperserver
+    - git clone https://arquintl:${BITBUCKET_APP_PASSWORD}@bitbucket.org/Felale/gobra-one.git ../gobra
+    # print some version numbers:
+    - java --version
+    - z3 -version
+    - echo "Silver commit:" $(git -C ../silver rev-parse HEAD)
+    - echo "Silicon commit:" $(git -C ../silicon rev-parse HEAD)
+    - echo "Carbon commit:" $(git -C ../carbon rev-parse HEAD)
+    - echo "ViperServer commit:" $(git -C ../viperserver rev-parse HEAD)
+    - echo "Gobra commit:" $(git -C ../gobra rev-parse HEAD)
+    # create symlinks between and to Viper dependencies:
+    - cd ../silicon; ln --symbolic ../silver; cd $cwd
+    - cd ../carbon; ln --symbolic ../silver; cd $cwd
+    - cd ../viperserver; ln --symbolic ../silver; ln --symbolic ../silicon; ln --symbolic ../carbon; cd $cwd
+    - cd ../gobra; ln --symbolic ../silver; ln --symbolic ../silicon; ln --symbolic ../carbon; ln --symbolic ../viperserver; cd $cwd
+    - ln --symbolic ../gobra
+  script:
+    - sbt assembly
+
+test-server:
+  stage: test
+  script:
+    - sbt test
+
+test-client
+  stage: test
+  before-script:
+    - cd client
+    - npm install
+  script:
+    # start xvfb:
+    - /usr/bin/Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 & echo ">>> Started xvfb"
+    - DISPLAY=":99.0" npm test
