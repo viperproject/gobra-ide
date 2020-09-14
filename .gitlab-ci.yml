@@ -7,7 +7,7 @@ stages:
 
 build-server:
   stage: build
-  before-script:
+  before_script:
     - cd server
     # save current directory such that one can return to it after setting symbolic links:
     - cwd=$(pwd)
@@ -39,9 +39,9 @@ test-server:
   script:
     - sbt test
 
-test-client
+test-client:
   stage: test
-  before-script:
+  before_script:
     - cd client
     - npm install
   script:
