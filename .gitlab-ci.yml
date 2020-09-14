@@ -1,5 +1,4 @@
-default:
-  image: 'gobraverifier/gobra-ide-base'
+image: gobraverifier/gobra-ide-base:v1
 
 stages:
   - build
