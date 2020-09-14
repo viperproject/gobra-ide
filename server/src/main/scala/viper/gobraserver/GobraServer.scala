@@ -133,8 +133,9 @@ object GobraServer extends GobraFrontend {
       }
     }
 
-    // FIXME: use temporary file for verification
-    val preprocessFuture = verifier.verify(config)
+    // adapt config to use the temp file instead of the original file containing the Go code
+    val tmpConfig = config.copy(inputFiles = Vector(tempFi))
+    val preprocessFuture = verifier.verify(tmpConfig)
 
     serverExceptionHandling(verifierConfig.fileData, preprocessFuture)
   }
