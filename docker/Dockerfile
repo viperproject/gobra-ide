@@ -49,4 +49,8 @@ RUN apt-get update && \
 # executing `which z3` and setting Z3_EXE based on its result is unfortunately not possible, therefore it is hardcoded
 ENV Z3_EXE /usr/bin/z3
 
-WORKDIR /
+# create a non-root user "node" which can be used to run npm as a non-root user
+RUN useradd --create-home node
+USER node
+
+WORKDIR /home/node

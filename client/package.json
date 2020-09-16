@@ -44,7 +44,7 @@
     "glob": "^7.1.6",
     "mocha": "^8.1.3",
     "performance-now": "^2.1.0",
-    "vs-verification-toolbox": "github:viperproject/vs-verification-toolbox#master"
+    "vs-verification-toolbox": "git://github.com/viperproject/vs-verification-toolbox"
   },
   "scripts": {
     "vscode:prepublish": "npm run update-vscode && npm run compile",
