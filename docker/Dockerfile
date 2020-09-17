@@ -51,6 +51,6 @@ ENV Z3_EXE /usr/bin/z3
 
 # create a non-root user "node" which can be used to run npm as a non-root user
 RUN useradd --create-home node
-USER node
+# do not change the user to "node" as we'll need "root" for some commands and only run a few commands as "node"
 
 WORKDIR /home/node
