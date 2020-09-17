@@ -18,7 +18,7 @@ build-server:
     - git clone https://github.com/viperproject/silicon.git ../silicon
     - git clone https://github.com/viperproject/carbon.git ../carbon
     - git clone https://github.com/viperproject/viperserver.git ../viperserver
-    - git clone https://arquintl:${BITBUCKET_APP_PASSWORD}@bitbucket.org/Felale/gobra-one.git ../gobra
+    - git clone https://github.com/viperproject/gobra ../gobra
     # print some version numbers:
     - java --version
     - z3 -version
