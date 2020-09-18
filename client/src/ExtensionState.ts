@@ -123,7 +123,15 @@ export class State {
 
 
   // creates a server for the given server binary
-  private static startServerProcess(serverBin: string): Promise<any> {
+  private static async startServerProcess(serverBin: string): Promise<any> {
+    // test whether java and z3 binaries can be used:
+    console.log("Checking Java...");
+    const javaPath = await Helper.getJavaPath();
+    await Helper.spawn(javaPath, ["--version"]);
+    console.log("Checking Z3...");
+    const z3Path = Helper.getZ3Path(Helper.isNightly());
+    await Helper.spawn(z3Path, ["--version"]);
+
     return new Promise((resolve, reject) => {
       let server = net.createServer((socket) => {
         resolve({reader: socket, writer: socket});
@@ -134,24 +142,30 @@ export class State {
       }).on('error', (err) => {
         console.log("Error in server creation.");
       });
-    
+
       // start Gobra Server given in binary
       console.log("Starting Gobra Server");
       server.listen(() => {
         let serverAddress = server.address() as net.AddressInfo;
         let processArgs = ['-Xss128m', '-jar', serverBin, serverAddress.port.toString()];
-   
-        let serverProcess = child_process.spawn('java', processArgs);
-
+        let serverProcess = child_process.spawn(javaPath, processArgs);
 
         // Send raw output to a file (for testing purposes only, change or remove later)------------------
         let prefix = __dirname.substring(0, __dirname.length - 3);
         //let logFile = this.context.asAbsolutePath('gobraServer.log');
         let logFile = prefix + "gobraServer.log";
         let logStream = fs.createWriteStream(logFile, { flags: 'w' });
-	
-				serverProcess.stdout.pipe(logStream);
-				serverProcess.stderr.pipe(logStream);
+        
+        serverProcess.stdout.pipe(logStream);
+        serverProcess.stderr.pipe(logStream);
+        
+        serverProcess.on('close', (code) => {
+          console.log(`Gobra Server process has ended with return code ${code}`);
+        });
+        serverProcess.on('error', (err) => {
+          console.log(`Gorba Server process has encountered an error: ${err}`);
+          reject(err);
+        });
 	
         console.log(`Storing log in '${logFile}'`);
         // -----------------------------------------------------------------------------------------------

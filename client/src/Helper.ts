@@ -7,6 +7,9 @@
 import * as vscode from 'vscode';
 import { URI } from 'vscode-uri';
 import { VerifierConfig, OverallVerificationResult, FileData, GobraSettings, PlatformDependendPath, GobraDependencies, PreviewData, HighlightingPosition } from "./MessagePayloads";
+import * as locate_java_home from 'locate-java-home';
+import * as path from 'path';
+import * as child_process from 'child_process';
 
 
 export class Helper {
@@ -107,6 +110,43 @@ export class Helper {
     return Helper.isWin ? "\\Gobra\\GobraTools" : "/Gobra/GobraTools"
   }
 
+  private static getJavaHome(): Promise<string> {
+    return new Promise((resolve, reject) => {
+      try {
+        const options = {
+          version: ">=1.8"
+        };
+        console.log("Searching for Java home...");
+        locate_java_home.default(options, (err, javaHomes) => {
+          if (err) {
+            console.error(err.message);
+            reject(err.message);
+          } else {
+            if (!Array.isArray(javaHomes) || javaHomes.length === 0) {
+              console.log("Could not find Java home");
+              reject("no Java home found");
+            } else {
+              const javaHome = javaHomes[0];
+              console.log("Using Java home", javaHome);
+              resolve(javaHome.path);
+            }
+          }
+        });
+      } catch (err) {
+        console.error(err.message);
+        reject(err.message);
+      }
+    });
+  }
+
+  public static async getJavaPath(): Promise<string> {
+    return path.join(
+      await Helper.getJavaHome(),
+      "bin",
+      "java" + (Helper.isWin ? ".exe" : "")
+    );
+  }
+
   // TODO: change paths of providers to actual zips when they exist and also use server from this zip
   
   /**
@@ -146,9 +186,44 @@ export class Helper {
     * Function to delay for 200ms to resolve weird bugs with switching of tabs.
     */
   public static delay() {
-    return new Promise((resolve, reject) => setTimeout(resolve, 400));
+    return new Promise((resolve) => setTimeout(resolve, 400));
   }
 
+  public static spawn(
+    cmd: string, 
+    args?: string[] | undefined, 
+    options?: child_process.SpawnOptionsWithoutStdio | undefined
+  ): Promise<Output> {
+    console.log(`Gobra IDE: Running '${cmd} ${args ? args.join(' ') : ''}'`);
+    return new Promise((resolve, reject) => {
+      let stdout = '';
+      let stderr = '';
+
+      const proc = child_process.spawn(cmd, args, options);
+
+      proc.stdout.on('data', (data) => stdout += data);
+      proc.stderr.on('data', (data) => stderr += data);
+      proc.on('close', (code) => {
+        console.log("┌──── Begin stdout ────┐");
+        console.log(stdout);
+        console.log("└──── End stdout ──────┘");
+        console.log("┌──── Begin stderr ────┐");
+        console.log(stderr);
+        console.log("└──── End stderr ──────┘");
+        resolve({ stdout, stderr, code });
+      });
+      proc.on('error', (err) => {
+        console.log("┌──── Begin stdout ────┐");
+        console.log(stdout);
+        console.log("└──── End stdout ──────┘");
+        console.log("┌──── Begin stderr ────┐");
+        console.log(stderr);
+        console.log("└──── End stderr ──────┘");
+        console.log(`Error: ${err}`);
+        reject(err);
+      });
+    });
+  }
 }
 
 
@@ -230,4 +305,8 @@ export class PreviewUris {
   public static internal = vscode.Uri.parse(FileSchemes.internal + ":internalPreview.gobra/");
 }
 
-
+export interface Output {
+  stdout: string;
+  stderr: string;
+  code: number;
+}
