@@ -4,6 +4,7 @@ import { State } from './ExtensionState';
 import { Verifier } from './VerificationService';
 import { VerifierConfig } from './MessagePayloads';
 import { Helper } from './Helper';
+import { Notifier, Event } from './Notifier';
 
 
 let fileSystemWatcher: vscode.FileSystemWatcher;
@@ -24,6 +25,7 @@ export function activate(context: vscode.ExtensionContext) {
 		State.client.onReady().then(() =>{
 			let verifierConfig = new VerifierConfig();
 			Verifier.initialize(context, verifierConfig, fileUri);
+			Notifier.notify(Event.EndExtensionActivation);
 		});
 	});
 	
