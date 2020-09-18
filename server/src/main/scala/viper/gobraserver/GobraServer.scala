@@ -133,10 +133,21 @@ object GobraServer extends GobraFrontend {
       }
     }
 
-    // FIXME: use temporary file for verification
-    val preprocessFuture = verifier.verify(config)
+    // adapt config to use the temp file instead of the original file containing the Go code
+    val tmpConfig = config.copy(inputFiles = Vector(tempFi))
+    val verifyAndDeleteTempFile = verifier.verify(tmpConfig)
+      .transform(res => {
+        // delete the temporary file (in case of success & failure)
+        // note that this continuation does not run after the verification but already after desugaring (i.e. before inserting the Viper AST into the queue)
+        // delete the temporary file is fine at this point because only the in-memory Viper AST is used for the subsequent steps
+        val deleted = tempFi.delete()
+        if (!deleted) {
+          println(s"Deleting temporary file has failed (file: ${tempFi.getAbsolutePath})")
+        }
+        res
+      })
 
-    serverExceptionHandling(verifierConfig.fileData, preprocessFuture)
+    serverExceptionHandling(verifierConfig.fileData, verifyAndDeleteTempFile)
   }
 
   /**
