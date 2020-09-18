@@ -21,6 +21,17 @@
       }
     },
     {
+      "name": "Extension Tests",
+      "type": "extensionHost",
+      "request": "launch",
+      "runtimeExecutable": "${execPath}",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}",
+        "--extensionTestsPath=${workspaceFolder}/out/test/index"
+      ],
+      "outFiles": ["${workspaceFolder}/out/test/**/*.js"]
+    },
+    {
       "name": "Evaluate Extension",
       "type": "extensionHost",
       "request": "launch",
