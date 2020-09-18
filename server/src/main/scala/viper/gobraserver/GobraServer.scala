@@ -135,9 +135,17 @@ object GobraServer extends GobraFrontend {
 
     // adapt config to use the temp file instead of the original file containing the Go code
     val tmpConfig = config.copy(inputFiles = Vector(tempFi))
-    val preprocessFuture = verifier.verify(tmpConfig)
+    val verifyAndDeleteTempFile = verifier.verify(tmpConfig)
+      .transform(res => {
+        // delete the temporary file (in case of success & failure):
+        val deleted = tempFi.delete()
+        if (!deleted) {
+          println(s"Deleting temporary file has failed (file: ${tempFi.getAbsolutePath})")
+        }
+        res
+      })
 
-    serverExceptionHandling(verifierConfig.fileData, preprocessFuture)
+    serverExceptionHandling(verifierConfig.fileData, verifyAndDeleteTempFile)
   }
 
   /**
