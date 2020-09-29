@@ -102,6 +102,8 @@ jobs:
   build-and-test-client:
     needs: build-and-test-server
     strategy:
+      # tests should not be stopped when they fail on one of the OSes:
+      fail-fast: false
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
@@ -117,6 +119,16 @@ jobs:
           name: server
           # place artifact at the same location as the build has produced it:
           path: gobra-ide/server/target/scala-2.12
+
+      - name: Install Node.js
+        uses: actions/setup-node@v1.4.3
+        with:
+          node-version: '10'
+
+      - name: Setup Java JDK
+        uses: actions/setup-java@v1.4.2
+        with:
+          java-version: '11'
 
       - run: npm ci --cache .npm --prefer-offline
         working-directory: gobra-ide/client
