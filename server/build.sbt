@@ -26,28 +26,29 @@ lazy val gobraServer = (project in file("."))
     description := "Server implementation for Gobra IDE",
     version := "0.0.1",
     organization := "viper",
-//    licenses := Seq("MPL-2.0 License" -> url("https://opensource.org/licenses/MPL-2.0")),
+    homepage := Some(url("https://github.com/viperproject/gobra-ide")),
+    licenses := Seq("MPL-2.0 License" -> url("https://opensource.org/licenses/MPL-2.0")),
 
     libraryDependencies += "org.eclipse.lsp4j" % "org.eclipse.lsp4j" % "0.8.1", // Java implementation of language server protocol
-	libraryDependencies += "com.typesafe.akka" %% "akka-actor" % "2.5.22",
+	  libraryDependencies += "com.typesafe.akka" %% "akka-actor" % "2.5.22",
 
-	scalacOptions ++= Seq(
+	  scalacOptions ++= Seq(
       "-Ypartial-unification",
       "-Ypatmat-exhaust-depth", "40"
     ),
 
-	// Run settings
+	  // Run settings
     run / javaOptions += "-Xss128m",
 
-	fork := true,
+	  fork := true,
 
-	// Test settings
-	Test / javaOptions ++= (run / javaOptions).value,
+	  // Test settings
+	  Test / javaOptions ++= (run / javaOptions).value,
 
     // Assembly settings
     assembly / assemblyJarName := "server.jar",
     assembly / mainClass := Some("viper.gobraserver.Server"),
-	assembly / javaOptions += "-Xss128m",
+	  assembly / javaOptions += "-Xss128m",
   )
   .enablePlugins(BuildInfoPlugin)
   .settings(
