@@ -149,10 +149,6 @@ jobs:
         if: ${{ !startsWith(matrix.os, 'ubuntu') }}
         run: npm test
         working-directory: gobra-ide/client
-      #  uses: GabrielBB/xvfb-action@v1
-      #  with:
-      #    run: npm test
-      #    working-directory: gobra-ide/client
 
       - name: Cache npm
         uses: actions/cache@v2
