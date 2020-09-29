@@ -10,7 +10,7 @@
   "license": "MPL-2.0",
   "repository": {
     "type": "git",
-    "url": "https://gitlab.inf.ethz.ch/OU-PMUELLER/student-projects/gobra-ide"
+    "url": "https://github.com/viperproject/gobra-ide"
   },
   "engines": {
     "vscode": "^1.45.0"

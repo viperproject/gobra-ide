@@ -2,7 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
-// Copyright (c) 2011-2019 ETH Zurich.
+// Copyright (c) 2011-2020 ETH Zurich.
 
 package viper.gobraserver
 
@@ -544,9 +544,12 @@ object HighlightingPrettyPrinter extends HighlightingPrettyPrinterBase with Brac
   }
 
   /** Show a list of formal arguments. */
-  def showVars(vars: Seq[LocalVarDecl]): Cont = ssep(vars map showVar, char (',') <> space)
+  def showVars(vars: Seq[AnyLocalVarDecl]): Cont = ssep(vars map showVar, char (',') <> space)
   /** Show a variable name with the type of the variable (e.g. to be used in formal argument lists). */
-  def showVar(v: LocalVarDecl): Cont = text(v.name) <> ":" <+> showType(v.typ)
+  def showVar(v: AnyLocalVarDecl): Cont = v match {
+    case LocalVarDecl(name, typ) => text(name) <> ":" <+> showType(typ)
+    case _ => sys.error(s"unknown local variable declaration: ${v.getClass}")
+  }
 
   /** Show field name */
   private def showLocation(loc: Location): Cont = loc.name
