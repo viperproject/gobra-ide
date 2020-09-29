@@ -101,7 +101,6 @@ jobs:
 
   build-and-test-client:
     needs: build-and-test-server
-    runs-on: ubuntu-latest
     strategy:
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
