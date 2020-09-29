@@ -138,9 +138,15 @@ jobs:
         if: startsWith(matrix.os, 'ubuntu')
         run: /usr/bin/Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 & echo ">>> Started xvfb"
 
-      - name: Run tests
+      - name: Run tests on Ubuntu
+        if: startsWith(matrix.os, 'ubuntu')
         env:
           DISPLAY: ':99.0'
+        # run tests as sudo on ubutunu as this is required to install the extension to VSCode:
+        run: sudo npm test
+        working-directory: gobra-ide/client
+      - name: Run tests not on Ubuntu
+        if: !startsWith(matrix.os, 'ubuntu')
         run: npm test
         working-directory: gobra-ide/client
       #  uses: GabrielBB/xvfb-action@v1
