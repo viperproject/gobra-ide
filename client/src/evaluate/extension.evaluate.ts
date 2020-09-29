@@ -12,7 +12,8 @@ import * as vscode from 'vscode';
 import { State } from "../ExtensionState";
 import * as path from 'path';
 
-import { EvaluationHelper } from "./EvaluationHelper";
+import { TestHelper } from "../test/TestHelper";
+import { EvaluationHelper } from "../evaluate/EvaluationHelper";
 
 import { Verifier } from '../VerificationService';
 
@@ -28,11 +29,8 @@ suite('Evaluation Suite', () => {
 
     let writeStream = fs.createWriteStream(EvaluationHelper.evaluationResultsFile);
 
-    /**
-      * Start language server.
-      */
-    State.startLanguageServer(EvaluationHelper.fileSystemWatcher);
-    await State.client.onReady();
+    // start extension and therefore the language server
+    await TestHelper.startExtension(EvaluationHelper.workingFilePath);
 
     if (fs.existsSync(EvaluationHelper.workingFilePath))
       await vscode.workspace.fs.delete(URI.file(EvaluationHelper.workingFilePath));
@@ -79,11 +77,8 @@ suite('Evaluation Suite', () => {
 
     let writeStream = fs.createWriteStream(EvaluationHelper.evaluationResultsFile);
 
-    /**
-      * Start language server.
-      */
-    State.startLanguageServer(EvaluationHelper.fileSystemWatcher);
-    await State.client.onReady();
+    // start extension and therefore the language server
+    await TestHelper.startExtension(EvaluationHelper.workingFilePath);
 
     if (fs.existsSync(EvaluationHelper.workingFilePath))
     await vscode.workspace.fs.delete(URI.file(EvaluationHelper.workingFilePath));

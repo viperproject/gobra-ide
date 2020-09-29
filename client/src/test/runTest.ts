@@ -22,7 +22,7 @@ import * as path from 'path';
 
 import { runTests } from 'vscode-test';
 
-async function main() {
+async function main(): Promise<number> {
 	try {
 		// The folder containing the Extension Manifest package.json
 		// Passed to `--extensionDevelopmentPath`
@@ -30,15 +30,24 @@ async function main() {
 
 		// The path to the extension test script
 		// Passed to --extensionTestsPath
-		const extensionTestsPath = path.resolve(__dirname, './index');
+		const extensionTestsPath = path.resolve(__dirname, 'index.js');
 
+		const testOption = { 
+			extensionDevelopmentPath: extensionDevelopmentPath, 
+			extensionTestsPath: extensionTestsPath 
+		};
 		// Download VS Code, unzip it and run the integration test
-		await runTests({ extensionDevelopmentPath, extensionTestsPath });
+		const res = await runTests(testOption);
+		return Promise.resolve(res);
 	} catch (err) {
         console.error(err);
 		console.error('Failed to run tests');
-		process.exit(1);
+		return Promise.resolve(-1);
 	}
 }
 
-main();
+main()
+	.then((exitCode: number) => {
+		console.log(`main function has ended, exitCode: ${exitCode}`);
+		process.exit(exitCode);
+	});

@@ -8,8 +8,8 @@ import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { State } from '../ExtensionState';
-import { Notifier, Event } from '../Notifier';
 import { Commands } from '../Helper';
+import { TestHelper } from './TestHelper';
 
 const PROJECT_ROOT = path.join(__dirname, "../../");
 const DATA_ROOT = path.join(PROJECT_ROOT, "src", "test", "data");
@@ -22,17 +22,19 @@ function log(msg: string) {
     console.log("[UnitTest] " + msg);
 }
 
+function getTestDataPath(fileName: string): string {
+    return path.join(DATA_ROOT, fileName);
+}
+
 /**
  * Open a file in the IDE
  *
  * @param fileName
  */
 async function openFile(fileName: string): Promise<vscode.TextDocument> {
-    const filePath = path.join(DATA_ROOT, fileName);
+    const filePath = getTestDataPath(fileName);
     log("Open " + filePath);
-    const document = await vscode.workspace.openTextDocument(filePath);
-    await vscode.window.showTextDocument(document);
-    return document;
+    return TestHelper.openFile(filePath);
 }
 
 async function openAndVerify(fileName: string): Promise<vscode.TextDocument> {
@@ -47,12 +49,12 @@ async function openAndVerify(fileName: string): Promise<vscode.TextDocument> {
 
 suite("Extension", () => {
 
-    suiteSetup(function(done) {
+    suiteSetup(function() {
         // set timeout to a large value such that extension can be started and Gobra tools installed:
         this.timeout(GOBRA_TOOL_UPDATE_TIMEOUT_MS);
-        // Wait until the extension is active
-        Notifier.wait(Event.EndExtensionActivation).then(done);
-        openFile(ASSERT_TRUE);
+        // activate extension:
+        return TestHelper.startExtension(getTestDataPath(ASSERT_TRUE))
+            .then(() => log("suiteSetup done"));
     });
     
     test("Recognize Gobra files", async () => {
@@ -104,13 +106,16 @@ suite("Extension", () => {
         );
     });
     
-    test("Update Gobra tools", function(done) {
+    test("Update Gobra tools", function() {
         // execute this test as the last one as the IDE has to be restarted afterwards
         this.timeout(GOBRA_TOOL_UPDATE_TIMEOUT_MS);
         log("start updating Gobra tools");
-        vscode.commands.executeCommand("gobra.updateGobraTools")
-            .then(() => log("done updating Gobra tools"))
-            .then(done);
+        return vscode.commands.executeCommand("gobra.updateGobraTools")
+            .then(() => log("done updating Gobra tools"));
     });
 
+    suiteTeardown(function() {
+        return TestHelper.stopExtension()
+            .then(() => log(`the extension was stopped successfully`));
+    });
 });
