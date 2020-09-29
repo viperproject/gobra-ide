@@ -146,7 +146,7 @@ jobs:
         run: sudo npm test
         working-directory: gobra-ide/client
       - name: Run tests not on Ubuntu
-        if: !startsWith(matrix.os, 'ubuntu')
+        if: ${{ !startsWith(matrix.os, 'ubuntu') }}
         run: npm test
         working-directory: gobra-ide/client
       #  uses: GabrielBB/xvfb-action@v1
