@@ -129,15 +129,24 @@ jobs:
         uses: actions/setup-java@v1.4.2
         with:
           java-version: '11'
+      - run: java --version
 
       - run: npm ci --cache .npm --prefer-offline
         working-directory: gobra-ide/client
 
+      - name: Start xvfb
+        if: startsWith(matrix.os, 'ubuntu')
+        run: /usr/bin/Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 & echo ">>> Started xvfb"
+
       - name: Run tests
-        uses: GabrielBB/xvfb-action@v1
-        with:
-          run: npm test
-          working-directory: gobra-ide/client
+          env:
+            DISPLAY: ':99.0'
+        run: npm test
+        working-directory: gobra-ide/client
+      #  uses: GabrielBB/xvfb-action@v1
+      #  with:
+      #    run: npm test
+      #    working-directory: gobra-ide/client
 
       - name: Cache npm
         uses: actions/cache@v2
