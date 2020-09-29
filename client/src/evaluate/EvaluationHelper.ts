@@ -6,7 +6,7 @@
 
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { VerifierConfig, GobraSettings, FileData } from "../MessagePayloads";
+import { VerifierConfig, GobraSettings } from "../MessagePayloads";
 import { Commands } from "../Helper";
 import { Helper } from "../Helper";
 import { State } from "../ExtensionState";
@@ -24,10 +24,6 @@ export class EvaluationHelper {
   public static workingFilePath = path.join(EvaluationHelper.evaluationFilesDir, "working.gobra");
   private static evaluationResultsPath = __dirname.split("out")[0];
   public static evaluationResultsFile = path.join(EvaluationHelper.evaluationResultsPath, "evaluationResults" + ".txt");
-
-  
-  public static fileSystemWatcher = vscode.workspace.createFileSystemWatcher("**/*.{gobra, go}");
-
 
   public static transformToFileUri(filePath: string): string {
     return URI.file(filePath).toString();
