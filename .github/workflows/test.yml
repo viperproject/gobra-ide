@@ -1,0 +1,137 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+#
+# Copyright (c) 2011-2020 ETH Zurich.
+
+name: test
+
+on: [push]
+
+jobs:
+  build-and-test-server:
+    runs-on: ubuntu-latest
+    container: gobraverifier/gobra-base:v2
+    steps:
+      - name: Checkout Gobra-IDE
+        uses: actions/checkout@v2
+        with:
+          path: gobra-ide
+
+      # clone Viper dependencies
+      - name: Checkout Gobra
+        uses: actions/checkout@v2
+        with:
+          repository: viperproject/gobra
+          path: gobra
+      - name: Checkout Silver
+        uses: actions/checkout@v2
+        with:
+          repository: viperproject/silver
+          path: silver
+      - name: Checkout Silicon
+        uses: actions/checkout@v2
+        with:
+          repository: viperproject/silicon
+          path: silicon
+      - name: Checkout Carbon
+        uses: actions/checkout@v2
+        with:
+          repository: viperproject/carbon
+          path: carbon
+      - name: Checkout ViperServer
+        uses: actions/checkout@v2
+        with:
+          repository: viperproject/viperserver
+          path: viperserver
+
+      - name: Java Version
+        run: java --version
+      - name: Z3 Version
+        run: z3 -version
+      - name: Silver Commit
+        run: echo "Silver commit:" $(git -C silver rev-parse HEAD)
+      - name: Silicon Commit
+        run: echo "Silicon commit:" $(git -C silicon rev-parse HEAD)
+      - name: Carbon Commit
+        run: echo "Carbon commit:" $(git -C carbon rev-parse HEAD)
+      - name: ViperServer Commit
+        run: echo "ViperServer commit:" $(git -C viperserver rev-parse HEAD)
+      - name: Gobra Commit
+        run: echo "Gobra commit:" $(git -C gobra rev-parse HEAD)
+
+      # create symlinks between and to Viper dependencies:
+      - name: Create Silicon's sym links
+        run: ln --symbolic ../silver
+        working-directory: silicon
+      - name: Create Carbon's sym links
+        run: ln --symbolic ../silver
+        working-directory: carbon
+      - name: Create ViperServers's sym links
+        run: ln --symbolic ../silver; ln --symbolic ../silicon; ln --symbolic ../carbon
+        working-directory: viperserver
+      - name: Create Gobra's sym links
+        run: ln --symbolic ../silver; ln --symbolic ../silicon; ln --symbolic ../carbon; ln --symbolic ../viperserver
+        working-directory: gobra
+      - name: Create Gobra IDE's sym links
+        run: ln --symbolic ../gobra
+        working-directory: gobra-ide/server
+
+      - name: Cache SBT
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.ivy2/cache
+            ~/.sbt
+          key: ${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
+
+      - name: Assemble Gobra server
+        run: sbt "set test in assembly := {}" clean assembly
+        working-directory: gobra-ide/server
+
+      - name: Upload Gobra server artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: server
+          path: gobra-ide/server/target/scala-2.12/server.jar
+
+      - name: Test Gobra server
+        run: sbt test
+        working-directory: gobra-ide/server
+
+  build-and-test-client:
+    needs: build-and-test-server
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout Gobra-IDE
+        uses: actions/checkout@v2
+        with:
+          path: gobra-ide
+
+      - name: Download Gobra server artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: server
+          # place artifact at the same location as the build has produced it:
+          path: gobra-ide/server/target/scala-2.12
+
+      - run: npm ci --cache .npm --prefer-offline
+        working-directory: gobra-ide/client
+
+      - name: Run tests
+        uses: GabrielBB/xvfb-action@v1
+        with:
+          run: npm test
+          working-directory: gobra-ide/client
+
+      - name: Cache npm
+        uses: actions/cache@v2
+        with:
+          path: gobra-ide/client/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
