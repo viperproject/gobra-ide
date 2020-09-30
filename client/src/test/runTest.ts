@@ -22,7 +22,7 @@ import * as path from 'path';
 
 import { runTests } from 'vscode-test';
 
-async function main(): Promise<number> {
+function main(): Promise<number> {
 	try {
 		// The folder containing the Extension Manifest package.json
 		// Passed to `--extensionDevelopmentPath`
@@ -37,8 +37,7 @@ async function main(): Promise<number> {
 			extensionTestsPath: extensionTestsPath 
 		};
 		// Download VS Code, unzip it and run the integration test
-		const res = await runTests(testOption);
-		return Promise.resolve(res);
+		return runTests(testOption);
 	} catch (err) {
         console.error(err);
 		console.error('Failed to run tests');

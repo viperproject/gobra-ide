@@ -23,11 +23,10 @@ export function activate(context: vscode.ExtensionContext): Thenable<any> {
 		return State.startLanguageServer(context, fileSystemWatcher);
 	}
 
-	function initVerifier(): Promise<void> {
+	function initVerifier(): void {
 		let verifierConfig = new VerifierConfig();
 		Verifier.initialize(context, verifierConfig, fileUri);
 		Notifier.notify(Event.EndExtensionActivation);
-		return Promise.resolve();
 	}
 
 	// Uri of the file which triggered the plugin activation.

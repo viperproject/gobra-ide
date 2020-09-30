@@ -4,7 +4,7 @@
 //
 // Copyright (c) 2011-2020 ETH Zurich.
 
-import { LanguageClient, LanguageClientOptions } from 'vscode-languageclient';
+import { LanguageClient, LanguageClientOptions, ServerOptions } from 'vscode-languageclient';
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -65,7 +65,7 @@ export class State {
 
 
   // creates the language client and starts the server
-  public static async startLanguageServer(context: vscode.ExtensionContext, fileSystemWatcher: vscode.FileSystemWatcher): Promise<void> {
+  public static startLanguageServer(context: vscode.ExtensionContext, fileSystemWatcher: vscode.FileSystemWatcher): Promise<void> {
 
     this.updatingGobraTools = false;
 
@@ -93,12 +93,13 @@ export class State {
     let prefix = __dirname.split("client")[0];
     let serverBin = path.join(prefix, 'server', 'target', 'scala-2.12', 'server.jar')
 
-    let serverOptions = () => State.startServerProcess(serverBin);
+    let serverOptions: ServerOptions = () => State.startServerProcess(serverBin);
 
     // server binary was not found
     if (!fs.existsSync(serverBin)) {
-      vscode.window.showErrorMessage("The server binary " + serverBin + " does not exist. Please update Gobra Tools.");
-      return;
+      const msg = "The server binary " + serverBin + " does not exist. Please update Gobra Tools.";
+      vscode.window.showErrorMessage(msg);
+      return Promise.reject(msg);
     }
 
     let clientOptions: LanguageClientOptions = {
@@ -111,18 +112,14 @@ export class State {
 
     this.client = new LanguageClient('gobraServer', 'Gobra Server', serverOptions, clientOptions);
 
-    if (this.client == null) {
-      return Promise.reject("languge client couldn't be created");
-    }
-
     // Start the client together with the server.
     const disposable = this.client.start();
     // Push the disposable to the context's subscriptions so that the
-	  // client can be deactivated on extension deactivation
+    // client can be deactivated on extension deactivation
     context.subscriptions.push(disposable);
     this.context = context;
-
-    await State.client.onReady();
+    
+    return State.client.onReady();
   }
 
 
