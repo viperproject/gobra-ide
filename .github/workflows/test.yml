@@ -131,14 +131,16 @@ jobs:
           mkdir -p GobraToolsLinux/server && cp server.jar GobraToolsLinux/server/server.jar
           mkdir -p GobraToolsMac/server && cp server.jar GobraToolsMac/server/server.jar
 
+      - name: Create folder to later sync to AWS S3
+        run: mkdir deploy
       - name: Zip Gobra Tools for Windows
-        run: zip -r GobraToolsWin.zip GobraToolsWin
+        run: zip -r deploy/GobraToolsWin.zip GobraToolsWin
       - name: Zip Gobra Tools for Linux
-        run: zip -r GobraToolsLinux.zip GobraToolsLinux
+        run: zip -r deploy/GobraToolsLinux.zip GobraToolsLinux
       - name: Zip Gobra Tools for macOS
-        run: zip -r GobraToolsMac.zip GobraToolsMac
+        run: zip -r deploy/GobraToolsMac.zip GobraToolsMac
 
-      - name: Upload Gobra Tools for Windows to AWS S3
+      - name: Upload deploy folder to AWS S3
         uses: jakejarvis/s3-sync-action@v0.5.1
         with:
           args: --acl public-read --follow-symlinks
@@ -147,27 +149,8 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: 'eu-central-1'
-          SOURCE_DIR: 'GobraToolsWin.zip'
-      - name: Upload Gobra Tools for Linux to AWS S3
-        uses: jakejarvis/s3-sync-action@v0.5.1
-        with:
-          args: --acl public-read --follow-symlinks
-        env:
-          AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: 'eu-central-1'
-          SOURCE_DIR: 'GobraToolsLinux.zip'
-      - name: Upload Gobra Tools for macOS to AWS S3
-        uses: jakejarvis/s3-sync-action@v0.5.1
-        with:
-          args: --acl public-read --follow-symlinks
-        env:
-          AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: 'eu-central-1'
-          SOURCE_DIR: 'GobraToolsMac.zip'
+          SOURCE_DIR: 'deploy'
+          DEST_DIR: 'nightly'
 
   build-and-test-client:
     needs: build-and-test-server
