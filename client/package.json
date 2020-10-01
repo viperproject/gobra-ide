@@ -32,7 +32,7 @@
     "@types/vscode": "^1.43.0",
     "extract-zip": "^2.0.0",
     "fs-extra": "^9.0.0",
-    "locate-java-home": "^1.1.2",
+    "locate-java-home": "git://github.com/arquintl/locate-java-home",
     "vscode-languageclient": "^5.2.1",
     "vscode-test": "^1.3.0"
   },

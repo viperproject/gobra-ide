@@ -4,7 +4,7 @@
 //
 // Copyright (c) 2011-2020 ETH Zurich.
 
-import { LanguageClient, LanguageClientOptions } from 'vscode-languageclient';
+import { LanguageClient, LanguageClientOptions, ServerOptions } from 'vscode-languageclient';
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -20,7 +20,6 @@ import { CodePreviewProvider } from "./CodePreviewProvider";
 export class State {
   public static client: LanguageClient;
   public static context: vscode.ExtensionContext;
-  public static disposableServer: vscode.Disposable;
   public static updatingGobraTools: boolean;
 
   public static viperPreviewProvider: CodePreviewProvider;
@@ -66,7 +65,7 @@ export class State {
 
 
   // creates the language client and starts the server
-  public static startLanguageServer(fileSystemWatcher: vscode.FileSystemWatcher): Promise<any> {
+  public static startLanguageServer(context: vscode.ExtensionContext, fileSystemWatcher: vscode.FileSystemWatcher): Promise<void> {
 
     this.updatingGobraTools = false;
 
@@ -88,18 +87,19 @@ export class State {
 
     // TODO: change this once the zip downloads are ready.
     //let serverBin = Helper.getServerJarPath(Helper.isNightly());
-    //let serverBin = State.context.asAbsolutePath(path.join('../', 'server', 'target', 'scala-2.12', 'server.jar'));
+    //let serverBin = context.asAbsolutePath(path.join('../', 'server', 'target', 'scala-2.12', 'server.jar'));
 
     // NOTE: this is only hardcoded for the moment to be able to test the extension, evaluate it. later this will be replaced by the stable, nightly bin as above.
     let prefix = __dirname.split("client")[0];
     let serverBin = path.join(prefix, 'server', 'target', 'scala-2.12', 'server.jar')
 
-    let serverOptions = () => State.startServerProcess(serverBin);
+    let serverOptions: ServerOptions = () => State.startServerProcess(serverBin);
 
     // server binary was not found
     if (!fs.existsSync(serverBin)) {
-      vscode.window.showErrorMessage("The server binary " + serverBin + " does not exist. Please update Gobra Tools.");
-      return;
+      const msg = "The server binary " + serverBin + " does not exist. Please update Gobra Tools.";
+      vscode.window.showErrorMessage(msg);
+      return Promise.reject(msg);
     }
 
     let clientOptions: LanguageClientOptions = {
@@ -113,12 +113,13 @@ export class State {
     this.client = new LanguageClient('gobraServer', 'Gobra Server', serverOptions, clientOptions);
 
     // Start the client together with the server.
-    this.disposableServer = this.client.start();
-
-    // check whether the server has started
-    if (!this.disposableServer) {
-      console.log("Error: Failed to start the client.");
-    }
+    const disposable = this.client.start();
+    // Push the disposable to the context's subscriptions so that the
+    // client can be deactivated on extension deactivation
+    context.subscriptions.push(disposable);
+    this.context = context;
+    
+    return State.client.onReady();
   }
 
 
@@ -152,7 +153,6 @@ export class State {
 
         // Send raw output to a file (for testing purposes only, change or remove later)------------------
         let prefix = __dirname.substring(0, __dirname.length - 3);
-        //let logFile = this.context.asAbsolutePath('gobraServer.log');
         let logFile = prefix + "gobraServer.log";
         let logStream = fs.createWriteStream(logFile, { flags: 'w' });
         
@@ -174,12 +174,11 @@ export class State {
     });
   }
 
-  public static disposeServer(): Promise<any> {
-    return new Promise((resolve, reject) => {
-      console.log("Disposing Server");
-      this.disposableServer.dispose();
-      resolve();
-    });
+  public static disposeServer(): Thenable<void> {
+    if (this.client == null) {
+      return Promise.resolve();
+    }
+    return this.client.stop();
   }
 
 }

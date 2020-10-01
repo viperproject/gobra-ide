@@ -27,7 +27,7 @@ export class Notifier {
     /**
      * Wait for a particular event.
      */
-    public static wait(event: Event) {
+    public static wait(event: Event): Promise<void> {
         return new Promise(resolve => {
             Notifier.register(event, resolve);
         });
