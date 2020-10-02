@@ -184,6 +184,20 @@ jobs:
           java-version: '11'
       - run: java --version
 
+      - name: Cache npm
+        uses: actions/cache@v2
+        with:
+          path: gobra-ide/client/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Cache VSCode
+        uses: actions/cache@v2
+        with:
+          path: .vscode-test
+          key: ${{ runner.os }}-vscode
+
       - run: npm ci --cache .npm --prefer-offline
         working-directory: gobra-ide/client
 
@@ -202,11 +216,3 @@ jobs:
         if: ${{ !startsWith(matrix.os, 'ubuntu') }}
         run: npm test
         working-directory: gobra-ide/client
-
-      - name: Cache npm
-        uses: actions/cache@v2
-        with:
-          path: gobra-ide/client/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
