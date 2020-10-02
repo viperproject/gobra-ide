@@ -313,14 +313,14 @@
           "type": "object",
           "default": {
             "stable": {
-              "windows": "http://viper.ethz.ch/downloads/ViperToolsWin.zip",
-              "linux": "http://viper.ethz.ch/downloads/ViperToolsLinux.zip",
-              "mac": "http://viper.ethz.ch/downloads/ViperToolsMac.zip"
+              "windows": "https://gobra-ide.s3.eu-central-1.amazonaws.com/stable/GobraToolsWin.zip",
+              "linux": "https://gobra-ide.s3.eu-central-1.amazonaws.com/stable/GobraToolsLinux.zip",
+              "mac": "https://gobra-ide.s3.eu-central-1.amazonaws.com/stable/GobraToolsMac.zip"
             },
             "nightly": {
-              "windows": "http://viper.ethz.ch/downloads/ViperToolsWin.zip",
-              "linux": "http://viper.ethz.ch/downloads/ViperToolsLinux.zip",
-              "mac": "http://viper.ethz.ch/downloads/ViperToolsMac.zip"
+              "windows": "https://gobra-ide.s3.eu-central-1.amazonaws.com/nightly/GobraToolsWin.zip",
+              "linux": "https://gobra-ide.s3.eu-central-1.amazonaws.com/nightly/GobraToolsLinux.zip",
+              "mac": "https://gobra-ide.s3.eu-central-1.amazonaws.com/nightly/GobraToolsMac.zip"
             }
           }
         }

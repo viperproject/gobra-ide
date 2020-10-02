@@ -146,8 +146,6 @@ export class Helper {
       "java" + (Helper.isWin ? ".exe" : "")
     );
   }
-
-  // TODO: change paths of providers to actual zips when they exist and also use server from this zip
   
   /**
     * Get URL of repository where Gobra Tools are hosted.
