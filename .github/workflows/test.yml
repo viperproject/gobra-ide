@@ -6,10 +6,21 @@
 
 name: test
 
-on: [push, workflow_dispatch]
+on:
+  push: # run this workflow on every push
+  pull_request: # run this workflow on every pull_request
+  workflow_dispatch: # allow to manually trigger this workflow
+  release:
+    types:
+      - created # run this workflow when creating a release
+  schedule:
+    - cron: '0 0 * * *' # run every day at 00:00
 
 jobs:
   build-and-test-server:
+    # build-and-test-server is the base job on which all other jobs depend
+    # we enforce here that the nightly build job only runs in the main repo:
+    if: (github.event_name == 'schedule' && github.repository == 'viperproject/gobra-ide') || (github.event_name != 'schedule')
     runs-on: ubuntu-latest
     container: gobraverifier/gobra-base:v2
     steps:
@@ -99,8 +110,13 @@ jobs:
         run: sbt test
         working-directory: gobra-ide/server
 
-  deploy-server:
-    if: github.event_name == 'workflow_dispatch'
+  create-gobra-tools:
+    # run this command under the following circumstances:
+    # - created a new release
+    # - 'workflow_dispatch': manually triggered using the following POST request:
+    #   `curl -X POST -u <username>:<token> -H "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/viperproject/gobra-ide/actions/workflows/test.yml/dispatches" -d '{"ref":"<branch name>"}`
+    # - as part of our nightly build job (but only in the main repo)
+    if: (github.event_name == 'release' && github.event.action == 'created') || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
     needs: build-and-test-server
     runs-on: ubuntu-latest
     steps:
@@ -133,12 +149,39 @@ jobs:
 
       - name: Create folder to later sync to AWS S3
         run: mkdir deploy
+        # note that we change into the tool folder to zip it. This avoids including the parent folder in the zip
       - name: Zip Gobra Tools for Windows
-        run: zip -r deploy/GobraToolsWin.zip GobraToolsWin
+        run: zip -r ../deploy/GobraToolsWin.zip ./*
+        working-directory: GobraToolsWin
       - name: Zip Gobra Tools for Linux
-        run: zip -r deploy/GobraToolsLinux.zip GobraToolsLinux
+        run: zip -r ../deploy/GobraToolsLinux.zip ./*
+        working-directory: GobraToolsLinux
       - name: Zip Gobra Tools for macOS
-        run: zip -r deploy/GobraToolsMac.zip GobraToolsMac
+        run: zip -r ../deploy/GobraToolsMac.zip ./*
+        working-directory: GobraToolsMac
+
+      - name: Upload Gobra tools artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: GobraTools
+          path: deploy
+
+  deploy-server:
+    needs: create-gobra-tools
+    runs-on: ubuntu-latest
+      - name: Download Gobra tools artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: GobraTools
+          path: deploy
+
+      - name: Set destination directory on AWS S3 (stable only)
+        if: github.event_name == 'release'
+        run: echo "DEST_DIR=stable" >> $GITHUB_ENV
+
+      - name: Set destination directory on AWS S3 (nightly only)
+        if: github.event_name != 'release'
+        run: echo "DEST_DIR=nightly" >> $GITHUB_ENV
 
       - name: Upload deploy folder to AWS S3
         uses: jakejarvis/s3-sync-action@v0.5.1
@@ -150,7 +193,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: 'eu-central-1'
           SOURCE_DIR: 'deploy'
-          DEST_DIR: 'nightly'
+          # DEST_DIR is set by the previous action to either 'stable' or 'nightly'
 
   build-and-test-client:
     needs: build-and-test-server
