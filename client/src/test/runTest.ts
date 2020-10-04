@@ -32,16 +32,34 @@ function main(): Promise<number> {
 		// Passed to --extensionTestsPath
 		const extensionTestsPath = path.resolve(__dirname, 'index.js');
 
+		// check whether a command line argument was passed as `-- gobra-server-jar-path=<path to jar>`:
+		const gobraServerJarPathPrefix = "gobra-server-jar-path=";
+		const gobraServerJarPathArg = process.argv
+			.find(s => s.startsWith(gobraServerJarPathPrefix));
+		let extensionTestsEnv;
+		if (gobraServerJarPathArg) {
+			extensionTestsEnv = {
+				"gobra_server_jar_path": gobraServerJarPathArg.replace(gobraServerJarPathPrefix, "")
+			};
+		} else {
+			extensionTestsEnv = undefined;
+		}
+
 		const testOption = { 
 			extensionDevelopmentPath: extensionDevelopmentPath, 
-			extensionTestsPath: extensionTestsPath 
+			extensionTestsPath: extensionTestsPath,
+			extensionTestsEnv: extensionTestsEnv,
 		};
 		// Download VS Code, unzip it and run the integration test
-		return runTests(testOption);
+		return runTests(testOption)
+			.catch((err) => {
+				console.error(`runTests has failed with error: ${err}`);
+				return Promise.resolve(1);
+			});
 	} catch (err) {
         console.error(err);
 		console.error('Failed to run tests');
-		return Promise.resolve(-1);
+		return Promise.resolve(1);
 	}
 }
 
@@ -49,4 +67,8 @@ main()
 	.then((exitCode: number) => {
 		console.log(`main function has ended, exitCode: ${exitCode}`);
 		process.exit(exitCode);
+	})
+	.catch((err) => {
+		console.log(`main function has ended with an error: ${err}`);
+		process.exit(1);
 	});

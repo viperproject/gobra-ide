@@ -167,7 +167,9 @@ jobs:
           path: deploy
 
   deploy-server:
-    needs: create-gobra-tools
+    # it would be sufficient to only need `create-gobra-tools`
+    # however, we only want to deploy if client test have completed successfully:
+    needs: [create-gobra-tools, build-and-test-client]
     runs-on: ubuntu-latest
     steps:
       - name: Download Gobra tools artifact
@@ -212,10 +214,14 @@ jobs:
 
       - name: Download Gobra server artifact
         uses: actions/download-artifact@v2
+        id: server-download
         with:
           name: server
           # place artifact at the same location as the build has produced it:
           path: gobra-ide/server/target/scala-2.12
+
+      - name: Gobra server was downloaded to:
+        run: echo ${{steps.server-download.outputs.download-path}}
 
       - name: Install Node.js
         uses: actions/setup-node@v1.4.3
@@ -245,18 +251,18 @@ jobs:
       - run: npm ci --cache .npm --prefer-offline
         working-directory: gobra-ide/client
 
-      - name: Start xvfb
+      - name: Start xvfb (ubuntu only)
         if: startsWith(matrix.os, 'ubuntu')
         run: /usr/bin/Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 & echo ">>> Started xvfb"
 
-      - name: Run tests on Ubuntu
+      - name: Run tests (ubuntu only)
         if: startsWith(matrix.os, 'ubuntu')
         env:
           DISPLAY: ':99.0'
         # run tests as sudo on ubutunu as this is required to install the extension to VSCode:
-        run: sudo npm test
+        run: sudo npm test -- gobra-server-jar-path=${{steps.server-download.outputs.download-path}}
         working-directory: gobra-ide/client
-      - name: Run tests not on Ubuntu
+      - name: Run tests (all except ubuntu)
         if: ${{ !startsWith(matrix.os, 'ubuntu') }}
-        run: npm test
+        run: npm test -- gobra-server-jar-path=${{steps.server-download.outputs.download-path}}
         working-directory: gobra-ide/client
