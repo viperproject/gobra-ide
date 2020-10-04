@@ -220,7 +220,7 @@ jobs:
           # place artifact at the same location as the build has produced it:
           path: gobra-ide/server/target/scala-2.12
 
-      - name: Gobra server was downloaded to:
+      - name: Gobra server was downloaded to
         run: echo ${{steps.server-download.outputs.download-path}}
 
       - name: Install Node.js
