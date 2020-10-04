@@ -91,9 +91,11 @@ suite("Extension", () => {
         this.timeout(GOBRA_TOOL_UPDATE_TIMEOUT_MS);
         // check whether a path to the gobra tools has been manually provided and if yes, set it as extension settings:
         let setServerJarPathPromise;
-        if (process.env["gobra_server_jar_path"]) {
+        const gobraServerJarPath = process.env["gobra_server_jar_path"];
+        if (gobraServerJarPath) {
             previousServerJarPath = getServerJarPath();
-            setServerJarPathPromise = setServerJarPath(process.env["gobra_server_jar_path"]);
+            setServerJarPathPromise = setServerJarPath(gobraServerJarPath)
+                .then(() => log(`successfully set gobra server binary settings to ${gobraServerJarPath}`));
         } else {
             setServerJarPathPromise = Promise.resolve();
         }
@@ -164,7 +166,8 @@ suite("Extension", () => {
         // restore gobra tools path in case we have changed the settings for running these tests:
         let restoreServerJarPathPromise;
         if (previousServerJarPath) {
-            restoreServerJarPathPromise = setServerJarPath(previousServerJarPath);
+            restoreServerJarPathPromise = setServerJarPath(previousServerJarPath)
+                .then(() => log(`successfully restored gobra server binary settings to ${previousServerJarPath}`));
         } else {
             restoreServerJarPathPromise = Promise.resolve();
         }

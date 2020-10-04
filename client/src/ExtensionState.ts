@@ -142,7 +142,7 @@ export class State {
       });
 
       // start Gobra Server given in binary
-      console.log("Starting Gobra Server");
+      console.log(`Starting Gobra Server with binary ${serverBin}`);
       server.listen(() => {
         let serverAddress = server.address() as net.AddressInfo;
         let processArgs = ['-Xss128m', '-jar', serverBin, serverAddress.port.toString()];
