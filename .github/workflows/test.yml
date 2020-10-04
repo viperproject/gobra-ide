@@ -220,7 +220,8 @@ jobs:
           # place artifact at the same location as the build has produced it:
           path: gobra-ide/server/target/scala-2.12
 
-      - name: Gobra server was downloaded to
+      - name: Echo Gobra Server Download Path
+        # note that download-path is the parent folder (not server.jar)
         run: echo ${{steps.server-download.outputs.download-path}}
 
       - name: Install Node.js
@@ -260,9 +261,9 @@ jobs:
         env:
           DISPLAY: ':99.0'
         # run tests as sudo on ubutunu as this is required to install the extension to VSCode:
-        run: sudo npm test -- gobra-server-jar-path=${{steps.server-download.outputs.download-path}}
+        run: sudo npm test -- gobra-server-jar-path=${{steps.server-download.outputs.download-path}}/server.jar
         working-directory: gobra-ide/client
       - name: Run tests (all except ubuntu)
         if: ${{ !startsWith(matrix.os, 'ubuntu') }}
-        run: npm test -- gobra-server-jar-path=${{steps.server-download.outputs.download-path}}
+        run: npm test -- gobra-server-jar-path=${{steps.server-download.outputs.download-path}}/server.jar
         working-directory: gobra-ide/client
