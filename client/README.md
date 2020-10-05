@@ -31,7 +31,8 @@ This extension caches verification results by default.
 The cache can be flushed by running the command `Gobra: Flush Viper Server Cache` from the command palette.
 
 ### Show Intermediate Representations
-Right clicking on some selected code in a Gobra program reveals two actions "Show Internal Representation Preview" and "Show Viper Code Preview", both result in a preview of the internal representation used by Gobra resp. the resulting code in the Viper intermediate language on the right hand side.
+Right clicking on some selected code in a Gobra program reveals two actions "Show Internal Representation Preview" and "Show Viper Code Preview".
+Both result in a preview on the right-hand side of the internal representation used by Gobra and the resulting code in the Viper intermediate language, respectively.
 The translated parts of the selected code are marked in green.
 
 ## Requirements
