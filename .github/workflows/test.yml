@@ -90,7 +90,7 @@ jobs:
 
       - name: Set sbt cache variables
         run: echo "SBT_OPTS=-Dsbt.global.base=sbt-cache/.sbtboot -Dsbt.boot.directory=sbt-cache/.boot -Dsbt.ivy.home=sbt-cache/.ivy" >> $GITHUB_ENV
-        # note that the cache path is relative to directory in which sbt is invoked.
+        # note that the cache path is relative to the directory in which sbt is invoked.
         # hence, invoking sbt in server folder means that sbt cache will be in gobra-ide/server/sbt-cache
 
       - name: Cache SBT
@@ -186,7 +186,7 @@ jobs:
 
   deploy-server:
     # it would be sufficient to only need `create-gobra-tools`
-    # however, we only want to deploy if client test have completed successfully:
+    # however, we only want to deploy if the client tests have completed successfully:
     needs: [create-gobra-tools, build-and-test-client]
     runs-on: ubuntu-latest
     steps:
