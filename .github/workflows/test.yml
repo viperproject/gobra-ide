@@ -93,8 +93,6 @@ jobs:
         # note that the cache path is relative to directory in which sbt is invoked.
         # hence, invoking sbt in server folder means that sbt cache will be in gobra-ide/server/sbt-cache
 
-      - run: echo $SBT_OPTS
-
       - name: Cache SBT
         uses: actions/cache@v2
         with:
