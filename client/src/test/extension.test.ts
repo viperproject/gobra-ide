@@ -17,7 +17,8 @@ const DATA_ROOT = path.join(PROJECT_ROOT, "src", "test", "data");
 const ASSERT_TRUE = "assert_true.gobra";
 const ASSERT_FALSE = "assert_false.gobra";
 
-const GOBRA_TOOL_UPDATE_TIMEOUT_MS = 2 * 60 * 1000;
+const GOBRA_TOOL_UPDATE_TIMEOUT_MS = 2 * 60 * 1000; // 2min
+const GOBRA_VERIFICATION_TIMEOUT_MS = 1 * 60 * 1000; // 1min
 
 function log(msg: string) {
     console.log("[UnitTest] " + msg);
@@ -86,49 +87,48 @@ suite("Extension", () => {
 
     let previousServerJarPath: string;
 
-    suiteSetup(function() {
+    suiteSetup(async function() {
         // set timeout to a large value such that extension can be started and Gobra tools installed:
         this.timeout(GOBRA_TOOL_UPDATE_TIMEOUT_MS);
         // check whether a path to the gobra tools has been manually provided and if yes, set it as extension settings:
-        let setServerJarPathPromise;
         const gobraServerJarPath = process.env["gobra_server_jar_path"];
         if (gobraServerJarPath) {
             previousServerJarPath = getServerJarPath();
-            setServerJarPathPromise = setServerJarPath(gobraServerJarPath)
-                .then(() => log(`successfully set gobra server binary settings to ${gobraServerJarPath}`));
-        } else {
-            setServerJarPathPromise = Promise.resolve();
+            await setServerJarPath(gobraServerJarPath)
+            log(`successfully set gobra server binary settings to ${gobraServerJarPath}`);
         }
         // activate extension:
-        return setServerJarPathPromise
-            .then(() => TestHelper.startExtension(getTestDataPath(ASSERT_TRUE)))
-            .then(() => log("suiteSetup done"));
+        await TestHelper.startExtension(getTestDataPath(ASSERT_TRUE));
+        log("suiteSetup done");
     });
     
     test("Recognize Gobra files", async () => {
         const document = await openFile(ASSERT_TRUE);
-        assert.equal(document.languageId, "gobra");
+        assert.strictEqual(document.languageId, "gobra");
     });
     
     test("Recognize Go files", async () => {
         const document = await openFile("failing_post.go");
-        assert.equal(document.languageId, "go");
+        assert.strictEqual(document.languageId, "go");
     });
 
-    test("Verify simple correct program", async () => {
+    test("Verify simple correct program", async function() {
+        this.timeout(GOBRA_VERIFICATION_TIMEOUT_MS);
         const document = await openAndVerify(ASSERT_TRUE);
         const diagnostics = vscode.languages.getDiagnostics(document.uri);
-        assert.equal(diagnostics.length, 0);
+        assert.strictEqual(diagnostics.length, 0);
     });
 
-    test("Verify simple incorrect program", async () => {
+    test("Verify simple incorrect program", async function() {
+        this.timeout(GOBRA_VERIFICATION_TIMEOUT_MS);
         const document = await openAndVerify(ASSERT_FALSE);
         const diagnostics = vscode.languages.getDiagnostics(document.uri);
-        assert.equal(diagnostics.length, 1);
-        assert.equal(diagnostics[0].severity, vscode.DiagnosticSeverity.Error);
+        assert.strictEqual(diagnostics.length, 1);
+        assert.strictEqual(diagnostics[0].severity, vscode.DiagnosticSeverity.Error);
     });
 
-    test("Underline the 'false' in the failing postcondition", async () => {
+    test("Underline the 'false' in the failing postcondition", async function() {
+        this.timeout(GOBRA_VERIFICATION_TIMEOUT_MS);
         const document = await openAndVerify("failing_post.gobra");
         const diagnostics = vscode.languages.getDiagnostics(document.uri);
         assert.ok(
@@ -141,7 +141,8 @@ suite("Extension", () => {
         );
     });
     
-    test("Underline the 'false' in the failing postcondition of a go program", async () => {
+    test("Underline the 'false' in the failing postcondition of a go program", async function() {
+        this.timeout(GOBRA_VERIFICATION_TIMEOUT_MS);
         const document = await openAndVerify("failing_post.go");
         const diagnostics = vscode.languages.getDiagnostics(document.uri);
         assert.ok(
@@ -154,25 +155,21 @@ suite("Extension", () => {
         );
     });
     
-    test("Update Gobra tools", function() {
+    test("Update Gobra tools", async function() {
         // execute this test as the last one as the IDE has to be restarted afterwards
         this.timeout(GOBRA_TOOL_UPDATE_TIMEOUT_MS);
         log("start updating Gobra tools");
-        return vscode.commands.executeCommand("gobra.updateGobraTools")
-            .then(() => log("done updating Gobra tools"));
+        await vscode.commands.executeCommand("gobra.updateGobraTools")
+        log("done updating Gobra tools");
     });
 
-    suiteTeardown(function() {
+    suiteTeardown(async function() {
         // restore gobra tools path in case we have changed the settings for running these tests:
-        let restoreServerJarPathPromise;
         if (previousServerJarPath) {
-            restoreServerJarPathPromise = setServerJarPath(previousServerJarPath)
-                .then(() => log(`successfully restored gobra server binary settings to ${previousServerJarPath}`));
-        } else {
-            restoreServerJarPathPromise = Promise.resolve();
+            await setServerJarPath(previousServerJarPath);
+            log(`successfully restored gobra server binary settings to ${previousServerJarPath}`);
         }
-        return restoreServerJarPathPromise
-            .then(() => TestHelper.stopExtension())
-            .then(() => log(`the extension was stopped successfully`));
+        await TestHelper.stopExtension();
+        log(`the extension was stopped successfully`);
     });
 });
