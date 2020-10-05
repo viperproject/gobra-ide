@@ -94,6 +94,18 @@ jobs:
           path: |
             ~/.ivy2/cache
             ~/.sbt
+            gobra-ide/server/project/target
+            gobra-ide/server/target
+            gobra/project/target
+            gobra/target
+            viperserver/project/target
+            viperserver/target
+            carbon/project/target
+            carbon/target
+            silicon/project/target
+            silicon/target
+            silver/project/target
+            silver/target
           key: ${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
 
       - name: Assemble Gobra server
@@ -242,12 +254,6 @@ jobs:
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-node-
-
-      - name: Cache VSCode
-        uses: actions/cache@v2
-        with:
-          path: .vscode-test
-          key: ${{ runner.os }}-vscode
 
       - run: npm ci --cache .npm --prefer-offline
         working-directory: gobra-ide/client
