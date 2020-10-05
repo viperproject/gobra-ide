@@ -89,9 +89,11 @@ jobs:
         working-directory: gobra-ide/server
 
       - name: Set sbt cache variables
-        run: echo "SBT_OPTS='-Dsbt.global.base=sbt-cache/.sbtboot -Dsbt.boot.directory=sbt-cache/.boot -Dsbt.ivy.home=sbt-cache/.ivy'" >> $GITHUB_ENV
+        run: echo "SBT_OPTS=-Dsbt.global.base=sbt-cache/.sbtboot -Dsbt.boot.directory=sbt-cache/.boot -Dsbt.ivy.home=sbt-cache/.ivy" >> $GITHUB_ENV
         # note that the cache path is relative to directory in which sbt is invoked.
         # hence, invoking sbt in server folder means that sbt cache will be in gobra-ide/server/sbt-cache
+
+      - run: echo $SBT_OPTS
 
       - name: Cache SBT
         uses: actions/cache@v2
