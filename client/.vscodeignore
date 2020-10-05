@@ -1,0 +1,8 @@
+**/*.ts
+**/tsconfig.json
+evaluationResults.txt
+src/test
+tmp
+**/*.js.map
+.vscode
+.vscode-test
