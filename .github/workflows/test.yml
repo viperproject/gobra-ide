@@ -6,10 +6,21 @@
 
 name: test
 
-on: [push]
+on:
+  push: # run this workflow on every push
+  pull_request: # run this workflow on every pull_request
+  workflow_dispatch: # allow to manually trigger this workflow
+  release:
+    types:
+      - created # run this workflow when creating a release
+  schedule:
+    - cron: '0 0 * * *' # run every day at 00:00
 
 jobs:
   build-and-test-server:
+    # build-and-test-server is the base job on which all other jobs depend
+    # we enforce here that the nightly build job only runs in the main repo:
+    if: (github.event_name == 'schedule' && github.repository == 'viperproject/gobra-ide') || (github.event_name != 'schedule')
     runs-on: ubuntu-latest
     container: gobraverifier/gobra-base:v2
     steps:
@@ -77,12 +88,30 @@ jobs:
         run: ln --symbolic ../../gobra
         working-directory: gobra-ide/server
 
+      - name: Set sbt cache variables
+        run: echo "SBT_OPTS=-Dsbt.global.base=sbt-cache/.sbtboot -Dsbt.boot.directory=sbt-cache/.boot -Dsbt.ivy.home=sbt-cache/.ivy" >> $GITHUB_ENV
+        # note that the cache path is relative to the directory in which sbt is invoked.
+        # hence, invoking sbt in server folder means that sbt cache will be in gobra-ide/server/sbt-cache
+
       - name: Cache SBT
         uses: actions/cache@v2
         with:
           path: |
-            ~/.ivy2/cache
-            ~/.sbt
+            gobra-ide/server/sbt-cache/.sbtboot
+            gobra-ide/server/sbt-cache/.boot
+            gobra-ide/server/sbt-cache/.ivy/cache
+            gobra-ide/server/project/target
+            gobra-ide/server/target
+            gobra/project/target
+            gobra/target
+            viperserver/project/target
+            viperserver/target
+            carbon/project/target
+            carbon/target
+            silicon/project/target
+            silicon/target
+            silver/project/target
+            silver/target
           key: ${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
 
       - name: Assemble Gobra server
@@ -98,6 +127,94 @@ jobs:
       - name: Test Gobra server
         run: sbt test
         working-directory: gobra-ide/server
+
+  create-gobra-tools:
+    # run this command under the following circumstances:
+    # - created a new release
+    # - 'workflow_dispatch': manually triggered using the following POST request:
+    #   `curl -X POST -u <username>:<token> -H "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/viperproject/gobra-ide/actions/workflows/test.yml/dispatches" -d '{"ref":"<branch name>"}`
+    # - as part of our nightly build job (but only in the main repo)
+    if: (github.event_name == 'release' && github.event.action == 'created') || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    needs: build-and-test-server
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install prerequisites
+        run: sudo apt-get install zip unzip
+
+      - name: Download Gobra server artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: server
+
+      - name: Download Viper Tools for Windows
+        run: curl --fail --silent --show-error http://viper.ethz.ch/downloads/ViperToolsWin.zip --output ViperToolsWin.zip
+      - name: Unzip Viper Tools for Windows
+        run: unzip ViperToolsWin.zip -d GobraToolsWin
+      - name: Download Viper Tools for Linux
+        run: curl --fail --silent --show-error http://viper.ethz.ch/downloads/ViperToolsLinux.zip --output ViperToolsLinux.zip
+      - name: Unzip Viper Tools for Linux
+        run: unzip ViperToolsLinux.zip -d GobraToolsLinux
+      - name: Download Viper Tools for macOS
+        run: curl --fail --silent --show-error http://viper.ethz.ch/downloads/ViperToolsMac.zip --output ViperToolsMac.zip
+      - name: Unzip Viper Tools for macOS
+        run: unzip ViperToolsMac.zip -d GobraToolsMac
+
+      - name: Copy Gobra server artifact into each tool folder
+        run: |
+          mkdir -p GobraToolsWin/server && cp server.jar GobraToolsWin/server/server.jar
+          mkdir -p GobraToolsLinux/server && cp server.jar GobraToolsLinux/server/server.jar
+          mkdir -p GobraToolsMac/server && cp server.jar GobraToolsMac/server/server.jar
+
+      - name: Create folder to later sync to AWS S3
+        run: mkdir deploy
+        # note that we change into the tool folder to zip it. This avoids including the parent folder in the zip
+      - name: Zip Gobra Tools for Windows
+        run: zip -r ../deploy/GobraToolsWin.zip ./*
+        working-directory: GobraToolsWin
+      - name: Zip Gobra Tools for Linux
+        run: zip -r ../deploy/GobraToolsLinux.zip ./*
+        working-directory: GobraToolsLinux
+      - name: Zip Gobra Tools for macOS
+        run: zip -r ../deploy/GobraToolsMac.zip ./*
+        working-directory: GobraToolsMac
+
+      - name: Upload Gobra tools artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: GobraTools
+          path: deploy
+
+  deploy-server:
+    # it would be sufficient to only need `create-gobra-tools`
+    # however, we only want to deploy if the client tests have completed successfully:
+    needs: [create-gobra-tools, build-and-test-client]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Gobra tools artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: GobraTools
+          path: deploy
+
+      - name: Set destination directory on AWS S3 (stable only)
+        if: github.event_name == 'release'
+        run: echo "DEST_DIR=stable" >> $GITHUB_ENV
+
+      - name: Set destination directory on AWS S3 (nightly only)
+        if: github.event_name != 'release'
+        run: echo "DEST_DIR=nightly" >> $GITHUB_ENV
+
+      - name: Upload deploy folder to AWS S3
+        uses: jakejarvis/s3-sync-action@v0.5.1
+        with:
+          args: --acl public-read --follow-symlinks
+        env:
+          AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: 'eu-central-1'
+          SOURCE_DIR: 'deploy'
+          # DEST_DIR is set by the previous action to either 'stable' or 'nightly'
 
   build-and-test-client:
     needs: build-and-test-server
@@ -115,10 +232,12 @@ jobs:
 
       - name: Download Gobra server artifact
         uses: actions/download-artifact@v2
+        id: server-download
         with:
           name: server
           # place artifact at the same location as the build has produced it:
           path: gobra-ide/server/target/scala-2.12
+          # note that download-path is the parent folder (not server.jar)
 
       - name: Install Node.js
         uses: actions/setup-node@v1.4.3
@@ -131,25 +250,6 @@ jobs:
           java-version: '11'
       - run: java --version
 
-      - run: npm ci --cache .npm --prefer-offline
-        working-directory: gobra-ide/client
-
-      - name: Start xvfb
-        if: startsWith(matrix.os, 'ubuntu')
-        run: /usr/bin/Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 & echo ">>> Started xvfb"
-
-      - name: Run tests on Ubuntu
-        if: startsWith(matrix.os, 'ubuntu')
-        env:
-          DISPLAY: ':99.0'
-        # run tests as sudo on ubutunu as this is required to install the extension to VSCode:
-        run: sudo npm test
-        working-directory: gobra-ide/client
-      - name: Run tests not on Ubuntu
-        if: ${{ !startsWith(matrix.os, 'ubuntu') }}
-        run: npm test
-        working-directory: gobra-ide/client
-
       - name: Cache npm
         uses: actions/cache@v2
         with:
@@ -157,3 +257,30 @@ jobs:
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-node-
+
+      - run: npm ci --cache .npm --prefer-offline
+        working-directory: gobra-ide/client
+
+      - name: Start xvfb (ubuntu only)
+        if: startsWith(matrix.os, 'ubuntu')
+        run: /usr/bin/Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 & echo ">>> Started xvfb"
+
+      - name: Run tests (ubuntu only)
+        if: startsWith(matrix.os, 'ubuntu')
+        env:
+          DISPLAY: ':99.0'
+        # run tests as sudo on ubutunu as this is required to install the extension to VSCode:
+        run: sudo npm test -- gobra-server-jar-path=${{steps.server-download.outputs.download-path}}/server.jar
+        working-directory: gobra-ide/client
+      - name: Run tests (all except ubuntu)
+        if: ${{ !startsWith(matrix.os, 'ubuntu') }}
+        run: npm test -- gobra-server-jar-path=${{steps.server-download.outputs.download-path}}/server.jar
+        working-directory: gobra-ide/client
+
+      - name: Upload Gobra server logs
+        # upload server logs in case of success AND failure:
+        if: ${{ success() || failure() }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: gobraServer-${{ runner.os }}.log
+          path: gobra-ide/client/gobraServer.log

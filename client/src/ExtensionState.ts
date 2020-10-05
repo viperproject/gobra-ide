@@ -85,13 +85,10 @@ export class State {
 
 
 
-    // TODO: change this once the zip downloads are ready.
-    //let serverBin = Helper.getServerJarPath(Helper.isNightly());
-    //let serverBin = context.asAbsolutePath(path.join('../', 'server', 'target', 'scala-2.12', 'server.jar'));
-
-    // NOTE: this is only hardcoded for the moment to be able to test the extension, evaluate it. later this will be replaced by the stable, nightly bin as above.
-    let prefix = __dirname.split("client")[0];
-    let serverBin = path.join(prefix, 'server', 'target', 'scala-2.12', 'server.jar')
+    const serverBin = Helper.getServerJarPath(Helper.isNightly());
+    // use the following serverBin when you want to directly use the compiled server jar:
+    // const prefix = __dirname.split("client")[0];
+    // const serverBin = path.join(prefix, 'server', 'target', 'scala-2.12', 'server.jar')
 
     let serverOptions: ServerOptions = () => State.startServerProcess(serverBin);
 
@@ -145,7 +142,7 @@ export class State {
       });
 
       // start Gobra Server given in binary
-      console.log("Starting Gobra Server");
+      console.log(`Starting Gobra Server with binary ${serverBin}`);
       server.listen(() => {
         let serverAddress = server.address() as net.AddressInfo;
         let processArgs = ['-Xss128m', '-jar', serverBin, serverAddress.port.toString()];

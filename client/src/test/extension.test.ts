@@ -8,8 +8,9 @@ import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { State } from '../ExtensionState';
-import { Commands } from '../Helper';
+import { Commands, Helper } from '../Helper';
 import { TestHelper } from './TestHelper';
+import { PathSettings } from '../MessagePayloads';
 
 const PROJECT_ROOT = path.join(__dirname, "../../");
 const DATA_ROOT = path.join(PROJECT_ROOT, "src", "test", "data");
@@ -24,6 +25,40 @@ function log(msg: string) {
 
 function getTestDataPath(fileName: string): string {
     return path.join(DATA_ROOT, fileName);
+}
+
+const gobraToolsPathsSection = "gobraDependencies.gobraToolsPaths";
+function getServerJarPath(): string {
+    const config = vscode.workspace.getConfiguration();
+    const toolsPathsConfig = config.get(gobraToolsPathsSection) as PathSettings;
+    if (Helper.isWin) {
+        return toolsPathsConfig.serverJar.windows;
+    } else if (Helper.isLinux) {
+        return toolsPathsConfig.serverJar.linux;
+    } else if (Helper.isMac) {
+        return toolsPathsConfig.serverJar.mac;
+    } else {
+        return null;
+    }
+}
+
+function setServerJarPath(path: string): Thenable<void> {
+    const config = vscode.workspace.getConfiguration();
+    const toolsPathsConfig = config.get(gobraToolsPathsSection) as PathSettings;
+    if (Helper.isWin) {
+        toolsPathsConfig.serverJar.windows = path;
+    } else if (Helper.isLinux) {
+        toolsPathsConfig.serverJar.linux = path;
+    } else if (Helper.isMac) {
+        toolsPathsConfig.serverJar.mac = path;
+    } else {
+        return Promise.reject("unkown platform");
+    }
+    
+    return config.update(
+        gobraToolsPathsSection,
+        toolsPathsConfig,
+        vscode.ConfigurationTarget.Global);
 }
 
 /**
@@ -49,11 +84,24 @@ async function openAndVerify(fileName: string): Promise<vscode.TextDocument> {
 
 suite("Extension", () => {
 
+    let previousServerJarPath: string;
+
     suiteSetup(function() {
         // set timeout to a large value such that extension can be started and Gobra tools installed:
         this.timeout(GOBRA_TOOL_UPDATE_TIMEOUT_MS);
+        // check whether a path to the gobra tools has been manually provided and if yes, set it as extension settings:
+        let setServerJarPathPromise;
+        const gobraServerJarPath = process.env["gobra_server_jar_path"];
+        if (gobraServerJarPath) {
+            previousServerJarPath = getServerJarPath();
+            setServerJarPathPromise = setServerJarPath(gobraServerJarPath)
+                .then(() => log(`successfully set gobra server binary settings to ${gobraServerJarPath}`));
+        } else {
+            setServerJarPathPromise = Promise.resolve();
+        }
         // activate extension:
-        return TestHelper.startExtension(getTestDataPath(ASSERT_TRUE))
+        return setServerJarPathPromise
+            .then(() => TestHelper.startExtension(getTestDataPath(ASSERT_TRUE)))
             .then(() => log("suiteSetup done"));
     });
     
@@ -115,7 +163,16 @@ suite("Extension", () => {
     });
 
     suiteTeardown(function() {
-        return TestHelper.stopExtension()
+        // restore gobra tools path in case we have changed the settings for running these tests:
+        let restoreServerJarPathPromise;
+        if (previousServerJarPath) {
+            restoreServerJarPathPromise = setServerJarPath(previousServerJarPath)
+                .then(() => log(`successfully restored gobra server binary settings to ${previousServerJarPath}`));
+        } else {
+            restoreServerJarPathPromise = Promise.resolve();
+        }
+        return restoreServerJarPathPromise
+            .then(() => TestHelper.stopExtension())
             .then(() => log(`the extension was stopped successfully`));
     });
 });
