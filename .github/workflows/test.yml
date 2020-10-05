@@ -237,10 +237,7 @@ jobs:
           name: server
           # place artifact at the same location as the build has produced it:
           path: gobra-ide/server/target/scala-2.12
-
-      - name: Echo Gobra Server Download Path
-        # note that download-path is the parent folder (not server.jar)
-        run: echo ${{steps.server-download.outputs.download-path}}
+          # note that download-path is the parent folder (not server.jar)
 
       - name: Install Node.js
         uses: actions/setup-node@v1.4.3
@@ -281,6 +278,8 @@ jobs:
         working-directory: gobra-ide/client
 
       - name: Upload Gobra server logs
+        # upload server logs in case of success AND failure:
+        if: ${{ success() || failure() }}
         uses: actions/upload-artifact@v2
         with:
           name: gobraServer-${{ runner.os }}.log
