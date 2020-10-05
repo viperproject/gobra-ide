@@ -279,3 +279,9 @@ jobs:
         if: ${{ !startsWith(matrix.os, 'ubuntu') }}
         run: npm test -- gobra-server-jar-path=${{steps.server-download.outputs.download-path}}/server.jar
         working-directory: gobra-ide/client
+
+      - name: Upload Gobra server logs
+        uses: actions/upload-artifact@v2
+        with:
+          name: gobraServer-${{ runner.os }}.log
+          path: gobra-ide/client/gobraServer.log
