@@ -284,3 +284,15 @@ jobs:
         with:
           name: gobraServer-${{ runner.os }}.log
           path: gobra-ide/client/gobraServer.log
+
+      - name: Package Gobra-IDE extension (ubuntu only)
+        if: startsWith(matrix.os, 'ubuntu')
+        run: npm run package -- --out gobra-ide.vsix
+        working-directory: gobra-ide/client
+
+      - name: Upload packaged Gobra-IDE (ubuntu-only)
+        if: startsWith(matrix.os, 'ubuntu')
+        uses: actions/upload-artifact@v2
+        with:
+          name: gobra-ide.vsix
+          path: gobra-ide/client/gobra-ide.vsix
