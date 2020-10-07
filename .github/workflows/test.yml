@@ -315,8 +315,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-nightly-release-
 
+      - run: npm ci --cache .npm --prefer-offline
+        working-directory: gobra-ide/.github/actions/nightly-release
+
       - name: Build nightly-release action
-        run: npm ci --cache .npm --prefer-offline
+        run: npm run compile
         working-directory: gobra-ide/.github/actions/nightly-release
 
       - name: Create release tag
@@ -325,7 +328,7 @@ jobs:
 
       - name: Create nightly release
         id: create_release
-        uses: ./gobra-ide/.github/actions/nightly-release
+        uses: gobra-ide/.github/actions/nightly-release
         env:
           # This token is provided by Actions, you do not need to create your own token
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
