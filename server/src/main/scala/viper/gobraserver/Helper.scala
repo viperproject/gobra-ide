@@ -76,6 +76,7 @@ object Helper {
                 options ++= Vector("--logLevel", "ERROR")
                 options ++= Vector("--disableCatchingExceptions")
                 options ++= Vector("--enableMoreCompleteExhale")
+                options ++= Vector("--ignoreFile")
 
                 ViperBackendConfigs.SiliconConfig(options.toList)
 
@@ -83,6 +84,7 @@ object Helper {
                 //var options: List[String] = List()
                 if (boogieExe != null && Files.exists(Paths.get(boogieExe)))
                   options ++= Vector("--boogieExe", boogieExe)
+                options ++= Vector("--ignoreFile")
 
                 ViperBackendConfigs.CarbonConfig(options.toList)
 
