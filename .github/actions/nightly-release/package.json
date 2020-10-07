@@ -1,0 +1,22 @@
+{
+  "name": "nightly-release",
+  "version": "1.0.0",
+  "description": "GitHub action to create a new pre-release and remove previous pre-releases",
+  "main": "dist/main.js",
+  "scripts": {
+    "compile": "tsc -b",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": {
+    "name": "Chair of Programming Methodology, ETH Zurich"
+  },
+  "license": "MPL-2.0",
+  "dependencies": {
+    "@actions/core": "^1.0.0",
+    "@actions/github": "^2.2.0"
+  },
+  "devDependencies": {
+    "typescript": "^3.8.3"
+  }
+}
