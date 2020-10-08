@@ -60,16 +60,20 @@ jobs:
         run: java --version
       - name: Z3 Version
         run: z3 -version
-      - name: Silver Commit
-        run: echo "Silver commit:" $(git -C silver rev-parse HEAD)
-      - name: Silicon Commit
-        run: echo "Silicon commit:" $(git -C silicon rev-parse HEAD)
-      - name: Carbon Commit
-        run: echo "Carbon commit:" $(git -C carbon rev-parse HEAD)
-      - name: ViperServer Commit
-        run: echo "ViperServer commit:" $(git -C viperserver rev-parse HEAD)
-      - name: Gobra Commit
-        run: echo "Gobra commit:" $(git -C gobra rev-parse HEAD)
+
+      - name: Create version file
+        run: |
+          echo -e "Gobra-IDE commit $(git -C gobra-ide rev-parse HEAD)\n\" > versions.txt
+          echo -e "Gobra commit $(git -C gobra rev-parse HEAD)\n\" > versions.txt
+          echo -e "ViperServer commit $(git -C viperserver rev-parse HEAD)\n\" > versions.txt
+          echo -e "Silicon commit $(git -C silicon rev-parse HEAD)\n\" > versions.txt
+          echo -e "Carbon commit $(git -C carbon rev-parse HEAD)\n\" > versions.txt
+          echo -e "Silver commit $(git -C silver rev-parse HEAD)\n\" > versions.txt
+      - name: Upload version file
+        uses: actions/upload-artifact@v2
+        with:
+          name: versions.txt
+          path: versions.txt
 
       # create symlinks between and to Viper dependencies:
       - name: Create Silicon's sym links
@@ -265,6 +269,11 @@ jobs:
           name: GobraTools
           path: deploy
 
+      - name: Download version file
+        uses: actions/download-artifact@v2
+        with:
+          name: versions.txt
+
       - name: Checkout Gobra-IDE
         uses: actions/checkout@v2
         with:
@@ -283,7 +292,7 @@ jobs:
         with:
           tag_name: ${{ env.TAG_NAME }}
           release_name: Nightly Release ${{ env.TAG_NAME }}
-          # TODO: add a body with the commit hashes of gobra, viperserver, silicon, carbon, and silver
+          body: ${{ cat versions.txt }}
 
       - name: Upload Gobra tools for Windows
         uses: actions/upload-release-asset@v1.0.2
