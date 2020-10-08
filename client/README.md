@@ -11,8 +11,9 @@ Gobra IDE directly integrates verification with Gobra into VSCode.
 
 Opening or modifying a Gobra program (file extension `.gobra`) will automatically trigger its verification.
 In addition, a verification can also manually be triggered from the command palette (View -> Command Palette, or Shift+Ctrl+P on Ubuntu) by running the command `Gobra: Verify currently opened file`.
-The progress of a Gobra verification is indicated in the status bar, as a message "Verification of ...". 
-The result of the verification is then reported in the status bar and in the "Problems" tab (open it with View -> Problems).
+The progress of a Gobra verification is indicated in the status bar, as a message "Verification of ...".
+The results of completed verifications are displayed in the status bar as well.
+Any verification failures are detailed in the "Problems" tab (which can be opened with View -> Problems).
 
 To update Gobra to the latest version, run the command `Gobra: Update Gobra Tools` in the command palette. This will download the latest stable (default) or nightly release, depending on your settings.
 
