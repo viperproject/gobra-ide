@@ -284,3 +284,24 @@ jobs:
         with:
           name: gobraServer-${{ runner.os }}.log
           path: gobra-ide/client/gobraServer.log
+
+      # `npm run package` resp. `vsce` complains that it cannot find 
+      # locate-java-home and vs-verification-toolbox dependencies (the two non-npm dependencies).
+      # this seems related to https://github.com/npm/cli/issues/791
+      # the current workaround is to `run npm install` first:
+      - name: Run 'npm install' as a workaround to later being able to package Gobra-IDE (ubuntu only)
+        if: startsWith(matrix.os, 'ubuntu')
+        run: npm install
+        working-directory: gobra-ide/client
+
+      - name: Package Gobra-IDE extension (ubuntu only)
+        if: startsWith(matrix.os, 'ubuntu')
+        run: npm run package -- --out gobra-ide.vsix
+        working-directory: gobra-ide/client
+
+      - name: Upload packaged Gobra-IDE (ubuntu-only)
+        if: startsWith(matrix.os, 'ubuntu')
+        uses: actions/upload-artifact@v2
+        with:
+          name: gobra-ide.vsix
+          path: gobra-ide/client/gobra-ide.vsix

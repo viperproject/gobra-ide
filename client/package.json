@@ -1,7 +1,7 @@
 {
   "name": "gobra-ide",
-  "displayName": "Gobra",
-  "version": "0.0.1",
+  "displayName": "Gobra IDE",
+  "version": "1.0.0",
   "publisher": "viper-admin",
   "description": "This extension provides interactive IDE features for verifying programs in Gobra.",
   "author": {
@@ -18,6 +18,11 @@
   "categories": [
     "Programming Languages"
   ],
+  "icon": "images/icon.png",
+  "galleryBanner": {
+    "color": "#18316e",
+    "theme": "dark"
+  },
   "keywords": [
     "go",
     "verification",
@@ -34,25 +39,26 @@
     "fs-extra": "^9.0.0",
     "locate-java-home": "git://github.com/arquintl/locate-java-home",
     "vscode-languageclient": "^5.2.1",
-    "vscode-test": "^1.3.0"
+    "vscode-test": "^1.3.0",
+    "vscode-uri": "^2.1.1",
+    "vs-verification-toolbox": "git://github.com/viperproject/vs-verification-toolbox"
   },
   "devDependencies": {
-    "tslint": "^6.1.0",
-    "typescript": "^3.8.3",
-    "vscode-uri": "^2.1.1",
     "@types/glob": "^7.1.1",
     "@types/mocha": "^8.0.3",
     "glob": "^7.1.6",
     "mocha": "^8.1.3",
     "performance-now": "^2.1.0",
-    "vs-verification-toolbox": "git://github.com/viperproject/vs-verification-toolbox"
+    "typescript": "^3.8.3",
+    "vsce": "^1.81.1"
   },
   "scripts": {
-    "vscode:prepublish": "npm run update-vscode && npm run compile",
+    "vscode:prepublish": "npm run compile",
     "compile": "tsc -b",
     "watch": "tsc -b -w",
     "pretest": "npm run compile",
-    "test": "node ./out/test/runTest.js"
+    "test": "node ./out/test/runTest.js",
+    "package": "vsce package"
   },
   "activationEvents": [
     "onLanguage:gobra",
@@ -81,22 +87,22 @@
     "commands": [
       {
         "command": "gobra.flushCache",
-        "title": "Flush Viper Server Cache",
+        "title": "Flush ViperServer cache",
         "category": "Gobra"
       },
       {
         "command": "gobra.goifyFile",
-        "title": "Goify currently opened File",
+        "title": "Goify currently opened file",
         "category": "Gobra"
       },
       {
         "command": "gobra.gobrafyFile",
-        "title": "Gobrafy currently opened File",
+        "title": "Gobrafy currently opened file",
         "category": "Gobra"
       },
       {
         "command": "gobra.verifyFile",
-        "title": "Verify currently opened File",
+        "title": "Verify currently opened file",
         "category": "Gobra"
       },
       {
@@ -106,12 +112,12 @@
       },
       {
         "command": "gobra.showViperCodePreview",
-        "title": "Show Viper Code Preview",
+        "title": "Show Viper code preview",
         "category": "Gobra"
       },
       {
         "command": "gobra.showInternalCodePreview",
-        "title": "Show Internal Representation Preview",
+        "title": "Show internal representation preview",
         "category": "Gobra"
       }
     ],
