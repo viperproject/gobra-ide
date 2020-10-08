@@ -315,6 +315,7 @@ jobs:
           tag_name: ${{ env.TAG_NAME }}
           release_name: Nightly Release ${{ env.TAG_NAME }}
           body_path: versions.txt
+          keep_num: 1 # keep the previous nightly release such that there are always two
 
       - name: Upload Gobra tools for Windows
         uses: actions/upload-release-asset@v1.0.2
