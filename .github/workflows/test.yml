@@ -63,12 +63,13 @@ jobs:
 
       - name: Create version file
         run: |
-          echo -e "Gobra-IDE commit $(git -C gobra-ide rev-parse HEAD)\n" > versions.txt
-          echo -e "Gobra commit $(git -C gobra rev-parse HEAD)\n" > versions.txt
-          echo -e "ViperServer commit $(git -C viperserver rev-parse HEAD)\n" > versions.txt
-          echo -e "Silicon commit $(git -C silicon rev-parse HEAD)\n" > versions.txt
-          echo -e "Carbon commit $(git -C carbon rev-parse HEAD)\n" > versions.txt
-          echo -e "Silver commit $(git -C silver rev-parse HEAD)\n" > versions.txt
+          echo "Gobra-IDE: commit $(git -C gobra-ide rev-parse HEAD)" > versions.txt
+          echo "Gobra: commit $(git -C gobra rev-parse HEAD)" >> versions.txt
+          echo "ViperServer: commit $(git -C viperserver rev-parse HEAD)" >> versions.txt
+          echo "Silicon: commit $(git -C silicon rev-parse HEAD)" >> versions.txt
+          echo "Carbon: commit $(git -C carbon rev-parse HEAD)" >> versions.txt
+          echo "Silver: commit $(git -C silver rev-parse HEAD)" >> versions.txt
+        # first line overwrites versions.txt in case it already exists, all other append to the file
       - name: Upload version file
         uses: actions/upload-artifact@v2
         with:
