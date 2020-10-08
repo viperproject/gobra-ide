@@ -184,38 +184,6 @@ jobs:
           name: GobraTools
           path: deploy
 
-  # deploy-server:
-  #   # it would be sufficient to only need `create-gobra-tools`
-  #   # however, we only want to deploy if the client tests have completed successfully:
-  #   needs: [create-gobra-tools, build-and-test-client]
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Download Gobra tools artifact
-  #       uses: actions/download-artifact@v2
-  #       with:
-  #         name: GobraTools
-  #         path: deploy
-
-  #     - name: Set destination directory on AWS S3 (stable only)
-  #       if: github.event_name == 'release'
-  #       run: echo "DEST_DIR=stable" >> $GITHUB_ENV
-
-  #     - name: Set destination directory on AWS S3 (nightly only)
-  #       if: github.event_name != 'release'
-  #       run: echo "DEST_DIR=nightly" >> $GITHUB_ENV
-
-  #     - name: Upload deploy folder to AWS S3
-  #       uses: jakejarvis/s3-sync-action@v0.5.1
-  #       with:
-  #         args: --acl public-read --follow-symlinks
-  #       env:
-  #         AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
-  #         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-  #         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-  #         AWS_REGION: 'eu-central-1'
-  #         SOURCE_DIR: 'deploy'
-  #         # DEST_DIR is set by the previous action to either 'stable' or 'nightly'
-
   build-and-test-client:
     needs: build-and-test-server
     strategy:
@@ -302,33 +270,13 @@ jobs:
         with:
           path: gobra-ide
 
-      - name: Install Node.js
-        uses: actions/setup-node@v1.4.4
-        with:
-          node-version: '10'
-
-      - name: Cache npm
-        uses: actions/cache@v2
-        with:
-          path: gobra-ide/.github/actions/nightly-release/.npm
-          key: ${{ runner.os }}-node-nightly-release-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-nightly-release-
-
-      - run: npm ci --cache .npm --prefer-offline
-        working-directory: gobra-ide/.github/actions/nightly-release
-
-      - name: Build nightly-release action
-        run: npm run compile
-        working-directory: gobra-ide/.github/actions/nightly-release
-
       - name: Create release tag
         shell: bash
         run: echo "TAG_NAME=$(date +v-%Y-%m-%d-%H%M)" >> $GITHUB_ENV
 
       - name: Create nightly release
         id: create_release
-        uses: ./gobra-ide/.github/actions/nightly-release
+        uses: viperproject/create-nightly-release@v1
         env:
           # This token is provided by Actions, you do not need to create your own token
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
