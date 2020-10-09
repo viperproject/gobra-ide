@@ -121,8 +121,6 @@ suite("Extension", () => {
         assert.strictEqual(conversionResult.url, url);
     })
 
-    /*
-    this currently cannot be tested as there is no non-pre-release yet
     test("Check conversion of Gobra Tool Provider URL - latest GitHub asset", async function() {
         this.timeout(URL_CONVERSION_TIMEOUT_MS);
         const url = "github.com/viperproject/gobra-ide/releases/latest?asset-name=GobraToolsLinux.zip";
@@ -131,7 +129,6 @@ suite("Extension", () => {
         assert.strictEqual(conversionResult.converted, true);
         assert.notStrictEqual(conversionResult.url, url);
     })
-    */
 
     test("Check conversion of Gobra Tool Provider URL - latest pre-release GitHub asset", async function() {
         this.timeout(URL_CONVERSION_TIMEOUT_MS);
