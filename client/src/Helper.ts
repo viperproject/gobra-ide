@@ -182,10 +182,10 @@ export class Helper {
     const tagReMatches = url.match(tagRe);
     if (tagReMatches != null) {
       // match was found
-      const owner = latestReMatches[1];
-      const repo = latestReMatches[2];
-      const tag = latestReMatches[3];
-      const assetName = latestReMatches[4];
+      const owner = tagReMatches[1];
+      const repo = tagReMatches[2];
+      const tag = tagReMatches[3];
+      const assetName = tagReMatches[4];
       const githubUrl = await GitHubReleaseAsset.getTaggedAssetUrl(owner, repo, assetName, tag)
         .catch(Helper.rethrow(`Retrieving asset URL of a tagged GitHub release has failed `
             + `(owner: '${owner}', repo: '${repo}', tag: '${tag}', asset-name: '${assetName}')`));

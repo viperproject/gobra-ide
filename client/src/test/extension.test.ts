@@ -139,17 +139,14 @@ suite("Extension", () => {
         assert.notStrictEqual(conversionResult.url, url);
     })
 
-    /*
-    this currently cannot be tested as there is no tagged non-nightly release yet
     test("Check conversion of Gobra Tool Provider URL - latest tagged GitHub asset", async function() {
         this.timeout(URL_CONVERSION_TIMEOUT_MS);
-        const url = "github.com/viperproject/gobra-ide/releases/tags/v1?asset-name=GobraToolsLinux.zip";
+        const url = "github.com/viperproject/gobra-ide/releases/tags/v1.0-alpha.2?asset-name=GobraToolsLinux.zip";
         const conversionResult = await Helper.tryConvertGitHubAssetURLs(url);
         // this should return the actual URL to the asset
         assert.strictEqual(conversionResult.converted, true);
         assert.notStrictEqual(conversionResult.url, url);
     })
-    */
 
     test("Verify simple correct program", async function() {
         this.timeout(GOBRA_VERIFICATION_TIMEOUT_MS);
