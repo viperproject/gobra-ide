@@ -12,7 +12,7 @@ import * as fs from 'fs';
 import { VerifierConfig, OverallVerificationResult, PreviewData } from "./MessagePayloads";
 import { IdeEvents } from "./IdeEvents";
 
-import { Dependency, InstallerSequence, FileDownloader, ZipExtractor, withProgressInWindow, Location } from 'vs-verification-toolbox';
+import { Dependency, withProgressInWindow, Location, DependencyInstaller, RemoteZipExtractor, GitHubZipExtractor } from 'vs-verification-toolbox';
 
 export class Verifier {
   public static verifyItem: ProgressBar;
@@ -254,16 +254,25 @@ export class Verifier {
   public static async updateGobraTools(shouldUpdate: boolean, notificationText?: string): Promise<Location> {
     State.updatingGobraTools = true;
 
+    const gobraToolsRawProviderUrl = Helper.getGobraToolsProvider(Helper.isNightly());
+    // note that `gobraToolsProvider` might be one of the "special" URLs as specified in the README (i.e. to a GitHub releases asset):
+    const gobraToolsProvider = Helper.parseGitHubAssetURL(gobraToolsRawProviderUrl);
 
-    const gobraToolsProvider = Helper.getGobraToolsProvider(Helper.isNightly());
-    // note that `gobraToolsProvider` might be one of the "special" URLs as specified in the README (i.e. to a GitHub releases asset).
-    const gobraToolsDownloadUrl = await Helper.tryConvertGitHubAssetURLs(gobraToolsProvider);
-    let gobraToolsDownloadHeader = {};
-    if (gobraToolsDownloadUrl.converted) {
-      // set correct header for downloading a GitHub asset:
-      gobraToolsDownloadHeader = {
-        "Accept": "application/octet-stream"
-      };
+    const folderName = "GobraTools";
+    let dependencyInstaller: DependencyInstaller
+    if (gobraToolsProvider.isGitHubAsset) {
+      // provider is a GitHub release
+      const token = process.env["TOKEN"];
+      if (token) {
+        console.log(`download as authenticated user`);
+      } else {
+        console.log(`download as unauthenticated user`);
+      }
+      dependencyInstaller = new GitHubZipExtractor(gobraToolsProvider.getUrl, folderName, token);
+    } else {
+      // provider is a regular resource on the Internet
+      const url = await gobraToolsProvider.getUrl();
+      dependencyInstaller = new RemoteZipExtractor(url, folderName);
     }
 
     let gobraToolsPath = Helper.getGobraToolsPath();
@@ -276,12 +285,7 @@ export class Verifier {
 
     const gobraTools = new Dependency<"Gobra">(
       gobraToolsPath,
-      ["Gobra",
-        new InstallerSequence([
-          new FileDownloader(gobraToolsDownloadUrl.url, gobraToolsDownloadHeader),
-          new ZipExtractor("GobraTools")
-        ])
-      ]
+      ["Gobra", dependencyInstaller]
     );
 
     const { result: location, didReportProgress } = await withProgressInWindow(

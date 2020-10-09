@@ -243,12 +243,16 @@ jobs:
         env:
           DISPLAY: ':99.0'
         # run tests as sudo on ubutunu as this is required to install the extension to VSCode:
-        run: sudo npm test -- gobra-server-jar-path=${{steps.server-download.outputs.download-path}}/server.jar
+        run: sudo npm test -- --server ${{steps.server-download.outputs.download-path}}/server.jar
         working-directory: gobra-ide/client
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Run tests (all except ubuntu)
         if: ${{ !startsWith(matrix.os, 'ubuntu') }}
-        run: npm test -- gobra-server-jar-path=${{steps.server-download.outputs.download-path}}/server.jar
+        run: npm test -- --server ${{steps.server-download.outputs.download-path}}/server.jar
         working-directory: gobra-ide/client
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Gobra server logs
         # upload server logs in case of success AND failure:

@@ -159,9 +159,11 @@ export class Helper {
 
   /**
    * Takes an url as input and checks whether it's a special URL to a GitHub release asset.
-   * If it is, it will return the download URL of that asset otherwise it returns the input url. The `converted` flag indicates whether a conversion has happened or not
+   * This function returns an object that indicates with the `isGitHubAsset` flag whether it is a GitHub asset or not. In addition, the `getUrl` function can
+   * be called to lazily construct the URL for downloading the asset.
    */
-  public static async tryConvertGitHubAssetURLs(url: string): Promise<{url: string, converted: boolean}> {
+  public static parseGitHubAssetURL(url: string): {isGitHubAsset: boolean, getUrl: () => Promise<string>} {
+    const token = process.env["TOKEN"];
     const latestRe = /^github.com\/([^/]+)\/([^/]+)\/releases\/latest\?asset-name=([^/?&]+)(&include-prereleases|)$/;
     const tagRe = /^github.com\/([^/]+)\/([^/]+)\/releases\/tags\/([^/?]+)\?asset-name=([^/?&]+)$/;
     const latestReMatches = url.match(latestRe);
@@ -171,12 +173,12 @@ export class Helper {
       const repo = latestReMatches[2];
       const assetName = latestReMatches[3];
       const includePrereleases = latestReMatches[4] === "&include-prereleases";
-      const githubUrl = await GitHubReleaseAsset.getLatestAssetUrl(owner, repo, assetName, includePrereleases)
+      const resolveGitHubUrl = () => GitHubReleaseAsset.getLatestAssetUrl(owner, repo, assetName, includePrereleases, token)
         .catch(Helper.rethrow(`Retrieving asset URL of latest GitHub release has failed `
           + `(owner: '${owner}', repo: '${repo}', asset-name: '${assetName}', include-prereleases: ${includePrereleases})`));
       return {
-        url: githubUrl,
-        converted: true
+        isGitHubAsset: true,
+        getUrl: resolveGitHubUrl,
       };
     }
     const tagReMatches = url.match(tagRe);
@@ -186,18 +188,18 @@ export class Helper {
       const repo = tagReMatches[2];
       const tag = tagReMatches[3];
       const assetName = tagReMatches[4];
-      const githubUrl = await GitHubReleaseAsset.getTaggedAssetUrl(owner, repo, assetName, tag)
+      const resolveGitHubUrl = () => GitHubReleaseAsset.getTaggedAssetUrl(owner, repo, assetName, tag, token)
         .catch(Helper.rethrow(`Retrieving asset URL of a tagged GitHub release has failed `
             + `(owner: '${owner}', repo: '${repo}', tag: '${tag}', asset-name: '${assetName}')`));
       return {
-        url: githubUrl,
-        converted: true
+        isGitHubAsset: true,
+        getUrl: resolveGitHubUrl,
       };
     }
     // no match, return unmodified input URL:
     return {
-      url: url,
-      converted: false
+      isGitHubAsset: false,
+      getUrl: () => Promise.resolve(url),
     };
   }
 
