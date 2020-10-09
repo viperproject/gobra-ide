@@ -255,7 +255,17 @@ export class Verifier {
     State.updatingGobraTools = true;
 
 
-    let gobraToolsProvider = Helper.getGobraToolsProvider(Helper.isNightly());
+    const gobraToolsProvider = Helper.getGobraToolsProvider(Helper.isNightly());
+    // note that `gobraToolsProvider` might be one of the "special" URLs as specified in the README (i.e. to a GitHub releases asset).
+    const gobraToolsDownloadUrl = await Helper.tryConvertGitHubAssetURLs(gobraToolsProvider);
+    let gobraToolsDownloadHeader = {};
+    if (gobraToolsDownloadUrl.converted) {
+      // set correct header for downloading a GitHub asset:
+      gobraToolsDownloadHeader = {
+        "Accept": "application/octet-stream"
+      };
+    }
+
     let gobraToolsPath = Helper.getGobraToolsPath();
     let boogiePath = Helper.getBoogiePath();
     let z3Path = Helper.getZ3Path();
@@ -268,7 +278,7 @@ export class Verifier {
       gobraToolsPath,
       ["Gobra",
         new InstallerSequence([
-          new FileDownloader(gobraToolsProvider),
+          new FileDownloader(gobraToolsDownloadUrl.url, gobraToolsDownloadHeader),
           new ZipExtractor("GobraTools")
         ])
       ]
@@ -277,7 +287,7 @@ export class Verifier {
     const { result: location, didReportProgress } = await withProgressInWindow(
       shouldUpdate ? Texts.updatingGobraTools : Texts.installingGobraTools,
       listener => gobraTools.install("Gobra", shouldUpdate, listener)
-    );
+    ).catch(Helper.rethrow(`Downloading and unzipping the Gobra Tools has failed`));
 
     if (Helper.isLinux || Helper.isMac) {
       fs.chmodSync(z3Path, '755');

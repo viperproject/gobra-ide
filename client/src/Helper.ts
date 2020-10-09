@@ -10,6 +10,7 @@ import { VerifierConfig, OverallVerificationResult, FileData, GobraSettings, Pla
 import * as locate_java_home from 'locate-java-home';
 import * as path from 'path';
 import * as child_process from 'child_process';
+import { GitHubReleaseAsset } from 'vs-verification-toolbox';
 
 
 export class Helper {
@@ -148,11 +149,56 @@ export class Helper {
   }
   
   /**
-    * Get URL of repository where Gobra Tools are hosted.
+    * Gets Gobra Tools Provider URL as stored in the settings.
+    * Note that the returned URL might be invalid or correspond to one of the "special" URLs as specified in the README (e.g. to download a GitHub release asset)
     */
   public static getGobraToolsProvider(nightly: boolean = false): string {
-    let gobraToolsProvider = Helper.getGobraDependencies().gobraToolsProvider;
+    const gobraToolsProvider = Helper.getGobraDependencies().gobraToolsProvider;
     return Helper.getPlatformPath(nightly ? gobraToolsProvider.nightly : gobraToolsProvider.stable);
+  }
+
+  /**
+   * Takes an url as input and checks whether it's a special URL to a GitHub release asset.
+   * If it is, it will return the download URL of that asset otherwise it returns the input url. The `converted` flag indicates whether a conversion has happened or not
+   */
+  public static async tryConvertGitHubAssetURLs(url: string): Promise<{url: string, converted: boolean}> {
+    const latestRe = /^github.com\/([^/]+)\/([^/]+)\/releases\/latest\?asset-name=([^/?&]+)(&include-prereleases|)$/;
+    const tagRe = /^github.com\/([^/]+)\/([^/]+)\/releases\/tags\/([^/?]+)\?asset-name=([^/?&]+)$/;
+    const latestReMatches = url.match(latestRe);
+    if (latestReMatches != null) {
+      // match was found
+      const owner = latestReMatches[1];
+      const repo = latestReMatches[2];
+      const assetName = latestReMatches[3];
+      const includePrereleases = latestReMatches[4] === "&include-prereleases";
+      const githubUrl = await GitHubReleaseAsset.getLatestAssetUrl(owner, repo, assetName, includePrereleases)
+        .catch(Helper.rethrow(`Retrieving asset URL of latest GitHub release has failed `
+          + `(owner: '${owner}', repo: '${repo}', asset-name: '${assetName}', include-prereleases: ${includePrereleases})`));
+      return {
+        url: githubUrl,
+        converted: true
+      };
+    }
+    const tagReMatches = url.match(tagRe);
+    if (tagReMatches != null) {
+      // match was found
+      const owner = latestReMatches[1];
+      const repo = latestReMatches[2];
+      const tag = latestReMatches[3];
+      const assetName = latestReMatches[4];
+      const githubUrl = await GitHubReleaseAsset.getTaggedAssetUrl(owner, repo, assetName, tag)
+        .catch(Helper.rethrow(`Retrieving asset URL of a tagged GitHub release has failed `
+            + `(owner: '${owner}', repo: '${repo}', tag: '${tag}', asset-name: '${assetName}')`));
+      return {
+        url: githubUrl,
+        converted: true
+      };
+    }
+    // no match, return unmodified input URL:
+    return {
+      url: url,
+      converted: false
+    };
   }
 
   /**
@@ -221,6 +267,13 @@ export class Helper {
         reject(err);
       });
     });
+  }
+
+  public static rethrow(msg: string): (originalReason: any) => PromiseLike<never> {
+    return (originalReason: any) => {
+      console.error(originalReason);
+      throw new Error(`${msg} (reason: '${originalReason}')`);
+    }
   }
 }
 

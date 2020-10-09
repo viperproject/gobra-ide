@@ -112,6 +112,39 @@ suite("Extension", () => {
         assert.strictEqual(document.languageId, "go");
     });
 
+    test("Check conversion of Gobra Tool Provider URL - regular URL", async () => {
+        const url = "https://gobra-ide.s3.eu-central-1.amazonaws.com/stable/GobraToolsLinux.zip";
+        const convertedUrl = await Helper.tryConvertGitHubAssetURLs(url);
+        assert.strictEqual(convertedUrl, url);
+    })
+
+    /*
+    this currently cannot be tested as there is no non-pre-release yet
+    test("Check conversion of Gobra Tool Provider URL - latest GitHub asset", async () => {
+        const url = "github.com/viperproject/gobra-ide/releases/latest?asset-name=GobraToolsLinux.zip";
+        const convertedUrl = await Helper.tryConvertGitHubAssetURLs(url);
+        // this should return use the actual URL to the asset
+        assert.notStrictEqual(convertedUrl, url);
+    })
+    */
+
+    test("Check conversion of Gobra Tool Provider URL - latest pre-release GitHub asset", async () => {
+        const url = "github.com/viperproject/gobra-ide/releases/latest?asset-name=GobraToolsLinux.zip&include-prereleases";
+        const convertedUrl = await Helper.tryConvertGitHubAssetURLs(url);
+        // this should return use the actual URL to the asset
+        assert.notStrictEqual(convertedUrl, url);
+    })
+
+    /*
+    this currently cannot be tested as there is no tagged non-nightly release yet
+    test("Check conversion of Gobra Tool Provider URL - latest tagged GitHub asset", async () => {
+        const url = "github.com/viperproject/gobra-ide/releases/tags/v1?asset-name=GobraToolsLinux.zip";
+        const convertedUrl = await Helper.tryConvertGitHubAssetURLs(url);
+        // this should return use the actual URL to the asset
+        assert.notStrictEqual(convertedUrl, url);
+    })
+    */
+
     test("Verify simple correct program", async function() {
         this.timeout(GOBRA_VERIFICATION_TIMEOUT_MS);
         const document = await openAndVerify(ASSERT_TRUE);
