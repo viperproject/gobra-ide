@@ -1,3 +1,4 @@
+dist/
 gobraServer.log
 node_modules/
 out/
@@ -7,3 +8,6 @@ evaluationResultsSILICON.txt
 evaluationResultsSILICONserverMode.txt
 evaluationResults.txt
 evaluationFiles/
+.vscode-test/
+logger.log
+tmp/

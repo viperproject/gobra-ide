@@ -10,14 +10,14 @@
       "name": "Launch Client",
       "runtimeExecutable": "${execPath}",
       "args": [
-        "--extensionDevelopmentPath=${workspaceRoot}"
+        "--extensionDevelopmentPath=${workspaceFolder}"
       ],
       "outFiles": [
-        "${workspaceRoot}/out/**/*.js"
+        "${workspaceFolder}/dist/**/*.js"
       ],
       "preLaunchTask": {
         "type": "npm",
-        "script": "watch"
+        "script": "webpack"
       }
     },
     {
@@ -29,7 +29,11 @@
         "--extensionDevelopmentPath=${workspaceFolder}",
         "--extensionTestsPath=${workspaceFolder}/out/test/index"
       ],
-      "outFiles": ["${workspaceFolder}/out/test/**/*.js"]
+      "outFiles": ["${workspaceFolder}/out/test/**/*.js"],
+      "preLaunchTask": {
+        "type": "npm",
+        "script": "test-compile"
+      }
     },
     {
       "name": "Evaluate Extension",
@@ -46,8 +50,8 @@
       ],
       "preLaunchTask": {
         "type": "npm",
-        "script": "watch"
+        "script": "test-compile"
       }
     }
-    ]
+  ]
 }

@@ -1,8 +1,13 @@
 **/*.ts
-**/tsconfig.json
+tsconfig.json
 evaluationResults.txt
-src/test
 tmp
 **/*.js.map
 .vscode
 .vscode-test
+node_modules
+out/
+src/
+webpack.config.js
+**/*.log
+.gitignore
