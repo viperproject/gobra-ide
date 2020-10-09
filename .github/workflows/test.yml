@@ -294,7 +294,7 @@ jobs:
         run: npm install
         working-directory: gobra-ide/client
 
-      - name: List all files that will be packaged
+      - name: List all files that will be packaged (ubuntu only)
         if: startsWith(matrix.os, 'ubuntu')
         run: npx vsce ls
         working-directory: gobra-ide/client

@@ -11,3 +11,4 @@ src/
 webpack.config.js
 **/*.log
 .gitignore
+.npm
