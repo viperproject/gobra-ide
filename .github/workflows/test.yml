@@ -360,11 +360,26 @@ jobs:
           name: GobraTools
           path: deploy
 
+      - name: Download version file
+        uses: actions/download-artifact@v2
+        with:
+          name: versions.txt
+
       - name: Get the upload URL for the newly created release
         id: get_release
         uses: bruceadams/get-release@v1.2.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload version file as artifact
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.get_release.outputs.upload_url }}
+          asset_path: versions.txt
+          asset_name: versions.txt
+          asset_content_type: text/plain
 
       - name: Upload Gobra tools for Windows
         uses: actions/upload-release-asset@v1.0.2
@@ -373,7 +388,7 @@ jobs:
         with:
           upload_url: ${{ steps.get_release.outputs.upload_url }}
           asset_path: deploy/GobraToolsWin.zip
-          asset_name: GobraToolsWin
+          asset_name: GobraToolsWin.zip
           asset_content_type: application/zip
 
       - name: Upload Gobra tools for Ubuntu
@@ -383,7 +398,7 @@ jobs:
         with:
           upload_url: ${{ steps.get_release.outputs.upload_url }}
           asset_path: deploy/GobraToolsLinux.zip
-          asset_name: GobraToolsLinux
+          asset_name: GobraToolsLinux.zip
           asset_content_type: application/zip
 
       - name: Upload Gobra tools for macOS
@@ -393,5 +408,5 @@ jobs:
         with:
           upload_url: ${{ steps.get_release.outputs.upload_url }}
           asset_path: deploy/GobraToolsMac.zip
-          asset_name: GobraToolsMac
+          asset_name: GobraToolsMac.zip
           asset_content_type: application/zip
