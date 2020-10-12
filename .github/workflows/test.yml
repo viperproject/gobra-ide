@@ -352,7 +352,7 @@ jobs:
 
 
   set-release-artifacts:
-    # this job adds the Gobra tools as release artifacts
+    # this job adds the Gobra tools as release artifacts for manually created releases
     if: github.event_name == 'release' && github.event.action == 'created'
     needs: [create-gobra-tools, build-and-test-client]
     runs-on: ubuntu-latest
