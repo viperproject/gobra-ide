@@ -163,7 +163,7 @@ export class Helper {
    * be called to lazily construct the URL for downloading the asset.
    */
   public static parseGitHubAssetURL(url: string): {isGitHubAsset: boolean, getUrl: () => Promise<string>} {
-    const token = process.env["TOKEN"];
+    const token = this.getGitHubToken();
     const latestRe = /^github.com\/([^/]+)\/([^/]+)\/releases\/latest\?asset-name=([^/?&]+)(&include-prereleases|)$/;
     const tagRe = /^github.com\/([^/]+)\/([^/]+)\/releases\/tags\/([^/?]+)\?asset-name=([^/?&]+)$/;
     const latestReMatches = url.match(latestRe);
@@ -201,6 +201,10 @@ export class Helper {
       isGitHubAsset: false,
       getUrl: () => Promise.resolve(url),
     };
+  }
+
+  public static getGitHubToken(): string {
+    return process.env["GITHUB_TOKEN"];
   }
 
   /**

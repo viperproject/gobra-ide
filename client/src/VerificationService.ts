@@ -262,12 +262,7 @@ export class Verifier {
     let dependencyInstaller: DependencyInstaller
     if (gobraToolsProvider.isGitHubAsset) {
       // provider is a GitHub release
-      const token = process.env["TOKEN"];
-      if (token) {
-        console.log(`download as authenticated user`);
-      } else {
-        console.log(`download as unauthenticated user`);
-      }
+      const token = Helper.getGitHubToken();
       dependencyInstaller = new GitHubZipExtractor(gobraToolsProvider.getUrl, folderName, token);
     } else {
       // provider is a regular resource on the Internet

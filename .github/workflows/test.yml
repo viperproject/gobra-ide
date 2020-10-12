@@ -242,14 +242,14 @@ jobs:
         if: startsWith(matrix.os, 'ubuntu')
         env:
           DISPLAY: ':99.0'
-          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         # run tests as sudo on ubutunu as this is required to install the extension to VSCode:
         run: sudo npm test -- --server ${{steps.server-download.outputs.download-path}}/server.jar
         working-directory: gobra-ide/client
       - name: Run tests (all except ubuntu)
         if: ${{ !startsWith(matrix.os, 'ubuntu') }}
         env:
-          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm test -- --server ${{steps.server-download.outputs.download-path}}/server.jar
         working-directory: gobra-ide/client
 

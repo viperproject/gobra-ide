@@ -31,7 +31,7 @@ function main(): Promise<number> {
 			})
             .option('token', {
                 description: 'GitHub access token that should be used for GitHub API calls. '
-                    + 'Use the "TOKEN" environment variable for CI as node logs the command incl. arguments',
+                    + 'Use the "GITHUB_TOKEN" environment variable for CI as node logs the command incl. arguments',
                 type: 'string',
             })
             .help() // show help if `--help` is used
@@ -42,9 +42,9 @@ function main(): Promise<number> {
 			// pass the server jar as an environment variable to the extension test:
 			extensionTestsEnv["SERVER"] = argv.server;
 		}
-        if (argv.token || process.env["TOKEN"]) {
+        if (argv.token || process.env["GITHUB_TOKEN"]) {
             // pass token as environment variable to the extension test:
-            extensionTestsEnv["TOKEN"] = argv.token || process.env["TOKEN"];
+            extensionTestsEnv["GITHUB_TOKEN"] = argv.token || process.env["GITHUB_TOKEN"];
         }
 
 		// The folder containing the Extension Manifest package.json
