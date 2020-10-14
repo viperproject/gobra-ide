@@ -12,7 +12,7 @@ import * as fs from 'fs';
 import { VerifierConfig, OverallVerificationResult, PreviewData } from "./MessagePayloads";
 import { IdeEvents } from "./IdeEvents";
 
-import { Dependency, InstallerSequence, FileDownloader, ZipExtractor, withProgressInWindow, Location } from 'vs-verification-toolbox';
+import { Dependency, withProgressInWindow, Location, DependencyInstaller, RemoteZipExtractor, GitHubZipExtractor } from 'vs-verification-toolbox';
 
 export class Verifier {
   public static verifyItem: ProgressBar;
@@ -254,8 +254,22 @@ export class Verifier {
   public static async updateGobraTools(shouldUpdate: boolean, notificationText?: string): Promise<Location> {
     State.updatingGobraTools = true;
 
+    const gobraToolsRawProviderUrl = Helper.getGobraToolsProvider(Helper.isNightly());
+    // note that `gobraToolsProvider` might be one of the "special" URLs as specified in the README (i.e. to a GitHub releases asset):
+    const gobraToolsProvider = Helper.parseGitHubAssetURL(gobraToolsRawProviderUrl);
 
-    let gobraToolsProvider = Helper.getGobraToolsProvider(Helper.isNightly());
+    const folderName = "GobraTools";
+    let dependencyInstaller: DependencyInstaller
+    if (gobraToolsProvider.isGitHubAsset) {
+      // provider is a GitHub release
+      const token = Helper.getGitHubToken();
+      dependencyInstaller = new GitHubZipExtractor(gobraToolsProvider.getUrl, folderName, token);
+    } else {
+      // provider is a regular resource on the Internet
+      const url = await gobraToolsProvider.getUrl();
+      dependencyInstaller = new RemoteZipExtractor(url, folderName);
+    }
+
     let gobraToolsPath = Helper.getGobraToolsPath();
     let boogiePath = Helper.getBoogiePath();
     let z3Path = Helper.getZ3Path();
@@ -266,18 +280,13 @@ export class Verifier {
 
     const gobraTools = new Dependency<"Gobra">(
       gobraToolsPath,
-      ["Gobra",
-        new InstallerSequence([
-          new FileDownloader(gobraToolsProvider),
-          new ZipExtractor("GobraTools")
-        ])
-      ]
+      ["Gobra", dependencyInstaller]
     );
 
     const { result: location, didReportProgress } = await withProgressInWindow(
       shouldUpdate ? Texts.updatingGobraTools : Texts.installingGobraTools,
       listener => gobraTools.install("Gobra", shouldUpdate, listener)
-    );
+    ).catch(Helper.rethrow(`Downloading and unzipping the Gobra Tools has failed`));
 
     if (Helper.isLinux || Helper.isMac) {
       fs.chmodSync(z3Path, '755');

@@ -38,3 +38,12 @@ The translated parts of the selected code are marked in green.
 
 ## Requirements
 - [Java Runtime Environment (or JDK), 64 bit, version 1.8 or later](https://www.java.com/en/download/)
+
+## Gobra Tools Provider
+The provider of the Gobra Tools can be configured in the Gobra settings.
+In addition to regular URLs, the following URLs have a special meaning:
+- `github.com/<owner>/<repo>/releases/latest?asset-name=<asset name>`: Downloads a GitHub release artifact with the given name from the latest non-pre-release of the specified repository
+- `github.com/<owner>/<repo>/releases/latest?asset-name=<asset name>&include-prereleases`: Downloads a GitHub release artifact with the given name from the latest pre- or non-pre-release of the specified repository
+- `github.com/<owner>/<repo>/releases/tags/<tag>?asset-name=<asset name>`: Downloads a GitHub release artifact with the given name from the release identified by the git tag of the specified repository
+
+Note that regular URLs as well as GitHub release assets have to point to a ZIP file.

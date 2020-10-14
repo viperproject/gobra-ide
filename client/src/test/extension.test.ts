@@ -17,7 +17,8 @@ const DATA_ROOT = path.join(PROJECT_ROOT, "src", "test", "data");
 const ASSERT_TRUE = "assert_true.gobra";
 const ASSERT_FALSE = "assert_false.gobra";
 
-const GOBRA_TOOL_UPDATE_TIMEOUT_MS = 2 * 60 * 1000; // 2min
+const URL_CONVERSION_TIMEOUT_MS = 1000; // 1s
+const GOBRA_TOOL_UPDATE_TIMEOUT_MS = 4 * 60 * 1000; // 4min
 const GOBRA_VERIFICATION_TIMEOUT_MS = 1 * 60 * 1000; // 1min
 
 function log(msg: string) {
@@ -91,7 +92,7 @@ suite("Extension", () => {
         // set timeout to a large value such that extension can be started and Gobra tools installed:
         this.timeout(GOBRA_TOOL_UPDATE_TIMEOUT_MS);
         // check whether a path to the gobra tools has been manually provided and if yes, set it as extension settings:
-        const gobraServerJarPath = process.env["gobra_server_jar_path"];
+        const gobraServerJarPath = process.env["SERVER"];
         if (gobraServerJarPath) {
             previousServerJarPath = getServerJarPath();
             await setServerJarPath(gobraServerJarPath)
@@ -111,6 +112,41 @@ suite("Extension", () => {
         const document = await openFile("failing_post.go");
         assert.strictEqual(document.languageId, "go");
     });
+
+    test("Check conversion of Gobra Tool Provider URL - regular URL", async function() {
+        // as there shouldn't be any network request involved, we do not need to increase the default timeout
+        const url = "https://gobra-ide.s3.eu-central-1.amazonaws.com/stable/GobraToolsLinux.zip";
+        const parseResult = await Helper.parseGitHubAssetURL(url);
+        assert.strictEqual(parseResult.isGitHubAsset, false);
+        assert.strictEqual(await parseResult.getUrl(), url);
+    })
+
+    test("Check conversion of Gobra Tool Provider URL - latest GitHub asset", async function() {
+        this.timeout(URL_CONVERSION_TIMEOUT_MS);
+        const url = "github.com/viperproject/gobra-ide/releases/latest?asset-name=GobraToolsLinux.zip";
+        const parseResult = await Helper.parseGitHubAssetURL(url);
+        // this should return the actual URL to the asset
+        assert.strictEqual(parseResult.isGitHubAsset, true);
+        assert.notStrictEqual(await parseResult.getUrl(), url);
+    })
+
+    test("Check conversion of Gobra Tool Provider URL - latest pre-release GitHub asset", async function() {
+        this.timeout(URL_CONVERSION_TIMEOUT_MS);
+        const url = "github.com/viperproject/gobra-ide/releases/latest?asset-name=GobraToolsLinux.zip&include-prereleases";
+        const parseResult = await Helper.parseGitHubAssetURL(url);
+        // this should return the actual URL to the asset
+        assert.strictEqual(parseResult.isGitHubAsset, true);
+        assert.notStrictEqual(await parseResult.getUrl(), url);
+    })
+
+    test("Check conversion of Gobra Tool Provider URL - latest tagged GitHub asset", async function() {
+        this.timeout(URL_CONVERSION_TIMEOUT_MS);
+        const url = "github.com/viperproject/gobra-ide/releases/tags/v1.0-alpha.2?asset-name=GobraToolsLinux.zip";
+        const parseResult = await Helper.parseGitHubAssetURL(url);
+        // this should return the actual URL to the asset
+        assert.strictEqual(parseResult.isGitHubAsset, true);
+        assert.notStrictEqual(await parseResult.getUrl(), url);
+    })
 
     test("Verify simple correct program", async function() {
         this.timeout(GOBRA_VERIFICATION_TIMEOUT_MS);

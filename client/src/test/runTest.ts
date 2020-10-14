@@ -19,11 +19,34 @@
 // OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 import * as path from 'path';
-
+import * as yargs from 'yargs';
 import { runTests } from 'vscode-test';
 
 function main(): Promise<number> {
 	try {
+		const argv = yargs
+			.option('server', {
+				description: 'Path to the Gobra Server JAR file that should be used instead of the one specified in the settings',
+                type: 'string',
+			})
+            .option('token', {
+                description: 'GitHub access token that should be used for GitHub API calls. '
+                    + 'Use the "GITHUB_TOKEN" environment variable for CI as node logs the command incl. arguments',
+                type: 'string',
+            })
+            .help() // show help if `--help` is used
+            .argv;
+
+		let extensionTestsEnv = {};
+		if (argv.server) {
+			// pass the server jar as an environment variable to the extension test:
+			extensionTestsEnv["SERVER"] = argv.server;
+		}
+        if (argv.token || process.env["GITHUB_TOKEN"]) {
+            // pass token as environment variable to the extension test:
+            extensionTestsEnv["GITHUB_TOKEN"] = argv.token || process.env["GITHUB_TOKEN"];
+        }
+
 		// The folder containing the Extension Manifest package.json
 		// Passed to `--extensionDevelopmentPath`
 		const extensionDevelopmentPath = path.resolve(__dirname, '../../');
@@ -31,19 +54,6 @@ function main(): Promise<number> {
 		// The path to the extension test script
 		// Passed to --extensionTestsPath
 		const extensionTestsPath = path.resolve(__dirname, 'index.js');
-
-		// check whether a command line argument was passed as `-- gobra-server-jar-path=<path to jar>`:
-		const gobraServerJarPathPrefix = "gobra-server-jar-path=";
-		const gobraServerJarPathArg = process.argv
-			.find(s => s.startsWith(gobraServerJarPathPrefix));
-		let extensionTestsEnv;
-		if (gobraServerJarPathArg) {
-			extensionTestsEnv = {
-				"gobra_server_jar_path": gobraServerJarPathArg.replace(gobraServerJarPathPrefix, "")
-			};
-		} else {
-			extensionTestsEnv = undefined;
-		}
 
 		const testOption = { 
 			extensionDevelopmentPath: extensionDevelopmentPath, 

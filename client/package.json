@@ -46,11 +46,13 @@
   "devDependencies": {
     "@types/glob": "^7.1.1",
     "@types/mocha": "^8.0.3",
+    "@types/yargs": "^15.0.8",
     "glob": "^7.1.6",
     "mocha": "^8.1.3",
     "performance-now": "^2.1.0",
     "typescript": "^3.8.3",
-    "vsce": "^1.81.1"
+    "vsce": "^1.81.1",
+    "yargs": "^16.0.3"
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
@@ -319,14 +321,14 @@
           "type": "object",
           "default": {
             "stable": {
-              "windows": "https://gobra-ide.s3.eu-central-1.amazonaws.com/stable/GobraToolsWin.zip",
-              "linux": "https://gobra-ide.s3.eu-central-1.amazonaws.com/stable/GobraToolsLinux.zip",
-              "mac": "https://gobra-ide.s3.eu-central-1.amazonaws.com/stable/GobraToolsMac.zip"
+              "windows": "github.com/viperproject/gobra-ide/releases/latest?asset-name=GobraToolsWin.zip",
+              "linux": "github.com/viperproject/gobra-ide/releases/latest?asset-name=GobraToolsLinux.zip",
+              "mac": "github.com/viperproject/gobra-ide/releases/latest?asset-name=GobraToolsMac.zip"
             },
             "nightly": {
-              "windows": "https://gobra-ide.s3.eu-central-1.amazonaws.com/nightly/GobraToolsWin.zip",
-              "linux": "https://gobra-ide.s3.eu-central-1.amazonaws.com/nightly/GobraToolsLinux.zip",
-              "mac": "https://gobra-ide.s3.eu-central-1.amazonaws.com/nightly/GobraToolsMac.zip"
+              "windows": "github.com/viperproject/gobra-ide/releases/latest?asset-name=GobraToolsWin.zip&include-prereleases",
+              "linux": "github.com/viperproject/gobra-ide/releases/latest?asset-name=GobraToolsLinux.zip&include-prereleases",
+              "mac": "github.com/viperproject/gobra-ide/releases/latest?asset-name=GobraToolsMac.zip&include-prereleases"
             }
           }
         }
