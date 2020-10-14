@@ -283,7 +283,7 @@ jobs:
           path: gobra-ide/client/gobra-ide.vsix
 
   create-nightly-release:
-    # this job creates a new nightly pre-release, set Gobra tools as artifacts, and delets old releases
+    # this job creates a new nightly pre-release, set Gobra tools as artifacts, and deletes old releases
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
     needs: [create-gobra-tools, build-and-test-client]
     runs-on: ubuntu-latest
