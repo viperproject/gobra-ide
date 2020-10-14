@@ -94,7 +94,7 @@ export class State {
 
     // server binary was not found
     if (!fs.existsSync(serverBin)) {
-      const msg = "The server binary " + serverBin + " does not exist. Please update Gobra Tools.";
+      const msg = `The server binary ${serverBin} does not exist. Please update Gobra Tools.`;
       vscode.window.showErrorMessage(msg);
       return Promise.reject(msg);
     }
@@ -138,7 +138,9 @@ export class State {
         socket.on('end', () => console.log("Disconnected"));
     
       }).on('error', (err) => {
-        console.log("Error in server creation.");
+        const msg = `Error while connecting to Gobra server: '${err}'`
+        console.error(msg);
+        reject(msg);
       });
 
       // start Gobra Server given in binary
@@ -160,8 +162,9 @@ export class State {
           console.log(`Gobra Server process has ended with return code ${code}`);
         });
         serverProcess.on('error', (err) => {
-          console.log(`Gorba Server process has encountered an error: ${err}`);
-          reject(err);
+          const msg = `Gorba Server process has encountered an error: ${err}`
+          console.log(msg);
+          reject(msg);
         });
 	
         console.log(`Storing log in '${logFile}'`);

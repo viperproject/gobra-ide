@@ -60,16 +60,21 @@ jobs:
         run: java --version
       - name: Z3 Version
         run: z3 -version
-      - name: Silver Commit
-        run: echo "Silver commit:" $(git -C silver rev-parse HEAD)
-      - name: Silicon Commit
-        run: echo "Silicon commit:" $(git -C silicon rev-parse HEAD)
-      - name: Carbon Commit
-        run: echo "Carbon commit:" $(git -C carbon rev-parse HEAD)
-      - name: ViperServer Commit
-        run: echo "ViperServer commit:" $(git -C viperserver rev-parse HEAD)
-      - name: Gobra Commit
-        run: echo "Gobra commit:" $(git -C gobra rev-parse HEAD)
+
+      - name: Create version file
+        run: |
+          echo "Gobra-IDE: commit $(git -C gobra-ide rev-parse HEAD)" > versions.txt
+          echo "Gobra: commit $(git -C gobra rev-parse HEAD)" >> versions.txt
+          echo "ViperServer: commit $(git -C viperserver rev-parse HEAD)" >> versions.txt
+          echo "Silicon: commit $(git -C silicon rev-parse HEAD)" >> versions.txt
+          echo "Carbon: commit $(git -C carbon rev-parse HEAD)" >> versions.txt
+          echo "Silver: commit $(git -C silver rev-parse HEAD)" >> versions.txt
+        # first line overwrites versions.txt in case it already exists, all other append to the file
+      - name: Upload version file
+        uses: actions/upload-artifact@v2
+        with:
+          name: versions.txt
+          path: versions.txt
 
       # create symlinks between and to Viper dependencies:
       - name: Create Silicon's sym links
@@ -184,38 +189,6 @@ jobs:
           name: GobraTools
           path: deploy
 
-  deploy-server:
-    # it would be sufficient to only need `create-gobra-tools`
-    # however, we only want to deploy if the client tests have completed successfully:
-    needs: [create-gobra-tools, build-and-test-client]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download Gobra tools artifact
-        uses: actions/download-artifact@v2
-        with:
-          name: GobraTools
-          path: deploy
-
-      - name: Set destination directory on AWS S3 (stable only)
-        if: github.event_name == 'release'
-        run: echo "DEST_DIR=stable" >> $GITHUB_ENV
-
-      - name: Set destination directory on AWS S3 (nightly only)
-        if: github.event_name != 'release'
-        run: echo "DEST_DIR=nightly" >> $GITHUB_ENV
-
-      - name: Upload deploy folder to AWS S3
-        uses: jakejarvis/s3-sync-action@v0.5.1
-        with:
-          args: --acl public-read --follow-symlinks
-        env:
-          AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: 'eu-central-1'
-          SOURCE_DIR: 'deploy'
-          # DEST_DIR is set by the previous action to either 'stable' or 'nightly'
-
   build-and-test-client:
     needs: build-and-test-server
     strategy:
@@ -240,12 +213,12 @@ jobs:
           # note that download-path is the parent folder (not server.jar)
 
       - name: Install Node.js
-        uses: actions/setup-node@v1.4.3
+        uses: actions/setup-node@v1.4.4
         with:
           node-version: '10'
 
       - name: Setup Java JDK
-        uses: actions/setup-java@v1.4.2
+        uses: actions/setup-java@v1.4.3
         with:
           java-version: '11'
       - run: java --version
@@ -269,12 +242,15 @@ jobs:
         if: startsWith(matrix.os, 'ubuntu')
         env:
           DISPLAY: ':99.0'
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         # run tests as sudo on ubutunu as this is required to install the extension to VSCode:
-        run: sudo npm test -- gobra-server-jar-path=${{steps.server-download.outputs.download-path}}/server.jar
+        run: sudo npm test -- --server ${{steps.server-download.outputs.download-path}}/server.jar
         working-directory: gobra-ide/client
       - name: Run tests (all except ubuntu)
         if: ${{ !startsWith(matrix.os, 'ubuntu') }}
-        run: npm test -- gobra-server-jar-path=${{steps.server-download.outputs.download-path}}/server.jar
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm test -- --server ${{steps.server-download.outputs.download-path}}/server.jar
         working-directory: gobra-ide/client
 
       - name: Upload Gobra server logs
@@ -310,3 +286,135 @@ jobs:
         with:
           name: gobra-ide.vsix
           path: gobra-ide/client/gobra-ide.vsix
+
+  create-nightly-release:
+    # this job creates a new nightly pre-release, set Gobra tools as artifacts, and deletes old releases
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    needs: [create-gobra-tools, build-and-test-client]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Gobra tools artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: GobraTools
+          path: deploy
+
+      - name: Download version file
+        uses: actions/download-artifact@v2
+        with:
+          name: versions.txt
+
+      - name: Checkout Gobra-IDE
+        uses: actions/checkout@v2
+        with:
+          path: gobra-ide
+
+      - name: Create release tag
+        shell: bash
+        run: echo "TAG_NAME=$(date +v-%Y-%m-%d-%H%M)" >> $GITHUB_ENV
+
+      - name: Create nightly release
+        id: create_release
+        uses: viperproject/create-nightly-release@v1
+        env:
+          # This token is provided by Actions, you do not need to create your own token
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ env.TAG_NAME }}
+          release_name: Nightly Release ${{ env.TAG_NAME }}
+          body_path: versions.txt
+          keep_num: 1 # keep the previous nightly release such that there are always two
+
+      - name: Upload Gobra tools for Windows
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: deploy/GobraToolsWin.zip
+          asset_name: GobraToolsWin.zip
+          asset_content_type: application/zip
+
+      - name: Upload Gobra tools for Ubuntu
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: deploy/GobraToolsLinux.zip
+          asset_name: GobraToolsLinux.zip
+          asset_content_type: application/zip
+
+      - name: Upload Gobra tools for macOS
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: deploy/GobraToolsMac.zip
+          asset_name: GobraToolsMac.zip
+          asset_content_type: application/zip
+
+
+  set-release-artifacts:
+    # this job adds the Gobra tools as release artifacts for manually created releases
+    if: github.event_name == 'release' && github.event.action == 'created'
+    needs: [create-gobra-tools, build-and-test-client]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Gobra tools artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: GobraTools
+          path: deploy
+
+      - name: Download version file
+        uses: actions/download-artifact@v2
+        with:
+          name: versions.txt
+
+      - name: Get the upload URL for the newly created release
+        id: get_release
+        uses: bruceadams/get-release@v1.2.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload version file as artifact
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.get_release.outputs.upload_url }}
+          asset_path: versions.txt
+          asset_name: versions.txt
+          asset_content_type: text/plain
+
+      - name: Upload Gobra tools for Windows
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.get_release.outputs.upload_url }}
+          asset_path: deploy/GobraToolsWin.zip
+          asset_name: GobraToolsWin.zip
+          asset_content_type: application/zip
+
+      - name: Upload Gobra tools for Ubuntu
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.get_release.outputs.upload_url }}
+          asset_path: deploy/GobraToolsLinux.zip
+          asset_name: GobraToolsLinux.zip
+          asset_content_type: application/zip
+
+      - name: Upload Gobra tools for macOS
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.get_release.outputs.upload_url }}
+          asset_path: deploy/GobraToolsMac.zip
+          asset_name: GobraToolsMac.zip
+          asset_content_type: application/zip
