@@ -55,10 +55,10 @@
     "yargs": "^16.0.3"
   },
   "scripts": {
-    "vscode:prepublish": "rm -r dist && webpack --mode production",
-    "webpack": "rm -r dist && webpack --mode development",
-    "webpack-dev": "rm -r dist && webpack --mode development --watch",
-    "test-compile": "rm -r dist && tsc -p ./",
+    "vscode:prepublish": "rm -rf dist && webpack --mode production",
+    "webpack": "rm -rf dist && webpack --mode development",
+    "webpack-dev": "rm -rf dist && webpack --mode development --watch",
+    "test-compile": "rm -rf dist && tsc -p ./",
     "pretest": "npm run test-compile",
     "test": "node ./dist/test/runTest.js",
     "package": "vsce package"

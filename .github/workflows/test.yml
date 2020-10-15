@@ -117,7 +117,9 @@ jobs:
             silicon/target
             silver/project/target
             silver/target
-          key: ${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
+          key: ${{ runner.os }}-sbt-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-sbt-
 
       - name: Assemble Gobra server
         run: sbt "set test in assembly := {}" clean assembly
