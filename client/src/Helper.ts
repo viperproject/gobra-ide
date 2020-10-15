@@ -284,7 +284,7 @@ export class Helper {
 
   private static _channel: vscode.OutputChannel;
   public static log(msg: string): void {
-    console.log(msg);
+    console.log(`[Gobra IDE] ${msg}`);
     if (!this._channel) {
       this._channel = vscode.window.createOutputChannel("Gobra IDE");
     }
@@ -293,6 +293,7 @@ export class Helper {
 
   private static _serverChannel: vscode.OutputChannel;
   public static logServer(msg: string): void {
+    console.log(`[Gobra IDE - Server] ${msg}`);
     if (!this._serverChannel) {
       this._serverChannel = vscode.window.createOutputChannel("Gobra IDE - Server");
     }

@@ -255,13 +255,13 @@ jobs:
         run: npm test -- --server ${{steps.server-download.outputs.download-path}}/server.jar
         working-directory: gobra-ide/client
 
-      - name: Upload Gobra server logs
-        # upload server logs in case of success AND failure:
-        if: ${{ success() || failure() }}
-        uses: actions/upload-artifact@v2
-        with:
-          name: gobraServer-${{ runner.os }}.log
-          path: gobra-ide/client/gobraServer.log
+      # after running `npm test` as sudo on ubuntu, `npm run package` (as non-root user) will fail
+      # as all files in client/dist/ will be owned by sudo. Hence, the following step deletes the
+      # 'dist' folder (also as root):
+      - name: Clean 'dist' folder (ubuntu only)
+        if: startsWith(matrix.os, 'ubuntu')
+        run: sudo rm -rf dist
+        working-directory: gobra-ide/client
 
       # `npm run package` resp. `vsce` complains that it cannot find 
       # locate-java-home and vs-verification-toolbox dependencies (the two non-npm dependencies).
