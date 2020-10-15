@@ -27,9 +27,11 @@
       "runtimeExecutable": "${execPath}",
       "args": [
         "--extensionDevelopmentPath=${workspaceFolder}",
-        "--extensionTestsPath=${workspaceFolder}/out/test/index"
+        "--extensionTestsPath=${workspaceFolder}/dist/test"
       ],
-      "outFiles": ["${workspaceFolder}/out/test/**/*.js"],
+      "outFiles": [
+        "${workspaceFolder}/dist/test/**/*.js"
+      ],
       "preLaunchTask": {
         "type": "npm",
         "script": "test-compile"
@@ -43,10 +45,10 @@
       "args": [
         "--trace-deprecation",
         "--extensionDevelopmentPath=${workspaceFolder}",
-        "--extensionTestsPath=${workspaceFolder}/out/evaluate"
+        "--extensionTestsPath=${workspaceFolder}/dist/evaluate"
       ],
       "outFiles": [
-        "${workspaceFolder}/out/evaluate/**/*.js"
+        "${workspaceFolder}/dist/evaluate/**/*.js"
       ],
       "preLaunchTask": {
         "type": "npm",

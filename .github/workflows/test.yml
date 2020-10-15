@@ -277,7 +277,8 @@ jobs:
 
       - name: Package Gobra-IDE extension (ubuntu only)
         if: startsWith(matrix.os, 'ubuntu')
-        run: npm run package -- --out gobra-ide.vsix
+        # note that baseContentUrl has to be manually provided as vsce does not know that it is run in the client subfolder:
+        run: npm run package -- --baseContentUrl https://github.com/viperproject/gobra-ide/raw/master/client --out gobra-ide.vsix
         working-directory: gobra-ide/client
 
       - name: Upload packaged Gobra-IDE (ubuntu-only)

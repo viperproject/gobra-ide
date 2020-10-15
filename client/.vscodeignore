@@ -6,9 +6,10 @@ tmp
 .vscode
 .vscode-test
 node_modules
-out/
 src/
 webpack.config.js
 **/*.log
 .gitignore
-.npm
+.npm/
+images/
+!images/icon.png

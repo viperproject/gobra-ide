@@ -30,7 +30,7 @@
     "viper",
     "eth"
   ],
-  "main": "./out/extension",
+  "main": "./dist/extension",
   "dependencies": {
     "@types/node": "^14.11.8",
     "@types/vscode": "^1.43.0",
@@ -55,12 +55,12 @@
     "yargs": "^16.0.3"
   },
   "scripts": {
-    "vscode:prepublish": "webpack --mode production",
-    "webpack": "webpack --mode development",
-    "webpack-dev": "webpack --mode development --watch",
-    "test-compile": "tsc -p ./",
+    "vscode:prepublish": "rm -r dist; webpack --mode production",
+    "webpack": "rm -r dist; webpack --mode development",
+    "webpack-dev": "rm -r dist; webpack --mode development --watch",
+    "test-compile": "rm -r dist; tsc -p ./",
     "pretest": "npm run test-compile",
-    "test": "node ./out/test/runTest.js",
+    "test": "node ./dist/test/runTest.js",
     "package": "vsce package"
   },
   "activationEvents": [
@@ -74,7 +74,7 @@
         "extensions": [
           ".gobra"
         ],
-        "configuration": "./src/gobra-configuration.json",
+        "configuration": "./gobra-configuration.json",
         "aliases": [
           "Gobra"
         ]
@@ -84,7 +84,7 @@
       {
         "language": "gobra",
         "scopeName": "source.gobra",
-        "path": "./src/gobra.tmGrammar.json"
+        "path": "./gobra.tmGrammar.json"
       }
     ],
     "commands": [
