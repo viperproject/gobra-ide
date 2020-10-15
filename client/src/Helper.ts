@@ -117,24 +117,24 @@ export class Helper {
         const options = {
           version: ">=1.8"
         };
-        console.log("Searching for Java home...");
+        Helper.log("Searching for Java home...");
         locate_java_home.default(options, (err, javaHomes) => {
           if (err) {
-            console.error(err.message);
+            Helper.log(err.message);
             reject(err.message);
           } else {
             if (!Array.isArray(javaHomes) || javaHomes.length === 0) {
-              console.log("Could not find Java home");
+              Helper.log("Could not find Java home");
               reject("no Java home found");
             } else {
               const javaHome = javaHomes[0];
-              console.log("Using Java home", javaHome);
+              Helper.log(`Using Java home ${JSON.stringify(javaHome, null, 2)}`);
               resolve(javaHome.path);
             }
           }
         });
       } catch (err) {
-        console.error(err.message);
+        Helper.log(err.message);
         reject(err.message);
       }
     });
@@ -244,7 +244,7 @@ export class Helper {
     args?: string[] | undefined, 
     options?: child_process.SpawnOptionsWithoutStdio | undefined
   ): Promise<Output> {
-    console.log(`Gobra IDE: Running '${cmd} ${args ? args.join(' ') : ''}'`);
+    Helper.log(`Gobra IDE: Running '${cmd} ${args ? args.join(' ') : ''}'`);
     return new Promise((resolve, reject) => {
       let stdout = '';
       let stderr = '';
@@ -254,22 +254,22 @@ export class Helper {
       proc.stdout.on('data', (data) => stdout += data);
       proc.stderr.on('data', (data) => stderr += data);
       proc.on('close', (code) => {
-        console.log("┌──── Begin stdout ────┐");
-        console.log(stdout);
-        console.log("└──── End stdout ──────┘");
-        console.log("┌──── Begin stderr ────┐");
-        console.log(stderr);
-        console.log("└──── End stderr ──────┘");
+        Helper.log("┌──── Begin stdout ────┐");
+        Helper.log(stdout);
+        Helper.log("└──── End stdout ──────┘");
+        Helper.log("┌──── Begin stderr ────┐");
+        Helper.log(stderr);
+        Helper.log("└──── End stderr ──────┘");
         resolve({ stdout, stderr, code });
       });
       proc.on('error', (err) => {
-        console.log("┌──── Begin stdout ────┐");
-        console.log(stdout);
-        console.log("└──── End stdout ──────┘");
-        console.log("┌──── Begin stderr ────┐");
-        console.log(stderr);
-        console.log("└──── End stderr ──────┘");
-        console.log(`Error: ${err}`);
+        Helper.log("┌──── Begin stdout ────┐");
+        Helper.log(stdout);
+        Helper.log("└──── End stdout ──────┘");
+        Helper.log("┌──── Begin stderr ────┐");
+        Helper.log(stderr);
+        Helper.log("└──── End stderr ──────┘");
+        Helper.log(`Error: ${err}`);
         reject(err);
       });
     });
@@ -277,9 +277,26 @@ export class Helper {
 
   public static rethrow(msg: string): (originalReason: any) => PromiseLike<never> {
     return (originalReason: any) => {
-      console.error(originalReason);
+      Helper.log(originalReason);
       throw new Error(`${msg} (reason: '${originalReason}')`);
     }
+  }
+
+  private static _channel: vscode.OutputChannel;
+  public static log(msg: string): void {
+    console.log(msg);
+    if (!this._channel) {
+      this._channel = vscode.window.createOutputChannel("Gobra IDE");
+    }
+    this._channel.appendLine(msg);
+  }
+
+  private static _serverChannel: vscode.OutputChannel;
+  public static logServer(msg: string): void {
+    if (!this._serverChannel) {
+      this._serverChannel = vscode.window.createOutputChannel("Gobra IDE - Server");
+    }
+    this._serverChannel.appendLine(msg);
   }
 }
 
