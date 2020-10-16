@@ -22,7 +22,7 @@ In this particular setup, the tests will trigger the extension's activation and 
 However, the test files do not have access to the extension's global state as the tests import the extension files that are located in `out/` (instead of the actually run extension in `dist/`).
 Hence, the tests will access global state of an extension (the one in `out/`) that is never started by VSCode.
 
-There might be a workaround for this setup by not importing extension files into the tests but use the following snippet and `extensionApi` to access the extension's public API:
+There might be a workaround for this setup by not importing extension files into the tests, but use the following snippet and `extensionApi` to access the extension's public API:
 ```
 const gobraExtension = vscode.extensions.getExtension("viper-admin.gobra-ide");
 const extensionApi = await gobraExtension.activate()
