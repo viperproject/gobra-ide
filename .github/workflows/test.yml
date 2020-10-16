@@ -192,6 +192,8 @@ jobs:
           path: deploy
 
   build-and-test-client:
+    # do not execute this job if it is triggered by a release because this test needs the release assets that haven't been uploaded yet
+    if: github.event_name != 'release' && github.event.action != 'created'
     needs: build-and-test-server
     strategy:
       # tests should not be stopped when they fail on one of the OSes:
@@ -362,7 +364,7 @@ jobs:
   set-release-artifacts:
     # this job adds the Gobra tools as release artifacts for manually created releases
     if: github.event_name == 'release' && github.event.action == 'created'
-    needs: [create-gobra-tools, build-and-test-client]
+    needs: create-gobra-tools
     runs-on: ubuntu-latest
     steps:
       - name: Download Gobra tools artifact
