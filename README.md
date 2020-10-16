@@ -33,3 +33,6 @@ JDK version 11 is working (assuming [Homebrew](https://brew.sh) is used):
 3. Press Ctrl+Shift+B resp. Cmd+Shift+B to compile the client.
 4. Open the 'Run and Debug' view container and run the 'Launch Client' task.
     This will automatically start the server as well
+
+## Locally checking license headers:
+Run `npx github:viperproject/check-license-header#v1 check --config .github/license-check/config.json --strict` in the repository's root directory to check whether all files adhere to the license configuration

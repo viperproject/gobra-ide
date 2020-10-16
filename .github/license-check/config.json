@@ -1,0 +1,61 @@
+[
+    {
+        "include": [
+            "**/*.ts",
+            "**/*.scala",
+            "server/build.sbt"
+        ],
+        "exclude": [
+            "client/node_modules/**",
+            "client/src/evaluate/index.ts",
+            "client/src/evaluate/runEvaluation.ts",
+            "client/src/test/index.ts",
+            "client/src/test/runTest.ts",
+            "server/gobra/**",
+            "server/project/project/**",
+            "server/project/target/**",
+            "server/target/**"
+        ],
+        "license": "./.github/license-check/headers/MPLv2-ETH.txt"
+    },
+    {
+        "include": [
+            "client/src/evaluate/index.ts",
+            "client/src/evaluate/runEvaluation.ts",
+            "client/src/test/index.ts",
+            "client/src/test/runTest.ts",
+            "client/webpack.config.js"
+        ],
+        "license": "./.github/license-check/headers/MIT-Microsoft.txt"
+    },
+    {
+        "include": [
+            "**/*.gobra",
+            "**/*.go"
+        ],
+        "exclude": [
+            "server/gobra/**"
+        ],
+        "license": "./.github/license-check/headers/CC0.txt"
+    },
+    {
+        "include": [
+            "client/node_modules/**",
+            "client/.vscode-test/**",
+            "client/images/**",
+            "client/tmp/**",
+            "client/evaluationResults.txt",
+            "client/package-notes.md",
+            "server/gobra/**",
+            "server/project/build.properties",
+            "server/project/plugins.sbt",
+            "server/project/project/**",
+            "server/project/target/**",
+            "server/target/**",
+            "**/*.json",
+            ".github/check-license/**",
+            "**/README.md",
+            "**/LICENSE"
+        ]
+    }
+]
