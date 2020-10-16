@@ -24,7 +24,7 @@ export class TestHelper {
   public static startExtension(initialFilePath: string): Promise<void> {
     const activationPromise = Notifier.wait(Event.EndExtensionActivation);
     return TestHelper.openFile(initialFilePath)
-      .then(() => activationPromise)
+      .then(() => activationPromise);
   }
 
   /** 

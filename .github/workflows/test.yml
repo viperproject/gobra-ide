@@ -117,7 +117,9 @@ jobs:
             silicon/target
             silver/project/target
             silver/target
-          key: ${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
+          key: ${{ runner.os }}-sbt-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-sbt-
 
       - name: Assemble Gobra server
         run: sbt "set test in assembly := {}" clean assembly
@@ -253,13 +255,13 @@ jobs:
         run: npm test -- --server ${{steps.server-download.outputs.download-path}}/server.jar
         working-directory: gobra-ide/client
 
-      - name: Upload Gobra server logs
-        # upload server logs in case of success AND failure:
-        if: ${{ success() || failure() }}
-        uses: actions/upload-artifact@v2
-        with:
-          name: gobraServer-${{ runner.os }}.log
-          path: gobra-ide/client/gobraServer.log
+      # after running `npm test` as sudo on ubuntu, `npm run package` (as non-root user) will fail
+      # as all files in client/dist/ will be owned by sudo. Hence, the following step deletes the
+      # 'dist' folder (also as root):
+      - name: Clean 'dist' folder (ubuntu only)
+        if: startsWith(matrix.os, 'ubuntu')
+        run: sudo rm -rf dist
+        working-directory: gobra-ide/client
 
       # `npm run package` resp. `vsce` complains that it cannot find 
       # locate-java-home and vs-verification-toolbox dependencies (the two non-npm dependencies).
@@ -270,9 +272,15 @@ jobs:
         run: npm install
         working-directory: gobra-ide/client
 
+      - name: List all files that will be packaged (ubuntu only)
+        if: startsWith(matrix.os, 'ubuntu')
+        run: npx vsce ls
+        working-directory: gobra-ide/client
+
       - name: Package Gobra-IDE extension (ubuntu only)
         if: startsWith(matrix.os, 'ubuntu')
-        run: npm run package -- --out gobra-ide.vsix
+        # note that baseContentUrl has to be manually provided as vsce does not know that it is run in the client subfolder:
+        run: npm run package -- --baseContentUrl https://github.com/viperproject/gobra-ide/raw/master/client --out gobra-ide.vsix
         working-directory: gobra-ide/client
 
       - name: Upload packaged Gobra-IDE (ubuntu-only)

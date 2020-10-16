@@ -39,7 +39,7 @@ export function activate(context: vscode.ExtensionContext): Thenable<any> {
 }
 
 export function deactivate(): Thenable<void> | undefined {
-	console.log("Deactivating");
+	Helper.log("Deactivating");
 	return State.disposeServer()
-		.then(() => console.log("Server is disposed"));
+		.then(() => Helper.log("Server is disposed"));
 }
