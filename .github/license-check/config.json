@@ -23,7 +23,8 @@
             "client/src/evaluate/index.ts",
             "client/src/evaluate/runEvaluation.ts",
             "client/src/test/index.ts",
-            "client/src/test/runTest.ts"
+            "client/src/test/runTest.ts",
+            "client/webpack.config.js"
         ],
         "license": "./.github/license-check/headers/MIT-Microsoft.txt"
     },
@@ -44,6 +45,7 @@
             "client/images/**",
             "client/tmp/**",
             "client/evaluationResults.txt",
+            "client/package-notes.md",
             "server/gobra/**",
             "server/project/build.properties",
             "server/project/plugins.sbt",
