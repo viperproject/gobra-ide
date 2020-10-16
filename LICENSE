@@ -16,6 +16,7 @@ following *exceptions*:
     client/src/test/index.ts
     client/src/test/runTest.ts
     client/src/gobra.tmGrammar.json
+    client/webpack.config.js
 
 
 Mozilla Public License Version 2.0

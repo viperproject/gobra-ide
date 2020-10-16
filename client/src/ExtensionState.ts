@@ -123,10 +123,10 @@ export class State {
   // creates a server for the given server binary
   private static async startServerProcess(serverBin: string): Promise<any> {
     // test whether java and z3 binaries can be used:
-    console.log("Checking Java...");
+    Helper.log("Checking Java...");
     const javaPath = await Helper.getJavaPath();
     await Helper.spawn(javaPath, ["--version"]);
-    console.log("Checking Z3...");
+    Helper.log("Checking Z3...");
     const z3Path = Helper.getZ3Path(Helper.isNightly());
     await Helper.spawn(z3Path, ["--version"]);
 
@@ -135,41 +135,32 @@ export class State {
         resolve({reader: socket, writer: socket});
     
         // event listener for socket reacting to end
-        socket.on('end', () => console.log("Disconnected"));
+        socket.on('end', () => Helper.log("Disconnected"));
     
       }).on('error', (err) => {
         const msg = `Error while connecting to Gobra server: '${err}'`
-        console.error(msg);
+        Helper.log(msg);
         reject(msg);
       });
 
       // start Gobra Server given in binary
-      console.log(`Starting Gobra Server with binary ${serverBin}`);
+      Helper.log(`Starting Gobra Server with binary ${serverBin}`);
       server.listen(() => {
         let serverAddress = server.address() as net.AddressInfo;
         let processArgs = ['-Xss128m', '-jar', serverBin, serverAddress.port.toString()];
         let serverProcess = child_process.spawn(javaPath, processArgs);
 
-        // Send raw output to a file (for testing purposes only, change or remove later)------------------
-        let prefix = __dirname.substring(0, __dirname.length - 3);
-        let logFile = prefix + "gobraServer.log";
-        let logStream = fs.createWriteStream(logFile, { flags: 'w' });
-        
-        serverProcess.stdout.pipe(logStream);
-        serverProcess.stderr.pipe(logStream);
+        serverProcess.stdout.on('data', (data) => Helper.logServer(data));
+        serverProcess.stderr.on('data', (data) => Helper.logServer(data));
         
         serverProcess.on('close', (code) => {
-          console.log(`Gobra Server process has ended with return code ${code}`);
+          Helper.log(`Gobra Server process has ended with return code ${code}`);
         });
         serverProcess.on('error', (err) => {
           const msg = `Gorba Server process has encountered an error: ${err}`
-          console.log(msg);
+          Helper.log(msg);
           reject(msg);
         });
-	
-        console.log(`Storing log in '${logFile}'`);
-        // -----------------------------------------------------------------------------------------------
-
       })
     });
   }

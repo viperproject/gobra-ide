@@ -143,7 +143,7 @@ export class Verifier {
       Verifier.verifyItem.progress(Helper.getFileName(fileUri), 0);
 
       vscode.window.activeTextEditor.document.save().then((saved: boolean) => {
-        console.log("sending verification request");
+        Helper.log("sending verification request");
 
         if (fileUri.endsWith(".gobra")) {
           State.client.sendNotification(Commands.verifyGobraFile, Helper.configToJson(State.verifierConfig));
@@ -191,7 +191,7 @@ export class Verifier {
       State.runningGoifications.add(fileUri);
 
       vscode.window.activeTextEditor.document.save().then((saved: boolean) => {
-        console.log("sending goification request");
+        Helper.log("sending goification request");
         State.client.sendNotification(Commands.goifyFile, Helper.fileDataToJson(State.verifierConfig.fileData));
       })
     } else {
@@ -220,7 +220,7 @@ export class Verifier {
       State.runningGobrafications.add(filePath);
 
       vscode.window.activeTextEditor.document.save().then((saved: boolean) => {
-        console.log("sending gobrafication request");
+        Helper.log("sending gobrafication request");
         State.client.sendNotification(Commands.gobrafyFile, Helper.fileDataToJson(State.verifierConfig.fileData));
       })
     } else {

@@ -4,6 +4,8 @@
 //
 // Copyright (c) 2011-2020 ETH Zurich.
 
+import { Helper } from "./Helper";
+
 // all credits go to prusti-assistant
 
 type Listener = () => void;
@@ -34,7 +36,7 @@ export class Notifier {
     }
 
     public static notify(event: Event) {
-        console.log(`Notify event: ${Event[event]}`);
+        Helper.log(`Notify event: ${Event[event]}`);
         const listeners = oneTimeListeners.get(event);
         oneTimeListeners.delete(event);
         if (listeners) {
