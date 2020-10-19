@@ -36,3 +36,10 @@ JDK version 11 is working (assuming [Homebrew](https://brew.sh) is used):
 
 ## Locally checking license headers:
 Run `npx github:viperproject/check-license-header#v1 check --config .github/license-check/config.json --strict` in the repository's root directory to check whether all files adhere to the license configuration
+
+## Release Management
+Create a draft release first and wait until the workflows have finished.
+The workflows will create all release assets and attach it to the draft release.
+Release the draft release only afterwards.
+This procedure ensures that the tests performed as part of the workflows as well as all installed clients perform as expected as draft releases will be ignored.
+Releasing a release without the right assets will result in failures as any attempt to download the missing assets will fail.

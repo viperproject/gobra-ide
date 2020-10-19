@@ -6,6 +6,7 @@
 
 name: test
 
+
 on:
   push: # run this workflow on every push
   pull_request: # run this workflow on every pull_request
@@ -14,7 +15,8 @@ on:
     types:
       - created # run this workflow when creating a release
   schedule:
-    - cron: '0 0 * * *' # run every day at 00:00
+    - cron: '0 7 * * *' # run every day at 07:00 UTC
+
 
 jobs:
   build-and-test-server:
@@ -135,6 +137,7 @@ jobs:
         run: sbt test
         working-directory: gobra-ide/server
 
+
   create-gobra-tools:
     # run this command under the following circumstances:
     # - created a new release
@@ -172,7 +175,7 @@ jobs:
           mkdir -p GobraToolsLinux/server && cp server.jar GobraToolsLinux/server/server.jar
           mkdir -p GobraToolsMac/server && cp server.jar GobraToolsMac/server/server.jar
 
-      - name: Create folder to later sync to AWS S3
+      - name: Create folder to store all Gobra Tools platform zip files
         run: mkdir deploy
         # note that we change into the tool folder to zip it. This avoids including the parent folder in the zip
       - name: Zip Gobra Tools for Windows
@@ -191,9 +194,8 @@ jobs:
           name: GobraTools
           path: deploy
 
+
   build-and-test-client:
-    # do not execute this job if it is triggered by a release because this test needs the release assets that haven't been uploaded yet
-    if: github.event_name != 'release' && github.event.action != 'created'
     needs: build-and-test-server
     strategy:
       # tests should not be stopped when they fail on one of the OSes:
@@ -292,6 +294,7 @@ jobs:
           name: gobra-ide.vsix
           path: gobra-ide/client/gobra-ide.vsix
 
+
   create-nightly-release:
     # this job creates a new nightly pre-release, set Gobra tools as artifacts, and deletes old releases
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
@@ -303,6 +306,12 @@ jobs:
         with:
           name: GobraTools
           path: deploy
+
+      - name: Download packaged Gobra IDE
+        uses: actions/download-artifact@v2
+        with:
+          name: gobra-ide.vsix
+          path: gobra-ide/client
 
       - name: Download version file
         uses: actions/download-artifact@v2
@@ -360,11 +369,21 @@ jobs:
           asset_name: GobraToolsMac.zip
           asset_content_type: application/zip
 
+      - name: Upload packaged Gobra IDE
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: gobra-ide/client/gobra-ide.vsix
+          asset_name: gobra-ide.vsix
+          asset_content_type: application/octet-stream
+
 
   set-release-artifacts:
     # this job adds the Gobra tools as release artifacts for manually created releases
     if: github.event_name == 'release' && github.event.action == 'created'
-    needs: create-gobra-tools
+    needs: [create-gobra-tools, build-and-test-client]
     runs-on: ubuntu-latest
     steps:
       - name: Download Gobra tools artifact
@@ -372,6 +391,12 @@ jobs:
         with:
           name: GobraTools
           path: deploy
+
+      - name: Download packaged Gobra IDE
+        uses: actions/download-artifact@v2
+        with:
+          name: gobra-ide.vsix
+          path: gobra-ide/client
 
       - name: Download version file
         uses: actions/download-artifact@v2
@@ -423,3 +448,13 @@ jobs:
           asset_path: deploy/GobraToolsMac.zip
           asset_name: GobraToolsMac.zip
           asset_content_type: application/zip
+
+      - name: Upload packaged Gobra IDE
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: gobra-ide/client/gobra-ide.vsix
+          asset_name: gobra-ide.vsix
+          asset_content_type: application/octet-stream
