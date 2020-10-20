@@ -11,9 +11,17 @@ on:
   push: # run this workflow on every push
   pull_request: # run this workflow on every pull_request
   workflow_dispatch: # allow to manually trigger this workflow
-  release:
-    types:
-      - created # run this workflow when creating a release
+    inputs:
+      type:
+        description: 'Specifies whether a stable or nightly release should be triggered. Has to be "stable" or "nightly".'
+        required: true
+        default: 'stable'
+      tag_name:
+        description: 'Tag name for stable release. Ignored if a nightly release will be created.'
+        required: true
+      release_name:
+        description: 'Release title for stable release. Ignored if a nightly release will be created.'
+        required: true
   schedule:
     - cron: '0 7 * * *' # run every day at 07:00 UTC
 
@@ -295,9 +303,9 @@ jobs:
           path: gobra-ide/client/gobra-ide.vsix
 
 
-  create-nightly-release:
-    # this job creates a new nightly pre-release, set Gobra tools as artifacts, and deletes old releases
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+  create-release:
+    # this job creates a new nightly pre-release or stable draft-release, set Gobra tools as artifacts, and deletes old releases (only nightly releases)
+    if: (github.event_name == 'workflow_dispatch' && (github.event.inputs.type == 'stable' || github.event.inputs.type == 'nightly')) || github.event_name == 'schedule'
     needs: [create-gobra-tools, build-and-test-client]
     runs-on: ubuntu-latest
     steps:
@@ -318,16 +326,13 @@ jobs:
         with:
           name: versions.txt
 
-      - name: Checkout Gobra-IDE
-        uses: actions/checkout@v2
-        with:
-          path: gobra-ide
-
-      - name: Create release tag
+      - name: Create release tag (nightly-only)
+        if: (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'nightly') || github.event_name == 'schedule'
         shell: bash
         run: echo "TAG_NAME=$(date +v-%Y-%m-%d-%H%M)" >> $GITHUB_ENV
 
-      - name: Create nightly release
+      - name: Create nightly release (nightly-only)
+        if: (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'nightly') || github.event_name == 'schedule'
         id: create_release
         uses: viperproject/create-nightly-release@v1
         env:
@@ -339,6 +344,20 @@ jobs:
           body_path: versions.txt
           keep_num: 1 # keep the previous nightly release such that there are always two
 
+      - name: Create stable draft-release (stable-only)
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'stable'
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          # This token is provided by Actions, you do not need to create your own token
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.event.inputs.tag_name }}
+          release_name: ${{ github.event.inputs.release_name }}
+          body_path: versions.txt
+          draft: true
+          prerelease: false
+
       - name: Upload Gobra tools for Windows
         uses: actions/upload-release-asset@v1.0.2
         env:
@@ -365,86 +384,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: deploy/GobraToolsMac.zip
-          asset_name: GobraToolsMac.zip
-          asset_content_type: application/zip
-
-      - name: Upload packaged Gobra IDE
-        uses: actions/upload-release-asset@v1.0.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: gobra-ide/client/gobra-ide.vsix
-          asset_name: gobra-ide.vsix
-          asset_content_type: application/octet-stream
-
-
-  set-release-artifacts:
-    # this job adds the Gobra tools as release artifacts for manually created releases
-    if: github.event_name == 'release' && github.event.action == 'created'
-    needs: [create-gobra-tools, build-and-test-client]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download Gobra tools artifact
-        uses: actions/download-artifact@v2
-        with:
-          name: GobraTools
-          path: deploy
-
-      - name: Download packaged Gobra IDE
-        uses: actions/download-artifact@v2
-        with:
-          name: gobra-ide.vsix
-          path: gobra-ide/client
-
-      - name: Download version file
-        uses: actions/download-artifact@v2
-        with:
-          name: versions.txt
-
-      - name: Get the upload URL for the newly created release
-        id: get_release
-        uses: bruceadams/get-release@v1.2.1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload version file as artifact
-        uses: actions/upload-release-asset@v1.0.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.get_release.outputs.upload_url }}
-          asset_path: versions.txt
-          asset_name: versions.txt
-          asset_content_type: text/plain
-
-      - name: Upload Gobra tools for Windows
-        uses: actions/upload-release-asset@v1.0.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.get_release.outputs.upload_url }}
-          asset_path: deploy/GobraToolsWin.zip
-          asset_name: GobraToolsWin.zip
-          asset_content_type: application/zip
-
-      - name: Upload Gobra tools for Ubuntu
-        uses: actions/upload-release-asset@v1.0.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.get_release.outputs.upload_url }}
-          asset_path: deploy/GobraToolsLinux.zip
-          asset_name: GobraToolsLinux.zip
-          asset_content_type: application/zip
-
-      - name: Upload Gobra tools for macOS
-        uses: actions/upload-release-asset@v1.0.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.get_release.outputs.upload_url }}
           asset_path: deploy/GobraToolsMac.zip
           asset_name: GobraToolsMac.zip
           asset_content_type: application/zip
