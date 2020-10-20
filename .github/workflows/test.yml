@@ -303,9 +303,9 @@ jobs:
           path: gobra-ide/client/gobra-ide.vsix
 
 
-  create-release:
-    # this job creates a new nightly pre-release or stable draft-release, set Gobra tools as artifacts, and deletes old releases (only nightly releases)
-    if: (github.event_name == 'workflow_dispatch' && (github.event.inputs.type == 'stable' || github.event.inputs.type == 'nightly')) || github.event_name == 'schedule'
+  create-nightly-release:
+    # this job creates a new nightly pre-release, set Gobra tools as artifacts, and deletes old releases
+    if: (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'nightly') || github.event_name == 'schedule'
     needs: [create-gobra-tools, build-and-test-client]
     runs-on: ubuntu-latest
     steps:
@@ -326,13 +326,11 @@ jobs:
         with:
           name: versions.txt
 
-      - name: Create release tag (nightly-only)
-        if: (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'nightly') || github.event_name == 'schedule'
+      - name: Create release tag
         shell: bash
         run: echo "TAG_NAME=$(date +v-%Y-%m-%d-%H%M)" >> $GITHUB_ENV
 
-      - name: Create nightly release (nightly-only)
-        if: (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'nightly') || github.event_name == 'schedule'
+      - name: Create nightly release
         id: create_release
         uses: viperproject/create-nightly-release@v1
         env:
@@ -344,8 +342,70 @@ jobs:
           body_path: versions.txt
           keep_num: 1 # keep the previous nightly release such that there are always two
 
-      - name: Create stable draft-release (stable-only)
-        if: github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'stable'
+      - name: Upload Gobra tools for Windows
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: deploy/GobraToolsWin.zip
+          asset_name: GobraToolsWin.zip
+          asset_content_type: application/zip
+
+      - name: Upload Gobra tools for Ubuntu
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: deploy/GobraToolsLinux.zip
+          asset_name: GobraToolsLinux.zip
+          asset_content_type: application/zip
+
+      - name: Upload Gobra tools for macOS
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: deploy/GobraToolsMac.zip
+          asset_name: GobraToolsMac.zip
+          asset_content_type: application/zip
+
+      - name: Upload packaged Gobra IDE
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: gobra-ide/client/gobra-ide.vsix
+          asset_name: gobra-ide.vsix
+          asset_content_type: application/octet-stream
+
+  create-stable-release:
+    # this job creates a stable draft-release and set Gobra tools as artifacts
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'stable'
+    needs: [create-gobra-tools, build-and-test-client]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Gobra tools artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: GobraTools
+          path: deploy
+
+      - name: Download packaged Gobra IDE
+        uses: actions/download-artifact@v2
+        with:
+          name: gobra-ide.vsix
+          path: gobra-ide/client
+
+      - name: Download version file
+        uses: actions/download-artifact@v2
+        with:
+          name: versions.txt
+
+      - name: Create stable draft-release
         id: create_release
         uses: actions/create-release@v1
         env:
