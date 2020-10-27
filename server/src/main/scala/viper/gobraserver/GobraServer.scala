@@ -65,7 +65,7 @@ object GobraServer extends GobraFrontend {
 
     val fileUri = fileData.fileUri
 
-    // do some post precessing if verification has failed
+    // do some post processing if verification has failed
     resultFuture.recoverWith({ case exception =>
       // restart Gobra Server and then update client state
       restart()
