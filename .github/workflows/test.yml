@@ -167,17 +167,35 @@ jobs:
       - name: Download Viper Tools for Windows
         run: curl --fail --silent --show-error http://viper.ethz.ch/downloads/ViperToolsWin.zip --output ViperToolsWin.zip
       - name: Unzip Viper Tools for Windows
-        run: unzip ViperToolsWin.zip -d GobraToolsWin
+        run: unzip ViperToolsWin.zip -d ViperToolsWin
       - name: Download Viper Tools for Linux
         run: curl --fail --silent --show-error http://viper.ethz.ch/downloads/ViperToolsLinux.zip --output ViperToolsLinux.zip
       - name: Unzip Viper Tools for Linux
-        run: unzip ViperToolsLinux.zip -d GobraToolsLinux
+        run: unzip ViperToolsLinux.zip -d ViperToolsLinux
       - name: Download Viper Tools for macOS
         run: curl --fail --silent --show-error http://viper.ethz.ch/downloads/ViperToolsMac.zip --output ViperToolsMac.zip
       - name: Unzip Viper Tools for macOS
-        run: unzip ViperToolsMac.zip -d GobraToolsMac
+        run: unzip ViperToolsMac.zip -d ViperToolsMac
 
-      - name: Copy Gobra server artifact into each tool folder
+      - name: Create a Gobra Tools folder per platform
+        run: |
+          mkdir -p GobraToolsWin
+          mkdir -p GobraToolsLinux
+          mkdir -p GobraToolsMac
+
+      - name: Copy boogie from ViperTools to Gobra Tools
+        run: |
+          cp -R ViperToolsWin/boogie GobraToolsWin/boogie/
+          cp -R ViperToolsLinux/boogie GobraToolsLinux/boogie/
+          cp -R ViperToolsMac/boogie GobraToolsMac/boogie/
+
+      - name: Copy z3 from ViperTools to Gobra Tools
+        run: |
+          cp -R ViperToolsWin/z3 GobraToolsWin/z3/
+          cp -R ViperToolsLinux/z3 GobraToolsLinux/z3/
+          cp -R ViperToolsMac/z3 GobraToolsMac/z3/
+
+      - name: Copy Gobra server artifact to Gobra Tools
         run: |
           mkdir -p GobraToolsWin/server && cp server.jar GobraToolsWin/server/server.jar
           mkdir -p GobraToolsLinux/server && cp server.jar GobraToolsLinux/server/server.jar
