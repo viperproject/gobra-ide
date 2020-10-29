@@ -42,22 +42,23 @@ object GobraServer extends GobraFrontend {
   private var _options: List[String] = List()
   private var _server: ViperCoreServer = _
 
-  def init(options: List[String]) {
+  def init(options: List[String]): Unit = {
     _options = options
     _server = new ViperCoreServer(options.toArray)
     ViperBackends.ViperServerBackend.setServer(_server)
   }
 
-  def start() {
+  def start(): Unit = {
     _verifier = new Gobra
     _server.start()
     VerifierState.flushCachedDiagnostics()
   }
 
-  def restart() {
-    _server.stop()
-    ViperBackends.ViperServerBackend.resetServer()
-    init(_options)
+  def restart(): Unit = {
+    stop()
+    delete()
+    val options = _options
+    init(options)
     start()
   }
 
@@ -220,7 +221,7 @@ object GobraServer extends GobraFrontend {
   /**
     * Gobrafy File.
     */
-  def gobrafy(fileData: FileData) {
+  def gobrafy(fileData: FileData): Unit = {
     var success = false
 
     val filePath = fileData.filePath
@@ -260,23 +261,23 @@ object GobraServer extends GobraFrontend {
     * Get preview of Code which then gets displayed on the client side.
     * Currently the internal representation and the viper encoding can be previewed.
     */
-  def codePreview(fileData: FileData, internalPreview: Boolean, viperPreview: Boolean, selections: List[Range]) {
+  def codePreview(fileData: FileData, internalPreview: Boolean, viperPreview: Boolean, selections: List[Range]): Future[VerifierResult] = {
     val config = Helper.previewConfigFromTask(fileData, internalPreview, viperPreview, selections)
-    val previewFuture = verifier.verify(config)
+    verifier.verify(config)
   }
 
 
-  def stop() {
+  def stop(): Unit = {
     _server.stop()
   }
 
-  def flushCache() {
+  def flushCache(): Unit = {
     _server.flushCache()
     VerifierState.flushCachedDiagnostics()
     VerifierState.changes = List()
   }
 
-  def delete() {
+  def delete(): Unit = {
     ViperBackends.ViperServerBackend.resetServer()
     _server = null
   } 
