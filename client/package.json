@@ -201,7 +201,7 @@
     ],
     "configuration": {
       "type": "object",
-      "title": "Gobra Configuration",
+      "title": "Gobra",
       "properties": {
         "gobraSettings.serverMode": {
           "scope": "window",
