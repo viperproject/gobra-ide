@@ -39,62 +39,76 @@ object GobraServer extends GobraFrontend {
   private var _verifier: Gobra = _
   def verifier: Gobra = _verifier
 
+  private var _options: List[String] = List()
   private var _server: ViperCoreServer = _
 
-  def init(options: List[String]) {
+  def init(options: List[String]): Unit = {
+    _options = options
     _server = new ViperCoreServer(options.toArray)
     ViperBackends.ViperServerBackend.setServer(_server)
   }
 
-  def start() {
+  def start(): Unit = {
     _verifier = new Gobra
     _server.start()
     VerifierState.flushCachedDiagnostics()
   }
-  
 
-  private def serverExceptionHandling(fileData: FileData, resultFuture: Future[VerifierResult]) {
+  def restart(): Unit = {
+    stop()
+    delete()
+    val options = _options
+    init(options)
+    start()
+  }
+
+  private def serverExceptionHandling(fileData: FileData, resultFuture: Future[VerifierResult]): Future[VerifierResult] = {
 
     val fileUri = fileData.fileUri
-    val filePath = fileData.filePath
 
-    resultFuture.onComplete {
-      case Success(_) => // ignore -> handled by reporter
+    // do some post processing if verification has failed
+    resultFuture.recoverWith({ case exception =>
+      // restart Gobra Server and then update client state
+      restart()
 
-      case Failure(exception) =>
+      exception match {
+        case e: Violation.LogicException =>
+          VerifierState.removeDiagnostics(fileUri)
+          val overallResult = Helper.getOverallVerificationResultFromException(fileUri, e)
 
-        exception match {
-          case e: Violation.LogicException =>
-            VerifierState.removeDiagnostics(fileUri)
-            val overallResult = Helper.getOverallVerificationResultFromException(fileUri, e)
-
-            VerifierState.updateVerificationInformation(fileUri, Right(overallResult))
+          VerifierState.updateVerificationInformation(fileUri, Right(overallResult))
 
 
-            if (fileUri == VerifierState.openFileUri) VerifierState.publishDiagnostics(fileUri)
+          if (fileUri == VerifierState.openFileUri) {
+            VerifierState.publishDiagnostics(fileUri)
+          }
 
-          case e =>
-            println("Exception occurred:")
-            e.printStackTrace()
+        case e =>
+          println("Exception occurred:")
+          e.printStackTrace()
 
-            VerifierState.client match {
-              case Some(c) =>
-                c.showMessage(new MessageParams(MessageType.Error, "An exception occurred during verification: " + e))
-                c.verificationException(fileUri)
-              case None =>
-            }
-        }
+          // remove verification information about this file
+          // otherwise, reopening this file in the client will result in sending the last progress although no
+          // verification is running
+          VerifierState.removeVerificationInformation(fileUri)
 
-        // restart GobraServer
-        println("Restarting Gobra Server")
-        start()
-    }
+          VerifierState.client match {
+            case Some(c) =>
+              c.showMessage(new MessageParams(MessageType.Error, "An exception occurred during verification: " + e))
+              c.verificationException(fileUri)
+            case None =>
+          }
+      }
+
+      // forward original result
+      Future.failed(exception)
+    })
   }
 
   /**
     * Preprocess file and enqueue the Viper AST whenever it is created.
     */
-  def preprocess(verifierConfig: VerifierConfig): Unit = {
+  def preprocess(verifierConfig: VerifierConfig): Future[VerifierResult] = {
     val fileUri = verifierConfig.fileData.fileUri
 
     VerifierState.verificationRunning += 1
@@ -111,7 +125,7 @@ object GobraServer extends GobraFrontend {
   /**
     * Preprocess go file and enqueue the Viper AST whenever it is created.
     */
-  def preprocessGo(verifierConfig: VerifierConfig): Unit = {
+  def preprocessGo(verifierConfig: VerifierConfig): Future[VerifierResult] = {
     val fileUri = verifierConfig.fileData.fileUri
     val filePath = verifierConfig.fileData.filePath
 
@@ -166,7 +180,6 @@ object GobraServer extends GobraFrontend {
     val resultFuture = verifier.verifyAst(config, ast(), backtrack())
 
     serverExceptionHandling(verifierConfig.fileData, resultFuture)
-    resultFuture
   }
 
   /**
@@ -208,7 +221,7 @@ object GobraServer extends GobraFrontend {
   /**
     * Gobrafy File.
     */
-  def gobrafy(fileData: FileData) {
+  def gobrafy(fileData: FileData): Unit = {
     var success = false
 
     val filePath = fileData.filePath
@@ -248,23 +261,23 @@ object GobraServer extends GobraFrontend {
     * Get preview of Code which then gets displayed on the client side.
     * Currently the internal representation and the viper encoding can be previewed.
     */
-  def codePreview(fileData: FileData, internalPreview: Boolean, viperPreview: Boolean, selections: List[Range]) {
+  def codePreview(fileData: FileData, internalPreview: Boolean, viperPreview: Boolean, selections: List[Range]): Future[VerifierResult] = {
     val config = Helper.previewConfigFromTask(fileData, internalPreview, viperPreview, selections)
-    val previewFuture = verifier.verify(config)
+    verifier.verify(config)
   }
 
 
-  def stop() {
+  def stop(): Unit = {
     _server.stop()
   }
 
-  def flushCache() {
+  def flushCache(): Unit = {
     _server.flushCache()
     VerifierState.flushCachedDiagnostics()
     VerifierState.changes = List()
   }
 
-  def delete() {
+  def delete(): Unit = {
     ViperBackends.ViperServerBackend.resetServer()
     _server = null
   } 
