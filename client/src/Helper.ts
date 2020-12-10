@@ -115,7 +115,9 @@ export class Helper {
     return new Promise((resolve, reject) => {
       try {
         const options = {
-          version: ">=1.8"
+          version: ">=1.8",
+          mustBe64Bit: true,
+          mustBeJDK: true // we currently disallow JREs
         };
         Helper.log("Searching for Java home...");
         locate_java_home.default(options, (err, javaHomes) => {
