@@ -55,10 +55,11 @@
     "yargs": "^16.0.3"
   },
   "scripts": {
-    "vscode:prepublish": "rm -rf dist && webpack --mode production",
-    "webpack": "rm -rf dist && webpack --mode development",
-    "webpack-dev": "rm -rf dist && webpack --mode development --watch",
-    "test-compile": "rm -rf dist && tsc -p ./",
+    "deleteDistFolder": "node scripts/deleteDistFolder.js",
+    "vscode:prepublish": "npm run deleteDistFolder && webpack --mode production",
+    "webpack": "npm run deleteDistFolder && webpack --mode development",
+    "webpack-dev": "npm run deleteDistFolder && webpack --mode development --watch",
+    "test-compile": "npm run deleteDistFolder && tsc -p ./",
     "pretest": "npm run test-compile",
     "test": "node ./dist/test/runTest.js",
     "package": "vsce package"

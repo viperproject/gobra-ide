@@ -149,7 +149,7 @@ export class State {
         }
       }
 
-      const processArgs = ['-Xss128m', '-jar', serverBin/*, '--nThreads', '5'*/];
+      const processArgs = ['-Xss128m', '-jar', serverBin/*, '--nThreads', '3'*/];
       Helper.log(`Gobra IDE: Running '${javaPath} ${processArgs.join(' ')}'`);
       const serverProcess = child_process.spawn(javaPath, processArgs);
       // redirect stdout to readline which nicely combines and splits lines

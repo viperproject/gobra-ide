@@ -131,6 +131,7 @@ export class Helper {
             } else {
               const javaHome = javaHomes[0];
               Helper.log(`Using Java home ${JSON.stringify(javaHome, null, 2)}`);
+              Helper.log(`All Java homes: ${JSON.stringify(javaHomes, null, 2)}`);
               resolve(javaHome.path);
             }
           }
