@@ -18,8 +18,8 @@ import java.time.format.DateTimeFormatter
 
 import scala.io.Source
 import viper.server.core.ViperCoreServer
-import viper.gobra.backend.ViperBackends
 import org.eclipse.lsp4j.{MessageParams, MessageType, Range}
+import viper.gobraserver.backend.ViperServerBackend
 
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
@@ -39,14 +39,15 @@ object GobraServer extends GobraFrontend {
   def verifier: Gobra = _verifier
 
   private var _options: List[String] = List()
-  private var _executor: GobraExecutionContext = _
+  private var _executor: GobraServerExecutionContext = _
   private var _server: ViperCoreServer = _
 
-  def init(options: List[String])(executor: GobraExecutionContext): Unit = {
+  def init(options: List[String])(executor: GobraServerExecutionContext): Unit = {
     _options = options
     _executor = executor
     _server = new ViperCoreServer(options.toArray)(executor)
-    ViperBackends.ViperServerBackend.setServer(_server)
+    ViperServerBackend.setExecutor(executor)
+    ViperServerBackend.setServer(_server)
   }
 
   def start(): Unit = {
@@ -280,7 +281,8 @@ object GobraServer extends GobraFrontend {
   }
 
   def delete(): Unit = {
-    ViperBackends.ViperServerBackend.resetServer()
+    ViperServerBackend.resetServer()
+    ViperServerBackend.resetExecutor()
     _server = null
   } 
 }

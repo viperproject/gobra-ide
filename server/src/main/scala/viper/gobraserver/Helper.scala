@@ -7,8 +7,7 @@
 package viper.gobraserver
 
 import viper.gobra.frontend.Config
-import viper.gobra.backend.ViperBackends
-import viper.server.core.ViperBackendConfigs
+import viper.gobra.backend.{ViperBackends, ViperVerifierConfig}
 import viper.gobra.reporting.{FileWriterReporter, VerifierResult}
 import org.eclipse.lsp4j.Range
 import java.io.File
@@ -16,13 +15,14 @@ import java.nio.file.{Files, Paths}
 
 import ch.qos.logback.classic.Level
 import viper.gobra.util.GobraExecutionContext
+import viper.gobraserver.backend.ViperServerBackend
 
 object Helper {
 
   val defaultVerificationFraction = 0.75
 
-  def verificationConfigFromTask(verifierConfig: VerifierConfig, startTime: Long, verify: Boolean, progress: Int = 0)(executor: GobraExecutionContext): Config = {
-    verifierConfig match {
+  def verificationConfigFromTask(config: VerifierConfig, startTime: Long, verify: Boolean, progress: Int = 0)(executor: GobraExecutionContext): Config = {
+    config match {
       case VerifierConfig(
         FileData(path, fileUri),
         GobraSettings(backendId, serverMode, debug, eraseGhost, goify, unparse, printInternal, printViper, parseOnly, logLevel),
@@ -38,7 +38,7 @@ object Helper {
 
         val backend =
           if (serverMode) {
-            ViperBackends.ViperServerBackend
+            ViperServerBackend
           } else {
             backendId match {
               case "SILICON" => ViperBackends.SiliconBackend
@@ -49,7 +49,7 @@ object Helper {
 
         val reporter = GobraIdeReporter(
           startTime = startTime,
-          verifierConfig = verifierConfig,
+          verifierConfig = config,
           fileUri = fileUri,
           backend = backend,
           verificationFraction = defaultVerificationFraction,
@@ -62,7 +62,7 @@ object Helper {
           printVpr = printViper
         )(executor)
 
-        val backendConfig =
+        val verifierConfig =
           if (serverMode) {
             var options: Vector[String] = Vector.empty
 
@@ -76,26 +76,25 @@ object Helper {
                 options ++= Vector("--disableCatchingExceptions")
                 options ++= Vector("--enableMoreCompleteExhale")
 
-                ViperBackendConfigs.SiliconConfig(options.toList)
+                ViperVerifierConfig.Config(options.toList)
 
               case "CARBON" =>
                 //var options: List[String] = List()
                 if (boogieExe != null && Files.exists(Paths.get(boogieExe)))
                   options ++= Vector("--boogieExe", boogieExe)
 
-                ViperBackendConfigs.CarbonConfig(options.toList)
+                ViperVerifierConfig.Config(options.toList)
 
-              case _ => ViperBackendConfigs.EmptyConfig
+              case _ => ViperVerifierConfig.EmptyConfig
             }
           } else
-            ViperBackendConfigs.EmptyConfig
-
+            ViperVerifierConfig.EmptyConfig
 
         Config(
           inputFiles = Vector(new File(path)),
           reporter = reporter,
           backend = backend,
-          backendConfig = backendConfig,
+          backendConfig = verifierConfig,
           z3Exe = Some(z3Exe),
           boogieExe = Some(boogieExe),
           logLevel = Level.toLevel(logLevel),
