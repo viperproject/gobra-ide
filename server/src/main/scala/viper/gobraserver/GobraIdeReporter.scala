@@ -13,7 +13,7 @@ import org.apache.commons.io.FileUtils
 import org.eclipse.lsp4j.{Diagnostic, DiagnosticSeverity, Position, Range}
 import viper.gobra.backend.{ViperBackend, ViperBackends}
 import viper.gobra.reporting._
-import viper.gobra.util.OutputUtil
+import viper.gobra.util.{GobraExecutionContext, OutputUtil}
 import viper.silver.reporter.StatisticsReport
 
 import scala.collection.mutable
@@ -30,7 +30,7 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
                             goify: Boolean = false,
                             debug: Boolean = false,
                             printInternal: Boolean = false,
-                            printVpr: Boolean = false) extends GobraReporter {
+                            printVpr: Boolean = false)(executor: GobraExecutionContext) extends GobraReporter {
 
   /**
     * State and Helper functions used for tracking the progress of the Verification.
@@ -153,13 +153,11 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
 
     case m@GeneratedViperMessage(file, ast, backtrack) =>
       updateProgress(nonVerificationEntityProgress)
-      if (printVpr) write(file, "vpr", m.vprAstFormatted)
-
-      VerifierState.jobQueue.synchronized {
-        VerifierState.jobQueue.enqueue((ast, backtrack, startTime, verifierConfig))
-        VerifierState.jobQueue.notify()
+      if (printVpr){
+        write(file, "vpr", m.vprAstFormatted)
       }
-
+      // submit the Viper AST's verification to the thread pool:
+      VerifierState.submitVerificationJob(ast(), backtrack(), startTime, verifierConfig)(executor)
     
     case GobraOverallSuccessMessage(_) =>
       VerifierState.removeDiagnostics(fileUri)

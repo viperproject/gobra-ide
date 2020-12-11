@@ -11,17 +11,12 @@ import java.util.concurrent.CompletableFuture
 import com.google.gson.Gson
 import org.eclipse.lsp4j.jsonrpc.services.{JsonNotification, JsonRequest}
 import org.eclipse.lsp4j.{DidChangeTextDocumentParams, DidChangeWatchedFilesParams, DidCloseTextDocumentParams, DidOpenTextDocumentParams, DidSaveTextDocumentParams, InitializeParams, InitializeResult, MessageParams, MessageType, Range, ServerCapabilities, TextDocumentSyncKind}
+import viper.gobra.util.GobraExecutionContext
 
 import collection.JavaConverters._
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 
-class GobraServerService extends IdeLanguageClientAware {
+class GobraServerService()(implicit executor: GobraExecutionContext) extends IdeLanguageClientAware {
   private val gson: Gson = new Gson()
-
-  // thread being responsible for dequeuing jobs and starting the verification.
-  private var verificationWorker: Thread = _
-
-  implicit val executionContext: ExecutionContextExecutor = ExecutionContext.global
 
 
   @JsonRequest(value = "initialize")
@@ -32,11 +27,8 @@ class GobraServerService extends IdeLanguageClientAware {
     capabilities.setTextDocumentSync(TextDocumentSyncKind.Incremental)
 
     var options: List[String] = List()
-    GobraServer.init(options)
+    GobraServer.init(options)(executor)
     GobraServer.start()
-
-    verificationWorker = new Thread(new VerificationWorker())
-    verificationWorker.start()
 
     CompletableFuture.completedFuture(new InitializeResult(capabilities))
   }
@@ -44,9 +36,6 @@ class GobraServerService extends IdeLanguageClientAware {
   @JsonRequest(value = "shutdown")
   def shutdown(): CompletableFuture[AnyRef] = {
     println("shutdown")
-
-    verificationWorker.interrupt()
-    verificationWorker.join()
 
     GobraServer.stop()
 
@@ -82,13 +71,13 @@ class GobraServerService extends IdeLanguageClientAware {
 
   @JsonNotification("textDocument/didChange")
   def didChange(params: DidChangeTextDocumentParams): Unit = {
-    Future {
-      val fileUri = params.getTextDocument.getUri
-      val changes = params.getContentChanges.asScala.toList
+    val fileUri = params.getTextDocument.getUri
+    val changes = params.getContentChanges.asScala.toList
 
-      VerifierState.updateDiagnostics(fileUri, changes)
+    VerifierState.updateDiagnostics(fileUri, changes)
 
-      if (VerifierState.verificationRunning > 0) VerifierState.changes = VerifierState.changes :+ (fileUri, changes)
+    if (VerifierState.verificationRunning > 0) {
+      VerifierState.changes = VerifierState.changes :+ (fileUri, changes)
     }
   }
 
@@ -184,7 +173,7 @@ class GobraServerService extends IdeLanguageClientAware {
     val previewData: PreviewData = gson.fromJson(previewDataJson, classOf[PreviewData])
     val selections = previewData.selections.map(selection => new Range(selection(0), selection(1))).toList
 
-    GobraServer.codePreview(previewData.fileData, previewData.internalPreview, previewData.viperPreview, selections)
+    GobraServer.codePreview(previewData.fileData, previewData.internalPreview, previewData.viperPreview, selections)(executor)
   }
 
 
