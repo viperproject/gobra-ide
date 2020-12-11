@@ -83,8 +83,6 @@ export class State {
     this.internalPreviewProvider = new CodePreviewProvider();
     vscode.workspace.registerTextDocumentContentProvider(FileSchemes.internal, this.internalPreviewProvider);
 
-
-
     const serverBin = Helper.getServerJarPath(Helper.isNightly());
     // use the following serverBin when you want to directly use the compiled server jar:
     // const prefix = __dirname.split("client")[0];
@@ -149,7 +147,7 @@ export class State {
         }
       }
 
-      const processArgs = ['-Xss128m', '-jar', serverBin/*, '--nThreads', '3'*/];
+      const processArgs = Helper.getServerProcessArgs(serverBin);
       Helper.log(`Gobra IDE: Running '${javaPath} ${processArgs.join(' ')}'`);
       const serverProcess = child_process.spawn(javaPath, processArgs);
       // redirect stdout to readline which nicely combines and splits lines

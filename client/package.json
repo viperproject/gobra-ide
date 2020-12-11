@@ -293,6 +293,18 @@
           "default": true,
           "description": "Enable Auto Verification of Gobra files."
         },
+        "gobraDependencies.java.javaBinary": {
+          "scope": "window",
+          "type": "string",
+          "default": "",
+          "description": "Specify the path to a Java binary (i.e. ending in `bin/java` resp. `bin/java.exe`). It is recommended to use a 64-bit JDK version 1.8 or higher. An empty path results in Gobra searching and using a Java installation meeting the recommendations."
+        },
+        "gobraDependencies.java.javaArguments": {
+          "scope": "window",
+          "type": "string",
+          "default": "-Xss128m -jar $serverBinary$",
+          "description": "Specify arguments that will be passed to the Java binary and Gobra server."
+        },
         "gobraDependencies.gobraToolsPaths": {
           "type": "object",
           "default": {
