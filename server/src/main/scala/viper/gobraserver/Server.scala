@@ -66,8 +66,7 @@ object Server {
       // wait until stream is closed again
       future.get()
       println("listener thread from server has stopped")
-      val terminateFuture = executor.terminate()
-      Await.result(terminateFuture, FiniteDuration(1, TimeUnit.SECONDS))
+      executor.terminate()
       println("executor service has been shut down")
     } catch {
       case e: IOException => println(s"IOException occurred: ${e.toString}")
