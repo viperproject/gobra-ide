@@ -273,7 +273,7 @@ object GobraServer extends GobraFrontend {
 
 
   def stop(): Future[Unit] = {
-    _server.stop()
+    _server.stop().map(_ => {})(_executor)
   }
 
   def flushCache(): Unit = {
