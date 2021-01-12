@@ -13,6 +13,9 @@ import java.util.concurrent.TimeUnit
 import org.eclipse.lsp4j.jsonrpc.Launcher
 import org.eclipse.lsp4j.jsonrpc.Launcher.Builder
 
+import scala.concurrent.Await
+import scala.concurrent.duration.FiniteDuration
+
 object Server {
 
   val copyright = "(c) Copyright ETH Zurich 2012 - 2020"
@@ -63,8 +66,8 @@ object Server {
       // wait until stream is closed again
       future.get()
       println("listener thread from server has stopped")
-      executor.service.shutdown()
-      executor.service.awaitTermination(1, TimeUnit.SECONDS)
+      val terminateFuture = executor.terminate()
+      Await.result(terminateFuture, FiniteDuration(1, TimeUnit.SECONDS))
       println("executor service has been shut down")
     } catch {
       case e: IOException => println(s"IOException occurred: ${e.toString}")

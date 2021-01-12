@@ -7,16 +7,16 @@
 package viper.gobraserver.backend
 
 import viper.silver.ast.Program
-import viper.silver.reporter.{Message, OverallFailureMessage, OverallSuccessMessage, Reporter}
+import viper.silver.reporter.{ExceptionReport, Message, OverallFailureMessage, OverallSuccessMessage, Reporter}
 import viper.silver.verifier.{Success, VerificationResult}
 import akka.actor.{Actor, Props}
+import viper.gobra.backend.ViperBackends.{CarbonBackend, SiliconBackend}
 import viper.gobra.backend.{ViperVerifier, ViperVerifierConfig}
 
 import scala.concurrent.{Future, Promise}
 import viper.gobra.util.GobraExecutionContext
 import viper.gobraserver.GobraServerExecutionContext
-import viper.server.core.ViperBackendConfigs.CustomConfig
-import viper.server.core.{ViperBackendConfig, ViperCoreServer}
+import viper.server.core.{CarbonConfig, CustomConfig, SiliconConfig, ViperBackendConfig, ViperCoreServer, ViperServerBackendNotFoundException}
 
 
 object ViperServer {
@@ -33,6 +33,7 @@ object ViperServer {
           msg match {
             case msg: OverallFailureMessage => verificationPromise trySuccess msg.result
             case _: OverallSuccessMessage   => verificationPromise trySuccess Success
+            case ExceptionReport(e)         => verificationPromise tryFailure e
             case _ =>
           }
         } catch {
@@ -52,7 +53,11 @@ class ViperServer(server: ViperCoreServer)(executor: GobraServerExecutionContext
     // directly declaring the parameter implicit somehow does not work as the compiler is unable to spot the inheritance
     implicit val _executor: GobraExecutionContext = executor
     // convert ViperVerifierConfig to ViperBackendConfig:
-    val serverConfig: ViperBackendConfig = CustomConfig(config.partialCommandLine)
+    val serverConfig: ViperBackendConfig = config.backend match {
+      case SiliconBackend => SiliconConfig(config.partialCommandLine)
+      case CarbonBackend => CarbonConfig(config.partialCommandLine)
+      case backend => throw ViperServerBackendNotFoundException(s"unknown backend $backend")
+    }
     val handle = server.verify(programID, serverConfig, program)
     val promise: Promise[VerificationResult] = Promise()
     val clientActor = executor.actorSystem.actorOf(Props(new GlueActor(reporter, promise)))

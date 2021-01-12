@@ -14,6 +14,7 @@ import java.io.File
 import java.nio.file.{Files, Paths}
 
 import ch.qos.logback.classic.Level
+import viper.gobra.backend.ViperBackends.{CarbonBackend, SiliconBackend}
 import viper.gobra.util.GobraExecutionContext
 import viper.gobraserver.backend.ViperServerBackend
 
@@ -76,19 +77,24 @@ object Helper {
                 options ++= Vector("--disableCatchingExceptions")
                 options ++= Vector("--enableMoreCompleteExhale")
 
-                ViperVerifierConfig.Config(options.toList)
+                ViperVerifierConfig.Config(SiliconBackend, options.toList)
 
               case "CARBON" =>
                 //var options: List[String] = List()
                 if (boogieExe != null && Files.exists(Paths.get(boogieExe)))
                   options ++= Vector("--boogieExe", boogieExe)
 
-                ViperVerifierConfig.Config(options.toList)
+                ViperVerifierConfig.Config(CarbonBackend, options.toList)
 
-              case _ => ViperVerifierConfig.EmptyConfig
+              case _ =>
+                println("unknown backend option received - falling back to Silicon")
+                ViperVerifierConfig.EmptyConfig(SiliconBackend)
             }
-          } else
-            ViperVerifierConfig.EmptyConfig
+          } else {
+            // this won't be used as ViperServer will not be involved.
+            // nevertheless, we need to provide a config
+            ViperVerifierConfig.EmptyConfig(backend)
+          }
 
         Config(
           inputFiles = Vector(new File(path)),

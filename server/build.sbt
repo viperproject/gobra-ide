@@ -7,22 +7,13 @@
 import scala.sys.process.Process
 import scala.util.Try
 
-// Compilation settings
-ThisBuild / scalaVersion := "2.12.7"
-ThisBuild / scalacOptions ++= Seq(
-  "-deprecation",                     // Warn when using deprecated language features
-  "-unchecked",                       // Warn on generated code assumptions
-  "-feature",                         // Warn on features that requires explicit import
-  "-Ywarn-unused-import",             // Warn on unused imports
-  "-Ypatmat-exhaust-depth", "40",     // Increase depth of pattern matching analysis
-)
-
+// Import general settings from Gobra and ViperServer
 lazy val gobra = (project in file("gobra"))
 lazy val server = (project in file("viperserver"))
 
 lazy val gobraServer = (project in file("."))
-  .dependsOn(gobra %"compile->compile;test->test")
-  .dependsOn(server %"compile->compile;test->test")
+  .dependsOn(gobra % "compile->compile;test->test")
+  .dependsOn(server % "compile->compile;test->test")
   .settings(
     name := "gobra-ide",
     description := "Server implementation for Gobra IDE",
@@ -32,10 +23,9 @@ lazy val gobraServer = (project in file("."))
     licenses := Seq("MPL-2.0 License" -> url("https://opensource.org/licenses/MPL-2.0")),
 
     libraryDependencies += "org.eclipse.lsp4j" % "org.eclipse.lsp4j" % "0.8.1", // Java implementation of language server protocol
-	  libraryDependencies += "com.typesafe.akka" %% "akka-actor" % "2.5.22",
+	  libraryDependencies += "com.typesafe.akka" %% "akka-actor" % "2.6.10",
 
 	  scalacOptions ++= Seq(
-      "-Ypartial-unification",
       "-Ypatmat-exhaust-depth", "40"
     ),
 
