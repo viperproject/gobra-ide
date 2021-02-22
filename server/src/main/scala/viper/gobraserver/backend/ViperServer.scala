@@ -10,13 +10,12 @@ import viper.silver.ast.Program
 import viper.silver.reporter.{ExceptionReport, Message, OverallFailureMessage, OverallSuccessMessage, Reporter}
 import viper.silver.verifier.{Success, VerificationResult}
 import akka.actor.{Actor, Props}
-import viper.gobra.backend.ViperBackends.{CarbonBackend, SiliconBackend}
 import viper.gobra.backend.{ViperVerifier, ViperVerifierConfig}
 
 import scala.concurrent.{Future, Promise}
 import viper.gobra.util.GobraExecutionContext
 import viper.gobraserver.GobraServerExecutionContext
-import viper.server.core.{CarbonConfig, CustomConfig, SiliconConfig, ViperBackendConfig, ViperCoreServer, ViperServerBackendNotFoundException}
+import viper.server.core.{CarbonConfig, SiliconConfig, ViperBackendConfig, ViperCoreServer, ViperServerBackendNotFoundException}
 
 
 object ViperServer {
@@ -45,6 +44,15 @@ object ViperServer {
   }
 }
 
+object ViperServerConfig {
+  object EmptyConfigWithSilicon extends ViperServerWithSilicon {val partialCommandLine: List[String] = Nil}
+  object EmptyConfigWithCarbon extends ViperServerWithCarbon {val partialCommandLine: List[String] = Nil}
+  case class ConfigWithSilicon(partialCommandLine: List[String]) extends ViperServerWithSilicon
+  case class ConfigWithCarbon(partialCommandLine: List[String]) extends ViperServerWithCarbon
+}
+trait ViperServerWithSilicon extends ViperVerifierConfig
+trait ViperServerWithCarbon extends ViperVerifierConfig
+
 class ViperServer(server: ViperCoreServer)(executor: GobraServerExecutionContext) extends ViperVerifier {
 
   import ViperServer._
@@ -53,10 +61,10 @@ class ViperServer(server: ViperCoreServer)(executor: GobraServerExecutionContext
     // directly declaring the parameter implicit somehow does not work as the compiler is unable to spot the inheritance
     implicit val _executor: GobraExecutionContext = executor
     // convert ViperVerifierConfig to ViperBackendConfig:
-    val serverConfig: ViperBackendConfig = config.backend match {
-      case SiliconBackend => SiliconConfig(config.partialCommandLine)
-      case CarbonBackend => CarbonConfig(config.partialCommandLine)
-      case backend => throw ViperServerBackendNotFoundException(s"unknown backend $backend")
+    val serverConfig: ViperBackendConfig = config match {
+      case _: ViperServerWithSilicon => SiliconConfig(config.partialCommandLine)
+      case _: ViperServerWithCarbon => CarbonConfig(config.partialCommandLine)
+      case c => throw ViperServerBackendNotFoundException(s"unknown backend config $c")
     }
     val handle = server.verify(programID, serverConfig, program)
     val promise: Promise[VerificationResult] = Promise()
