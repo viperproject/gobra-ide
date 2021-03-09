@@ -2,11 +2,14 @@
     {
         "include": [
             "**/*.ts",
+            "**/*.js",
             "**/*.scala",
             "server/build.sbt"
         ],
         "exclude": [
             "client/node_modules/**",
+            "client/dist/**",
+            "client/webpack.config.js",
             "client/src/evaluate/index.ts",
             "client/src/evaluate/runEvaluation.ts",
             "client/src/test/index.ts",
