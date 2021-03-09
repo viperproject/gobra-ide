@@ -129,7 +129,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: server
-          path: gobra-ide/server/target/scala-2.12/server.jar
+          path: gobra-ide/server/target/scala-2.13/server.jar
 
       - name: Test Gobra server
         run: sbt test
@@ -231,7 +231,7 @@ jobs:
         with:
           name: server
           # place artifact at the same location as the build has produced it:
-          path: gobra-ide/server/target/scala-2.12
+          path: gobra-ide/server/target/scala-2.13
           # note that download-path is the parent folder (not server.jar)
 
       - name: Install Node.js
