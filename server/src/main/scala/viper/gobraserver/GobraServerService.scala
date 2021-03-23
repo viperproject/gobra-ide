@@ -12,20 +12,21 @@ import com.google.gson.Gson
 import org.eclipse.lsp4j.jsonrpc.services.{JsonNotification, JsonRequest}
 import org.eclipse.lsp4j.{DidChangeTextDocumentParams, DidChangeWatchedFilesParams, DidCloseTextDocumentParams, DidOpenTextDocumentParams, DidSaveTextDocumentParams, InitializeParams, InitializeResult, MessageParams, MessageType, Range, ServerCapabilities, TextDocumentSyncKind}
 
-import collection.JavaConverters._
+import scala.jdk.CollectionConverters._
+import scala.annotation.unused
 
 class GobraServerService()(implicit executor: GobraServerExecutionContext) extends IdeLanguageClientAware {
   private val gson: Gson = new Gson()
 
 
   @JsonRequest(value = "initialize")
-  def initialize(params: InitializeParams): CompletableFuture[InitializeResult] = {
+  def initialize(@unused params: InitializeParams): CompletableFuture[InitializeResult] = {
     println("initialize")
     val capabilities = new ServerCapabilities()
     // always send full text document for each notification:
     capabilities.setTextDocumentSync(TextDocumentSyncKind.Incremental)
 
-    var options: List[String] = List()
+    val options: List[String] = List()
     GobraServer.init(options)(executor)
     GobraServer.start()
 
@@ -57,7 +58,7 @@ class GobraServerService()(implicit executor: GobraServerExecutionContext) exten
 
   // This is received when a setting is changed.
   @JsonNotification("$/setTraceNotification")
-  def setTraceNotification(params: Any): Unit = {
+  def setTraceNotification(@unused params: Any): Unit = {
     println("Trace Notification arrived")
   }
 
@@ -86,21 +87,21 @@ class GobraServerService()(implicit executor: GobraServerExecutionContext) exten
   }
 
   @JsonNotification("textDocument/didClose")
-  def didClose(params: DidCloseTextDocumentParams): Unit = {
+  def didClose(@unused params: DidCloseTextDocumentParams): Unit = {
     println("didClose")
 
-    val fileUri = params.getTextDocument.getUri
+    // val fileUri = params.getTextDocument.getUri
     // TODO: need to remove diagnostics and forget file in ViperServer
-    //VerifierState.removeDiagnostics(fileUri)
+    // VerifierState.removeDiagnostics(fileUri)
   }
 
   @JsonNotification("textDocument/didSave")
-  def didSave(params: DidSaveTextDocumentParams): Unit = {
+  def didSave(@unused params: DidSaveTextDocumentParams): Unit = {
     println("didSave")
   }
 
   @JsonNotification("workspace/didChangeWatchedFiles")
-  def didChangeWatchedFiles(params: DidChangeWatchedFilesParams): Unit = {
+  def didChangeWatchedFiles(@unused params: DidChangeWatchedFilesParams): Unit = {
     println("didChangeWatchedFiles")
   }
 
