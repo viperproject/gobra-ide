@@ -16,8 +16,6 @@ import java.io._
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
-import akka.stream.FlowMonitorState.Failed
-
 import scala.io.Source
 import viper.server.core.ViperCoreServer
 import org.eclipse.lsp4j.{MessageParams, MessageType, Range}
@@ -48,7 +46,7 @@ object GobraServer extends GobraFrontend {
     _options = options
     _executor = executor
     _server = new ViperCoreServer(options.toArray)(executor)
-    ViperServerBackend.setExecutor(executor)
+    ViperServerBackend.setExecutor(_executor)
     ViperServerBackend.setServer(_server)
   }
 
@@ -79,7 +77,7 @@ object GobraServer extends GobraFrontend {
     // do some post processing if verification has failed
     resultFuture.transformWith {
       case Success(res) => Future.successful(res)
-      case Failure(exception: Throwable) =>
+      case Failure(exception) =>
         // restart Gobra Server and then update client state
         // ignore result of restart and inform the client:
         restart().transformWith(_ => {
@@ -273,7 +271,7 @@ object GobraServer extends GobraFrontend {
 
 
   def stop(): Future[Unit] = {
-    _server.stop().map(_ => {})(_executor)
+    _server.stop().map(_ => ())(_executor)
   }
 
   def flushCache(): Unit = {
