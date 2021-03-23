@@ -10,6 +10,7 @@ import com.google.gson.Gson
 import org.eclipse.lsp4j.{Diagnostic, Position, PublishDiagnosticsParams, Range, TextDocumentContentChangeEvent}
 import viper.gobra.reporting.BackTranslator.BackTrackInfo
 import viper.gobra.reporting.VerifierError
+import viper.gobra.util.GobraExecutionContext
 import viper.silver.ast.Program
 
 import scala.collection.JavaConverters._
@@ -32,14 +33,18 @@ object VerifierState {
 
   var verificationRunning: Int = 0
 
-  private val _jobQueue = mutable.Queue[(() => Program, () => BackTrackInfo, Long, VerifierConfig)]()
-  def jobQueue: mutable.Queue[(() => Program, () => BackTrackInfo, Long, VerifierConfig)] = _jobQueue
-
   private var _client: Option[IdeLanguageClient] = None
   def client: Option[IdeLanguageClient] = _client
 
   def setClient(client: IdeLanguageClient): Unit = {
     _client = Some(client)
+  }
+
+  def submitVerificationJob(program: Program, backtrack: BackTrackInfo, startTime: Long, verifierConfig: VerifierConfig)(implicit executor: GobraExecutionContext): Unit = {
+    // simply call verify here without explicitly waiting on the result (or waiting for it in a runnable submitted
+    // to the thread pool - in this case an entire thread from the thread pool would be occupied waiting for it).
+    // executor.execute(() => GobraServer.verify(verifierConfig, program, backtrack, startTime))
+    GobraServer.verify(verifierConfig, program, backtrack, startTime)
   }
   
   /**

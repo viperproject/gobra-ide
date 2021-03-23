@@ -9,7 +9,7 @@ package viper.gobraserver
 import viper.gobra.Gobra
 import viper.gobra.GobraFrontend
 import viper.gobra.reporting.VerifierResult
-import viper.gobra.util.Violation
+import viper.gobra.util.{GobraExecutionContext, Violation}
 import viper.gobra.reporting.BackTranslator.BackTrackInfo
 import viper.silver.ast.Program
 import java.io._
@@ -22,7 +22,6 @@ import viper.gobra.backend.ViperBackends
 import org.eclipse.lsp4j.{MessageParams, MessageType, Range}
 
 import scala.concurrent.Future
-import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
 
 
@@ -34,17 +33,19 @@ case class GobraServerCacheInconsistentException() extends GobraServerException 
 
 
 object GobraServer extends GobraFrontend {
-  implicit val executionContext: ExecutionContext = ExecutionContext.global
+
 
   private var _verifier: Gobra = _
   def verifier: Gobra = _verifier
 
   private var _options: List[String] = List()
+  private var _executor: GobraExecutionContext = _
   private var _server: ViperCoreServer = _
 
-  def init(options: List[String]): Unit = {
+  def init(options: List[String])(executor: GobraExecutionContext): Unit = {
     _options = options
-    _server = new ViperCoreServer(options.toArray)
+    _executor = executor
+    _server = new ViperCoreServer(options.toArray)(executor)
     ViperBackends.ViperServerBackend.setServer(_server)
   }
 
@@ -58,11 +59,12 @@ object GobraServer extends GobraFrontend {
     stop()
     delete()
     val options = _options
-    init(options)
+    val executor = _executor
+    init(options)(executor)
     start()
   }
 
-  private def serverExceptionHandling(fileData: FileData, resultFuture: Future[VerifierResult]): Future[VerifierResult] = {
+  private def serverExceptionHandling(fileData: FileData, resultFuture: Future[VerifierResult])(implicit executor: GobraExecutionContext): Future[VerifierResult] = {
 
     val fileUri = fileData.fileUri
 
@@ -108,7 +110,7 @@ object GobraServer extends GobraFrontend {
   /**
     * Preprocess file and enqueue the Viper AST whenever it is created.
     */
-  def preprocess(verifierConfig: VerifierConfig): Future[VerifierResult] = {
+  def preprocess(verifierConfig: VerifierConfig)(implicit executor: GobraExecutionContext): Future[VerifierResult] = {
     val fileUri = verifierConfig.fileData.fileUri
 
     VerifierState.verificationRunning += 1
@@ -116,8 +118,8 @@ object GobraServer extends GobraFrontend {
 
     val startTime = System.currentTimeMillis()
 
-    val config = Helper.verificationConfigFromTask(verifierConfig, startTime, verify = false)
-    val preprocessFuture = verifier.verify(config)
+    val config = Helper.verificationConfigFromTask(verifierConfig, startTime, verify = false)(executor)
+    val preprocessFuture = verifier.verify(config)(executor)
 
     serverExceptionHandling(verifierConfig.fileData, preprocessFuture)
   }
@@ -125,7 +127,7 @@ object GobraServer extends GobraFrontend {
   /**
     * Preprocess go file and enqueue the Viper AST whenever it is created.
     */
-  def preprocessGo(verifierConfig: VerifierConfig): Future[VerifierResult] = {
+  def preprocessGo(verifierConfig: VerifierConfig)(implicit executor: GobraExecutionContext): Future[VerifierResult] = {
     val fileUri = verifierConfig.fileData.fileUri
     val filePath = verifierConfig.fileData.filePath
 
@@ -141,7 +143,7 @@ object GobraServer extends GobraFrontend {
 
     val startTime = System.currentTimeMillis()
 
-    val config = Helper.verificationConfigFromTask(verifierConfig, startTime, verify = false)
+    val config = Helper.verificationConfigFromTask(verifierConfig, startTime, verify = false)(executor)
 
     val tempFileName = s"gobrafiedProgram_${DateTimeFormatter.ofPattern("yyyy-MM-dd_HH_mm").format(LocalDateTime.now)}"
     val tempFi = File.createTempFile(tempFileName, ".gobra")
@@ -155,7 +157,7 @@ object GobraServer extends GobraFrontend {
 
     // adapt config to use the temp file instead of the original file containing the Go code
     val tmpConfig = config.copy(inputFiles = Vector(tempFi))
-    val verifyAndDeleteTempFile = verifier.verify(tmpConfig)
+    val verifyAndDeleteTempFile = verifier.verify(tmpConfig)(executor)
       .transform(res => {
         // delete the temporary file (in case of success & failure)
         // note that this continuation does not run after the verification but already after desugaring (i.e. before inserting the Viper AST into the queue)
@@ -173,11 +175,11 @@ object GobraServer extends GobraFrontend {
   /**
     * Verify Viper AST.
     */
-  def verify(verifierConfig: VerifierConfig, ast: () => Program, backtrack: () => BackTrackInfo, startTime: Long): Future[VerifierResult] = {
+  def verify(verifierConfig: VerifierConfig, ast: Program, backtrack: BackTrackInfo, startTime: Long)(implicit executor: GobraExecutionContext): Future[VerifierResult] = {
     val completedProgress = (100 * (1 - Helper.defaultVerificationFraction)).toInt
-    val config = Helper.verificationConfigFromTask(verifierConfig, startTime, verify = true, completedProgress)
+    val config = Helper.verificationConfigFromTask(verifierConfig, startTime, verify = true, completedProgress)(executor)
 
-    val resultFuture = verifier.verifyAst(config, ast(), backtrack())
+    val resultFuture = verifier.verifyAst(config, ast, backtrack)(executor)
 
     serverExceptionHandling(verifierConfig.fileData, resultFuture)
   }
@@ -185,7 +187,7 @@ object GobraServer extends GobraFrontend {
   /**
     * Goify File and publish potential errors as Diagnostics.
     */
-  def goify(fileData: FileData): Future[VerifierResult] = {
+  def goify(fileData: FileData)(implicit executor: GobraExecutionContext): Future[VerifierResult] = {
     val fileUri = fileData.fileUri
 
     val filePath = fileData.filePath
@@ -193,7 +195,7 @@ object GobraServer extends GobraFrontend {
 
     val config = Helper.goifyConfigFromTask(fileData)
 
-    val goifyFuture = verifier.verify(config)
+    val goifyFuture = verifier.verify(config)(executor)
 
     goifyFuture.onComplete {
       case Success(result) =>
@@ -261,9 +263,9 @@ object GobraServer extends GobraFrontend {
     * Get preview of Code which then gets displayed on the client side.
     * Currently the internal representation and the viper encoding can be previewed.
     */
-  def codePreview(fileData: FileData, internalPreview: Boolean, viperPreview: Boolean, selections: List[Range]): Future[VerifierResult] = {
+  def codePreview(fileData: FileData, internalPreview: Boolean, viperPreview: Boolean, selections: List[Range])(executor: GobraExecutionContext): Future[VerifierResult] = {
     val config = Helper.previewConfigFromTask(fileData, internalPreview, viperPreview, selections)
-    verifier.verify(config)
+    verifier.verify(config)(executor)
   }
 
 

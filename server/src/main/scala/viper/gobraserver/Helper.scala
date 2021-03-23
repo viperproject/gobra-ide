@@ -9,20 +9,19 @@ package viper.gobraserver
 import viper.gobra.frontend.Config
 import viper.gobra.backend.ViperBackends
 import viper.server.core.ViperBackendConfigs
-import viper.gobra.reporting.{ FileWriterReporter, VerifierResult }
-
+import viper.gobra.reporting.{FileWriterReporter, VerifierResult}
 import org.eclipse.lsp4j.Range
-
 import java.io.File
-import java.nio.file.{ Files, Paths }
+import java.nio.file.{Files, Paths}
 
 import ch.qos.logback.classic.Level
+import viper.gobra.util.GobraExecutionContext
 
 object Helper {
 
   val defaultVerificationFraction = 0.75
 
-  def verificationConfigFromTask(verifierConfig: VerifierConfig, startTime: Long, verify: Boolean, progress: Int = 0): Config = {
+  def verificationConfigFromTask(verifierConfig: VerifierConfig, startTime: Long, verify: Boolean, progress: Int = 0)(executor: GobraExecutionContext): Config = {
     verifierConfig match {
       case VerifierConfig(
         FileData(path, fileUri),
@@ -61,7 +60,7 @@ object Helper {
           debug = debug,
           printInternal = printInternal,
           printVpr = printViper
-        )
+        )(executor)
 
         val backendConfig =
           if (serverMode) {

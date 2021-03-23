@@ -63,6 +63,11 @@ export interface GobraSettings {
   backend: string;
 }
 
+export interface JavaSettings {
+  javaBinary: string;
+  javaArguments: string;
+}
+
 export interface PathSettings {
   gobraToolsPath: PlatformDependendPath;
   z3Executable: PlatformDependendPath;
@@ -76,6 +81,7 @@ export interface ProviderSettings {
 }
 
 export interface GobraDependencies {
+  java: JavaSettings;
   gobraToolsPaths: PathSettings;
   gobraToolsProvider: ProviderSettings;
 }

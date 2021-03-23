@@ -8,9 +8,9 @@ import * as vscode from 'vscode';
 import { URI } from 'vscode-uri';
 import { VerifierConfig, OverallVerificationResult, FileData, GobraSettings, PlatformDependendPath, GobraDependencies, PreviewData, HighlightingPosition } from "./MessagePayloads";
 import * as locate_java_home from 'locate-java-home';
-import * as path from 'path';
 import * as child_process from 'child_process';
 import { GitHubReleaseAsset } from 'vs-verification-toolbox';
+import { IJavaHomeInfo } from 'locate-java-home/js/es5/lib/interfaces';
 
 
 export class Helper {
@@ -111,11 +111,13 @@ export class Helper {
     return Helper.isWin ? "\\Gobra\\GobraTools" : "/Gobra/GobraTools"
   }
 
-  private static getJavaHome(): Promise<string> {
+  private static getJavaHome(): Promise<IJavaHomeInfo> {
     return new Promise((resolve, reject) => {
       try {
         const options = {
-          version: ">=1.8"
+          version: ">=1.8",
+          mustBe64Bit: true,
+          mustBeJDK: true // we currently disallow JREs
         };
         Helper.log("Searching for Java home...");
         locate_java_home.default(options, (err, javaHomes) => {
@@ -124,12 +126,15 @@ export class Helper {
             reject(err.message);
           } else {
             if (!Array.isArray(javaHomes) || javaHomes.length === 0) {
-              Helper.log("Could not find Java home");
-              reject("no Java home found");
+              const msg = "Could not find a 64-bit JDK with at least version 1.8. "
+                + "Please install one and/or manually specify it in the Gobra settings.";
+              Helper.log(msg);
+              vscode.window.showErrorMessage(msg);
+              reject(msg);
             } else {
               const javaHome = javaHomes[0];
               Helper.log(`Using Java home ${JSON.stringify(javaHome, null, 2)}`);
-              resolve(javaHome.path);
+              resolve(javaHome);
             }
           }
         });
@@ -141,11 +146,20 @@ export class Helper {
   }
 
   public static async getJavaPath(): Promise<string> {
-    return path.join(
-      await Helper.getJavaHome(),
-      "bin",
-      "java" + (Helper.isWin ? ".exe" : "")
-    );
+    const configuredJavaBinary = Helper.getGobraDependencies().java.javaBinary;
+    if (configuredJavaBinary == null || configuredJavaBinary == "") {
+      // no java binary configured, search for it:
+      const javaHome = await Helper.getJavaHome();
+      return javaHome.executables.java;
+    } else {
+      return configuredJavaBinary;
+    }
+  }
+
+  public static getServerProcessArgs(serverBinary: string): string[] {
+    const configuredArgString = Helper.getGobraDependencies().java.javaArguments
+      .replace("$serverBinary$", serverBinary);
+    return configuredArgString.split(" ");
   }
   
   /**

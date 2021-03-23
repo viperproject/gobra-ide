@@ -34,7 +34,7 @@
   "dependencies": {
     "@types/node": "^14.11.8",
     "@types/vscode": "^1.43.0",
-    "locate-java-home": "git://github.com/arquintl/locate-java-home",
+    "locate-java-home": "git://github.com/viperproject/locate-java-home",
     "vs-verification-toolbox": "git://github.com/viperproject/vs-verification-toolbox",
     "vscode-languageclient": "^6.1.3",
     "vscode-test": "^1.3.0",
@@ -55,10 +55,11 @@
     "yargs": "^16.0.3"
   },
   "scripts": {
-    "vscode:prepublish": "rm -rf dist && webpack --mode production",
-    "webpack": "rm -rf dist && webpack --mode development",
-    "webpack-dev": "rm -rf dist && webpack --mode development --watch",
-    "test-compile": "rm -rf dist && tsc -p ./",
+    "deleteDistFolder": "node scripts/deleteDistFolder.js",
+    "vscode:prepublish": "npm run deleteDistFolder && webpack --mode production",
+    "webpack": "npm run deleteDistFolder && webpack --mode development",
+    "webpack-dev": "npm run deleteDistFolder && webpack --mode development --watch",
+    "test-compile": "npm run deleteDistFolder && tsc -p ./",
     "pretest": "npm run test-compile",
     "test": "node ./dist/test/runTest.js",
     "package": "vsce package"
@@ -291,6 +292,18 @@
           "type": "boolean",
           "default": true,
           "description": "Enable Auto Verification of Gobra files."
+        },
+        "gobraDependencies.java.javaBinary": {
+          "scope": "window",
+          "type": "string",
+          "default": "",
+          "description": "Specify the path to a Java binary (i.e. ending in `bin/java` resp. `bin/java.exe`). It is recommended to use a 64-bit JDK version 1.8 or higher. An empty path results in Gobra searching and using a Java installation meeting the recommendations."
+        },
+        "gobraDependencies.java.javaArguments": {
+          "scope": "window",
+          "type": "string",
+          "default": "-Xss128m -jar $serverBinary$",
+          "description": "Specify arguments that will be passed to the Java binary and Gobra server."
         },
         "gobraDependencies.gobraToolsPaths": {
           "type": "object",
