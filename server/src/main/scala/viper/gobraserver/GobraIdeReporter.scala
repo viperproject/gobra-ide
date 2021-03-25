@@ -11,9 +11,10 @@ import java.nio.charset.StandardCharsets.UTF_8
 
 import org.apache.commons.io.FileUtils
 import org.eclipse.lsp4j.{Diagnostic, DiagnosticSeverity, Position, Range}
-import viper.gobra.backend.{ViperBackend, ViperBackends}
+import viper.gobra.backend.ViperBackend
 import viper.gobra.reporting._
 import viper.gobra.util.{GobraExecutionContext, OutputUtil}
+import viper.gobraserver.backend.ViperServerBackend
 import viper.silver.reporter.StatisticsReport
 
 import scala.collection.mutable
@@ -105,7 +106,7 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
 
       if (fileUri == VerifierState.openFileUri) VerifierState.publishDiagnostics(fileUri)
 
-      if (backend == ViperBackends.ViperServerBackend) VerifierState.addDiagnosticsCache(fileUri, sortedErrors, diagnostics)
+      if (backend == ViperServerBackend) VerifierState.addDiagnosticsCache(fileUri, sortedErrors, diagnostics)
 
   }
 

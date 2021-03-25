@@ -14,3 +14,4 @@ webpack.config.js
 images/
 !images/icon.png
 package-notes.md
+scripts/

@@ -37,7 +37,7 @@ export class EvaluationHelper {
     writeStream.write("\n");
   }
 
-  public static verify(fileUri: string, filePath: string): Promise<any> {
+  public static verify(fileUri: string, filePath: string): Promise<void> {
     let config = new VerifierConfig();
     config.fileData.fileUri = fileUri;
     config.fileData.filePath = filePath;

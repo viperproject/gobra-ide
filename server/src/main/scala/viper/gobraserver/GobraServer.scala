@@ -18,8 +18,8 @@ import java.time.format.DateTimeFormatter
 
 import scala.io.Source
 import viper.server.core.ViperCoreServer
-import viper.gobra.backend.ViperBackends
 import org.eclipse.lsp4j.{MessageParams, MessageType, Range}
+import viper.gobraserver.backend.ViperServerBackend
 
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
@@ -39,14 +39,15 @@ object GobraServer extends GobraFrontend {
   def verifier: Gobra = _verifier
 
   private var _options: List[String] = List()
-  private var _executor: GobraExecutionContext = _
+  private var _executor: GobraServerExecutionContext = _
   private var _server: ViperCoreServer = _
 
-  def init(options: List[String])(executor: GobraExecutionContext): Unit = {
+  def init(options: List[String])(executor: GobraServerExecutionContext): Unit = {
     _options = options
     _executor = executor
     _server = new ViperCoreServer(options.toArray)(executor)
-    ViperBackends.ViperServerBackend.setServer(_server)
+    ViperServerBackend.setExecutor(_executor)
+    ViperServerBackend.setServer(_server)
   }
 
   def start(): Unit = {
@@ -55,13 +56,18 @@ object GobraServer extends GobraFrontend {
     VerifierState.flushCachedDiagnostics()
   }
 
-  def restart(): Unit = {
+  def restart(): Future[Unit] = {
     stop()
-    delete()
-    val options = _options
-    val executor = _executor
-    init(options)(executor)
-    start()
+      .flatMap(_ => {
+        delete()
+        _executor.restart()
+      })(_executor)
+      .map(_ => {
+        val options = _options
+        val executor = _executor
+        init(options)(executor)
+        start()
+      })(_executor)
   }
 
   private def serverExceptionHandling(fileData: FileData, resultFuture: Future[VerifierResult])(implicit executor: GobraExecutionContext): Future[VerifierResult] = {
@@ -69,42 +75,44 @@ object GobraServer extends GobraFrontend {
     val fileUri = fileData.fileUri
 
     // do some post processing if verification has failed
-    resultFuture.recoverWith({ case exception =>
-      // restart Gobra Server and then update client state
-      restart()
+    resultFuture.transformWith {
+      case Success(res) => Future.successful(res)
+      case Failure(exception) =>
+        // restart Gobra Server and then update client state
+        // ignore result of restart and inform the client:
+        restart().transformWith(_ => {
+          exception match {
+            case e: Violation.LogicException =>
+              VerifierState.removeDiagnostics(fileUri)
+              val overallResult = Helper.getOverallVerificationResultFromException(fileUri, e)
 
-      exception match {
-        case e: Violation.LogicException =>
-          VerifierState.removeDiagnostics(fileUri)
-          val overallResult = Helper.getOverallVerificationResultFromException(fileUri, e)
-
-          VerifierState.updateVerificationInformation(fileUri, Right(overallResult))
+              VerifierState.updateVerificationInformation(fileUri, Right(overallResult))
 
 
-          if (fileUri == VerifierState.openFileUri) {
-            VerifierState.publishDiagnostics(fileUri)
+              if (fileUri == VerifierState.openFileUri) {
+                VerifierState.publishDiagnostics(fileUri)
+              }
+
+            case e =>
+              println("Exception occurred:")
+              e.printStackTrace()
+
+              // remove verification information about this file
+              // otherwise, reopening this file in the client will result in sending the last progress although no
+              // verification is running
+              VerifierState.removeVerificationInformation(fileUri)
+
+              VerifierState.client match {
+                case Some(c) =>
+                  c.showMessage(new MessageParams(MessageType.Error, "An exception occurred during verification: " + e))
+                  c.verificationException(fileUri)
+                case None =>
+              }
           }
-
-        case e =>
-          println("Exception occurred:")
-          e.printStackTrace()
-
-          // remove verification information about this file
-          // otherwise, reopening this file in the client will result in sending the last progress although no
-          // verification is running
-          VerifierState.removeVerificationInformation(fileUri)
-
-          VerifierState.client match {
-            case Some(c) =>
-              c.showMessage(new MessageParams(MessageType.Error, "An exception occurred during verification: " + e))
-              c.verificationException(fileUri)
-            case None =>
-          }
-      }
-
-      // forward original result
-      Future.failed(exception)
-    })
+          // forward original result
+          Future.failed(exception)
+        })
+    }
   }
 
   /**
@@ -189,18 +197,11 @@ object GobraServer extends GobraFrontend {
     */
   def goify(fileData: FileData)(implicit executor: GobraExecutionContext): Future[VerifierResult] = {
     val fileUri = fileData.fileUri
-
-    val filePath = fileData.filePath
-    val startTime = System.currentTimeMillis()
-
     val config = Helper.goifyConfigFromTask(fileData)
-
     val goifyFuture = verifier.verify(config)(executor)
 
     goifyFuture.onComplete {
       case Success(result) =>
-        val endTime = System.currentTimeMillis()
-
         (result, VerifierState.client) match {
           case (VerifierResult.Success, Some(c)) =>
             c.finishedGoifying(fileUri, success = true)
@@ -269,8 +270,8 @@ object GobraServer extends GobraFrontend {
   }
 
 
-  def stop(): Unit = {
-    _server.stop()
+  def stop(): Future[Unit] = {
+    _server.stop().map(_ => ())(_executor)
   }
 
   def flushCache(): Unit = {
@@ -280,7 +281,8 @@ object GobraServer extends GobraFrontend {
   }
 
   def delete(): Unit = {
-    ViperBackends.ViperServerBackend.resetServer()
+    ViperServerBackend.resetServer()
+    ViperServerBackend.resetExecutor()
     _server = null
   } 
 }

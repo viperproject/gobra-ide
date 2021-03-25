@@ -56,7 +56,6 @@
             "server/project/target/**",
             "server/target/**",
             "**/*.json",
-            ".github/check-license/**",
             "**/README.md",
             "**/LICENSE"
         ]
