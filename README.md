@@ -15,8 +15,8 @@ translation of Gobra are available.
 2. Create a symlink to your local Gobra checkout:  
    Windows: `mklink /D .\gobra \path\to\gobra`  
    Mac: `ln -s /path/to/gobra ./gobra`
-3. Create a symlink to your local ViperServer checkout:
-   Windows: `mklink /D .\viperserver \path\to\viperserver`
+3. Create a symlink to your local ViperServer checkout:  
+   Windows: `mklink /D .\viperserver \path\to\viperserver`  
    Mac: `ln -s /path/to/viperserver ./viperserver`
 4. Assemble the binary: `sbt assembly`
 5. Navigate back to Gobra-IDE directory: `cd ..`
