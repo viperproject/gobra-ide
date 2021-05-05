@@ -10,7 +10,6 @@ import viper.gobra.frontend.Config
 import viper.gobra.backend.{ViperBackends, ViperVerifierConfig}
 import viper.gobra.reporting.{FileWriterReporter, VerifierResult}
 import org.eclipse.lsp4j.Range
-import java.io.File
 import java.nio.file.{Files, Paths}
 
 import ch.qos.logback.classic.Level
@@ -96,7 +95,7 @@ object Helper {
           }
 
         Config(
-          inputFiles = Vector(new File(path)),
+          inputFiles = Vector(Paths.get(path)),
           reporter = reporter,
           backend = backend,
           backendConfig = verifierConfig,
@@ -116,7 +115,7 @@ object Helper {
     val reporter = FileWriterReporter(goify = true)
 
     Config(
-      inputFiles = Vector(new File(fileData.filePath)),
+      inputFiles = Vector(Paths.get(fileData.filePath)),
       shouldDesugar = false,
       shouldViperEncode = false,
       shouldVerify = false,
@@ -132,7 +131,7 @@ object Helper {
     )
 
     Config(
-      inputFiles = Vector(new File(fileData.filePath)),
+      inputFiles = Vector(Paths.get(fileData.filePath)),
       shouldVerify = false,
       shouldViperEncode = viperPreview,
       reporter = reporter

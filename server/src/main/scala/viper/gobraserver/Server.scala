@@ -8,13 +8,9 @@ package viper.gobraserver
 
 import java.io.IOException
 import java.net.{ServerSocket, Socket}
-import java.util.concurrent.TimeUnit
 
 import org.eclipse.lsp4j.jsonrpc.Launcher
 import org.eclipse.lsp4j.jsonrpc.Launcher.Builder
-
-import scala.concurrent.Await
-import scala.concurrent.duration.FiniteDuration
 
 object Server {
 

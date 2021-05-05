@@ -58,8 +58,6 @@ class ViperServer(server: ViperCoreServer)(executor: GobraServerExecutionContext
   import ViperServer._
 
   override def verify(programID: String, config: ViperVerifierConfig, reporter: Reporter, program: Program)(_ctx: GobraExecutionContext): Future[VerificationResult] = {
-    // directly declaring the parameter implicit somehow does not work as the compiler is unable to spot the inheritance
-    implicit val _executor: GobraExecutionContext = executor
     // convert ViperVerifierConfig to ViperBackendConfig:
     val serverConfig: ViperBackendConfig = config match {
       case _: ViperServerWithSilicon => SiliconConfig(config.partialCommandLine)

@@ -51,12 +51,11 @@ trait PrettyPrintPrimitives {
 
   val positionStore: mutable.Map[GobraPosition, ListBuffer[(Position, Width)]] = mutable.Map[GobraPosition, ListBuffer[ViperPosition]]()
 
-  def addPosition(gobraPos: GobraPosition, viperPos: ViperPosition) {
+  def addPosition(gobraPos: GobraPosition, viperPos: ViperPosition): Unit =
     positionStore.get(gobraPos) match {
       case Some(b) => b += viperPos
       case None => positionStore += (gobraPos -> ListBuffer(viperPos))
     }
-  }
 
   def updatePositionStore(n: Node): Cont = n.getPrettyMetadata._1 match {
     case pos: AbstractSourcePosition =>
@@ -443,7 +442,7 @@ object HighlightingPrettyPrinter extends HighlightingPrettyPrinterBase with Brac
 
   /** Show a program. */
   def showProgram(p: Program): Cont = {
-    val Program(domains, fields, functions, predicates, methods, extensions) = p
+    val Program(domains, fields, functions, predicates, methods, _) = p
     showComment(p) <@>
       ssep((domains ++ fields ++ functions ++ predicates ++ methods) map show, line <> line)
 
@@ -550,9 +549,6 @@ object HighlightingPrettyPrinter extends HighlightingPrettyPrinterBase with Brac
     case LocalVarDecl(name, typ) => text(name) <> ":" <+> showType(typ)
     case _ => sys.error(s"unknown local variable declaration: ${v.getClass}")
   }
-
-  /** Show field name */
-  private def showLocation(loc: Location): Cont = loc.name
 
   /** Show a user-defined domain. */
   def showDomain(d: Domain): Cont = {

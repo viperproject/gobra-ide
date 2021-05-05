@@ -8,6 +8,7 @@ package viper.gobraserver
 
 import java.io.File
 import java.nio.charset.StandardCharsets.UTF_8
+import java.nio.file.Path
 
 import org.apache.commons.io.FileUtils
 import org.eclipse.lsp4j.{Diagnostic, DiagnosticSeverity, Position, Range}
@@ -39,7 +40,6 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
   private def nonVerificationEntityProgress: Int = ((1 - verificationFraction) * 25).round.toInt
   private def preprocessEntityProgress: Int = (0.5 * nonVerificationEntityProgress).round.toInt
 
-  private val finishedProgress: Int = 100
   private var totalEntities: Int = 0
 
   private def verificationEntityProgress: Int =
@@ -51,9 +51,9 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
     VerifierState.updateVerificationInformation(fileUri, Left(progress))
   }
 
-  private def write(file: File, fileExt: String, content: String): Unit = {
-    val outputFile = OutputUtil.postfixFile(file, fileExt)
-    FileUtils.writeStringToFile(outputFile, content, UTF_8)
+  private def write(path: Path, fileExt: String, content: String): Unit = {
+    val outputFile = OutputUtil.postfixFile(path, fileExt)
+    FileUtils.writeStringToFile(outputFile.toFile, content, UTF_8)
   }
 
 
@@ -129,33 +129,33 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
 
     case PreprocessedInputMessage(_, _) => updateProgress(preprocessEntityProgress)
 
-    case ParsedInputMessage(file, program) =>
+    case ParsedInputMessage(input, program) =>
       updateProgress(preprocessEntityProgress)
-      if (unparse) write(file, "unparsed", program().formatted)
+      if (unparse) write(input, "unparsed", program().formatted)
 
     case ParserErrorMessage(_, result) =>
       updateDiagnostics(VerifierResult.Failure(result))
       finishedVerification()
 
-    case TypeCheckSuccessMessage(file, _, erasedGhostCode, goifiedGhostCode) =>
+    case TypeCheckSuccessMessage(input, _, erasedGhostCode, goifiedGhostCode) =>
       updateProgress(nonVerificationEntityProgress)
-      if (eraseGhost) write(file, "ghostLess", erasedGhostCode())
-      if (goify) write(file, "go", goifiedGhostCode())
+      if (eraseGhost) write(input, "ghostLess", erasedGhostCode())
+      if (goify) write(input, "go", goifiedGhostCode())
 
     case TypeCheckFailureMessage(_, _, _, result) =>
       updateDiagnostics(VerifierResult.Failure(result))
       finishedVerification()
 
-    case TypeCheckDebugMessage(file, _, debugTypeInfo) if debug => write(file, "debugType", debugTypeInfo())
+    case TypeCheckDebugMessage(input, _, debugTypeInfo) if debug => write(input, "debugType", debugTypeInfo())
 
-    case DesugaredMessage(file, internal) =>
+    case DesugaredMessage(input, internal) =>
       updateProgress(nonVerificationEntityProgress)
-      if (printInternal) write(file, "internal", internal().formatted)
+      if (printInternal) write(input, "internal", internal().formatted)
 
-    case m@GeneratedViperMessage(file, ast, backtrack) =>
+    case m@GeneratedViperMessage(input, ast, backtrack) =>
       updateProgress(nonVerificationEntityProgress)
       if (printVpr){
-        write(file, "vpr", m.vprAstFormatted)
+        write(input, "vpr", m.vprAstFormatted)
       }
       // submit the Viper AST's verification to the thread pool:
       VerifierState.submitVerificationJob(ast(), backtrack(), startTime, verifierConfig)(executor)
@@ -176,7 +176,7 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
       updateDiagnostics(result)
 
     case RawMessage(m) => m match {
-      case StatisticsReport(nOfMethods, nOfFunctions, nOfPredicates, nOfDomains, nOfFields) =>
+      case StatisticsReport(nOfMethods, nOfFunctions, nOfPredicates, _, _) =>
         totalEntities = nOfMethods + nOfFunctions + nOfPredicates
 
       case _ => // ignore
