@@ -65,6 +65,8 @@ class ViperServer(server: ViperCoreServer)(executor: GobraServerExecutionContext
       case c => throw ViperServerBackendNotFoundException(s"unknown backend config $c")
     }
     val handle = server.verify(programID, serverConfig, program)
+    // we have to create our own GlueActor and replicate parts of `ViperCoreServerUtils.getResultsFuture(...)` because
+    // we do not only need to return a future but also forward all messages to the reporter
     val promise: Promise[VerificationResult] = Promise()
     val clientActor = executor.actorSystem.actorOf(Props(new GlueActor(reporter, promise)))
     server.streamMessages(handle, clientActor)

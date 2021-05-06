@@ -76,7 +76,9 @@ object GobraServer extends GobraFrontend {
 
     // do some post processing if verification has failed
     resultFuture.transformWith {
-      case Success(res) => Future.successful(res)
+      case Success(res) =>
+        _server.logger.get.trace(s"GobraServer: verification was successful: $res")
+        Future.successful(res)
       case Failure(exception) =>
         // restart Gobra Server and then update client state
         // ignore result of restart and inform the client:
@@ -126,7 +128,7 @@ object GobraServer extends GobraFrontend {
 
     val startTime = System.currentTimeMillis()
 
-    val config = Helper.verificationConfigFromTask(verifierConfig, startTime, verify = false)(executor)
+    val config = Helper.verificationConfigFromTask(verifierConfig, startTime, verify = false, logger = _server.logger)(executor)
     val preprocessFuture = verifier.verify(config)(executor)
 
     serverExceptionHandling(verifierConfig.fileData, preprocessFuture)
@@ -151,7 +153,7 @@ object GobraServer extends GobraFrontend {
 
     val startTime = System.currentTimeMillis()
 
-    val config = Helper.verificationConfigFromTask(verifierConfig, startTime, verify = false)(executor)
+    val config = Helper.verificationConfigFromTask(verifierConfig, startTime, verify = false, logger = _server.logger)(executor)
 
     val tempFileName = s"gobrafiedProgram_${DateTimeFormatter.ofPattern("yyyy-MM-dd_HH_mm").format(LocalDateTime.now)}"
     val tempFi = File.createTempFile(tempFileName, ".gobra")
@@ -185,7 +187,7 @@ object GobraServer extends GobraFrontend {
     */
   def verify(verifierConfig: VerifierConfig, ast: Program, backtrack: BackTrackInfo, startTime: Long)(implicit executor: GobraExecutionContext): Future[VerifierResult] = {
     val completedProgress = (100 * (1 - Helper.defaultVerificationFraction)).toInt
-    val config = Helper.verificationConfigFromTask(verifierConfig, startTime, verify = true, completedProgress)(executor)
+    val config = Helper.verificationConfigFromTask(verifierConfig, startTime, verify = true, completedProgress, logger = _server.logger)(executor)
 
     val resultFuture = verifier.verifyAst(config, ast, backtrack)(executor)
 
