@@ -19,7 +19,12 @@ export class Helper {
   public static isMac = /^darwin/.test(process.platform);
 
   public static isServerMode(): boolean {
-    return vscode.workspace.getConfiguration("gobraSettings").get("serverMode");
+    const mode = vscode.workspace.getConfiguration("gobraSettings").get<boolean>("serverMode");
+    if (mode) {
+      return mode;
+    } else {
+      return true;
+    }
   }
 
   public static isNightly(): boolean {
@@ -27,11 +32,21 @@ export class Helper {
   }
 
   public static isAutoVerify(): boolean {
-    return vscode.workspace.getConfiguration("gobraSettings").get("autoVerify");
+    const autoVerify = vscode.workspace.getConfiguration("gobraSettings").get<boolean>("autoVerify");
+    if (autoVerify) {
+      return autoVerify;
+    } else {
+      return true;
+    }
   }
 
   public static getTimeout(): number {
-    return vscode.workspace.getConfiguration("gobraSettings").get("timeout");
+    const timeout = vscode.workspace.getConfiguration("gobraSettings").get<number>("timeout");
+    if (timeout) {
+      return timeout;
+    } else {
+      return 1000;
+    }
   }
 
 
@@ -48,7 +63,12 @@ export class Helper {
   }
 
   public static getFileName(path: string): string {
-    return path.split('/').pop();
+    const filename = path.split('/').pop();
+    if (filename) {
+      return filename;
+    } else {
+      return "";
+    }
   }
 
   public static getFileUri(): string {
@@ -56,7 +76,12 @@ export class Helper {
   }
 
   public static getSelections(): vscode.Range[] {
-    return vscode.window.activeTextEditor.selections.map(s => new vscode.Range(s.start, s.end));
+    const editor = vscode.window.activeTextEditor
+    if (editor) {
+      return editor.selections.map(s => new vscode.Range(s.start, s.end));
+    } else {
+      return [];
+    }
   }
 
   public static configToJson(config: VerifierConfig): string {
@@ -101,7 +126,7 @@ export class Helper {
     if (Helper.isWin && paths.windows) return paths.windows;
     if (Helper.isLinux && paths.linux) return paths.linux;
     if (Helper.isMac && paths.mac) return paths.mac;
-    return null;
+    return "";
   }
 
   /**
@@ -217,7 +242,7 @@ export class Helper {
     };
   }
 
-  public static getGitHubToken(): string {
+  public static getGitHubToken(): string | undefined {
     return process.env["GITHUB_TOKEN"];
   }
 
@@ -397,5 +422,5 @@ export class PreviewUris {
 export interface Output {
   stdout: string;
   stderr: string;
-  code: number;
+  code: number | null;
 }

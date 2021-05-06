@@ -12,7 +12,7 @@ import { Commands, Helper } from '../Helper';
 import { TestHelper } from './TestHelper';
 import { PathSettings } from '../MessagePayloads';
 
-const PROJECT_ROOT = path.join(__dirname, "../../");
+const PROJECT_ROOT = path.join(__dirname, "..", "..");
 const DATA_ROOT = path.join(PROJECT_ROOT, "src", "test", "data");
 const ASSERT_TRUE = "assert_true.gobra";
 const ASSERT_FALSE = "assert_false.gobra";
@@ -28,7 +28,7 @@ function log(msg: string) {
 function getTestDataPath(fileName: string): string {
     return path.join(DATA_ROOT, fileName);
 }
-
+/*
 const gobraToolsPathsSection = "gobraDependencies.gobraToolsPaths";
 function getServerJarPath(): string {
     const config = vscode.workspace.getConfiguration();
@@ -62,7 +62,7 @@ function setServerJarPath(path: string): Thenable<void> {
         toolsPathsConfig,
         vscode.ConfigurationTarget.Global);
 }
-
+*/
 /**
  * Open a file in the IDE
  *
@@ -91,6 +91,7 @@ suite("Extension", () => {
     suiteSetup(async function() {
         // set timeout to a large value such that extension can be started and Gobra tools installed:
         this.timeout(GOBRA_TOOL_UPDATE_TIMEOUT_MS);
+        /*
         // check whether a path to the gobra tools has been manually provided and if yes, set it as extension settings:
         const gobraServerJarPath = process.env["SERVER"];
         if (gobraServerJarPath) {
@@ -98,9 +99,22 @@ suite("Extension", () => {
             await setServerJarPath(gobraServerJarPath)
             log(`successfully set gobra server binary settings to ${gobraServerJarPath}`);
         }
+        */
         // activate extension:
         await TestHelper.startExtension(getTestDataPath(ASSERT_TRUE));
         log("suiteSetup done");
+    });
+
+    suiteTeardown(async function() {
+        /*
+        // restore gobra tools path in case we have changed the settings for running these tests:
+        if (previousServerJarPath) {
+            await setServerJarPath(previousServerJarPath);
+            log(`successfully restored gobra server binary settings to ${previousServerJarPath}`);
+        }
+        */
+        log("Tear down test suite");
+        await TestHelper.stopExtension();
     });
     
     test("Recognize Gobra files", async () => {
@@ -197,15 +211,5 @@ suite("Extension", () => {
         log("start updating Gobra tools");
         await vscode.commands.executeCommand("gobra.updateGobraTools")
         log("done updating Gobra tools");
-    });
-
-    suiteTeardown(async function() {
-        // restore gobra tools path in case we have changed the settings for running these tests:
-        if (previousServerJarPath) {
-            await setServerJarPath(previousServerJarPath);
-            log(`successfully restored gobra server binary settings to ${previousServerJarPath}`);
-        }
-        await TestHelper.stopExtension();
-        log(`the extension was stopped successfully`);
     });
 });

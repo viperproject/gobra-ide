@@ -2,10 +2,21 @@
   "compilerOptions": {
     "module": "commonjs",
     "target": "es6",
+    "lib": [
+			"es6"
+		],
     "outDir": "./dist",
     "rootDir": "src",
-    "sourceMap": true
+    "sourceMap": true,
+    "strict": true,
+		"typeRoots": [
+			"typings"
+		],
+    /* Additional Checks */
+		"noImplicitReturns": true, /* Report error when not all code paths in function return a value. */
+		"noFallthroughCasesInSwitch": true, /* Report errors for fallthrough cases in switch statement. */
   },
-  "include": ["src"],
-  "exclude": ["node_modules", ".vscode-test"]
+  "include": [
+    "src/**/*.ts"
+  ]
 }

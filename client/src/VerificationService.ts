@@ -53,9 +53,9 @@ export class Verifier {
       * Register VSCode Event listeners.
       */
     State.context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(editor => {
-      if (editor.document.uri.toString() === PreviewUris.viper.toString()) {
+      if (editor && editor.document.uri.toString() === PreviewUris.viper.toString()) {
         State.viperPreviewProvider.setDecorations(PreviewUris.viper);
-      } else if (editor.document.uri.toString() == PreviewUris.internal.toString()) {
+      } else if (editor && editor.document.uri.toString() == PreviewUris.internal.toString()) {
         State.internalPreviewProvider.setDecorations(PreviewUris.internal);
       } else {
         Verifier.changeFile();
@@ -162,8 +162,8 @@ export class Verifier {
     * Verifies the File if it is in the verification requests queue.
     */
   private static reverifyFile(fileUri: string): void {
-    if (State.verificationRequests.has(fileUri) && Helper.isAutoVerify()) {
-      let event = State.verificationRequests.get(fileUri);
+    const event = State.verificationRequests.get(fileUri)
+    if (event && Helper.isAutoVerify()) {
       State.verificationRequests.delete(fileUri);
       Verifier.verifyFile(fileUri, event);
     }
@@ -189,11 +189,16 @@ export class Verifier {
 
     if (!State.runningGoifications.has(fileUri)) {
       State.runningGoifications.add(fileUri);
-
-      vscode.window.activeTextEditor.document.save().then((saved: boolean) => {
-        Helper.log("sending goification request");
-        State.client.sendNotification(Commands.goifyFile, Helper.fileDataToJson(State.verifierConfig.fileData));
-      })
+      
+      const editor = vscode.window.activeTextEditor;
+      if (editor) {
+        editor.document.save().then((saved: boolean) => {
+          Helper.log("sending goification request");
+          State.client.sendNotification(Commands.goifyFile, Helper.fileDataToJson(State.verifierConfig.fileData));
+        })
+      } else {
+        Helper.log("saving document for goifying was not possible");
+      }
     } else {
       vscode.window.showInformationMessage("There is already a Goification running for file " + filePath);
     }
@@ -219,10 +224,15 @@ export class Verifier {
     if (!State.runningGobrafications.has(filePath)) {
       State.runningGobrafications.add(filePath);
 
-      vscode.window.activeTextEditor.document.save().then((saved: boolean) => {
-        Helper.log("sending gobrafication request");
-        State.client.sendNotification(Commands.gobrafyFile, Helper.fileDataToJson(State.verifierConfig.fileData));
-      })
+      const editor = vscode.window.activeTextEditor;
+      if (editor) {
+        editor.document.save().then((saved: boolean) => {
+          Helper.log("sending gobrafication request");
+          State.client.sendNotification(Commands.gobrafyFile, Helper.fileDataToJson(State.verifierConfig.fileData));
+        })
+      } else {
+        Helper.log("saving document for gobrafying was not possible");
+      }
     } else {
       vscode.window.showInformationMessage("There is already a Gobrafication running for file " + filePath);
     }
@@ -315,9 +325,14 @@ export class Verifier {
     let selections = Helper.getSelections();
 
     State.updateFileData();
-    vscode.window.activeTextEditor.document.save().then((saved: boolean) => {
-      State.client.sendNotification(Commands.codePreview, Helper.previewDataToJson(new PreviewData(State.verifierConfig.fileData, false, true, selections)));
-    });
+    const editor = vscode.window.activeTextEditor;
+    if (editor) {
+      editor.document.save().then((saved: boolean) => {
+        State.client.sendNotification(Commands.codePreview, Helper.previewDataToJson(new PreviewData(State.verifierConfig.fileData, false, true, selections)));
+      });
+    } else {
+      Helper.log("saving document for showing Viper Code Preview was not possible");
+    }
   }
 
   /**
@@ -327,9 +342,14 @@ export class Verifier {
     let selections = Helper.getSelections();
 
     State.updateFileData();
-    vscode.window.activeTextEditor.document.save().then((saved: boolean) => {
-      State.client.sendNotification(Commands.codePreview, Helper.previewDataToJson(new PreviewData(State.verifierConfig.fileData, true, false, selections)));
-    });
+    const editor = vscode.window.activeTextEditor;
+    if (editor) {
+      editor.document.save().then((saved: boolean) => {
+        State.client.sendNotification(Commands.codePreview, Helper.previewDataToJson(new PreviewData(State.verifierConfig.fileData, true, false, selections)));
+      });
+    } else {
+      Helper.log("saving document for showing Internal Code Preview was not possible");
+    }
   }
   
 

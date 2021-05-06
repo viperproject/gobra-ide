@@ -10,7 +10,7 @@ import { State } from './ExtensionState';
 import { Verifier } from './VerificationService';
 import { VerifierConfig } from './MessagePayloads';
 import { Helper } from './Helper';
-import { Notifier, Event } from './Notifier';
+import * as Notifier from './Notifier';
 
 
 let fileSystemWatcher: vscode.FileSystemWatcher;
@@ -26,7 +26,7 @@ export function activate(context: vscode.ExtensionContext): Thenable<any> {
 	function initVerifier(): void {
 		let verifierConfig = new VerifierConfig();
 		Verifier.initialize(context, verifierConfig, fileUri);
-		Notifier.notify(Event.EndExtensionActivation);
+		Notifier.notifyExtensionActivation();
 	}
 
 	// Uri of the file which triggered the plugin activation.
@@ -38,8 +38,8 @@ export function activate(context: vscode.ExtensionContext): Thenable<any> {
 		.then(initVerifier);
 }
 
-export function deactivate(): Thenable<void> | undefined {
+export async function deactivate(): Promise<void> {
 	Helper.log("Deactivating");
-	return State.disposeServer()
-		.then(() => Helper.log("Server is disposed"));
+	await State.disposeServer();
+	Helper.log("Server is disposed");
 }

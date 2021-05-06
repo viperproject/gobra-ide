@@ -32,7 +32,7 @@ export class State {
   public static runningGoifications: Set<string>;
   public static runningGobrafications: Set<string>;
 
-  public static verificationRequestTimeout: NodeJS.Timeout;
+  public static verificationRequestTimeout: NodeJS.Timeout | null;
 
   public static verifierConfig: VerifierConfig;
 
@@ -55,12 +55,16 @@ export class State {
   }
 
   public static clearVerificationRequestTimeout(): void {
-    clearTimeout(State.verificationRequestTimeout);
-    State.verificationRequestTimeout = null;
+    if (State.verificationRequestTimeout != null) {
+      clearTimeout(State.verificationRequestTimeout);
+      State.verificationRequestTimeout = null;
+    }
   }
 
   public static refreshVerificationRequestTimeout(): void {
-    State.verificationRequestTimeout.refresh();
+    if (State.verificationRequestTimeout != null) {
+      State.verificationRequestTimeout.refresh();
+    }
   }
 
 
