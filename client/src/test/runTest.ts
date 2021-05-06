@@ -34,6 +34,10 @@ async function main() {
 			description: 'Path to the Gobra Server JAR file that should be used instead of the one specified in the settings',
             type: 'string',
 		})
+		.option('ignoreServerBackwardCompatibility', {
+			description: 'If set, skips the test cases that use the Gobra Server JAR from the latest nightly or stable release',
+			type: 'boolean',
+		})
         .help() // show help if `--help` is used
         .argv;
 
@@ -54,7 +58,10 @@ async function main() {
 	assert(settings_list.length > 0, "There are no settings to test");
 	
 	for (const settings_file of settings_list) {
-		const additionalSettings: Map<string, string>[] = [ new Map() ];
+		const additionalSettings: Map<string, string>[] = [];
+		if (!argv.ignoreServerBackwardCompatibility) {
+			additionalSettings.push(new Map());
+		}
 		if (argv.server) {
 			const serverSettings = new Map([
 				["gobraDependencies.gobraToolsPaths.serverJar.windows", argv.server],

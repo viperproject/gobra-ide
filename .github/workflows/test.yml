@@ -267,7 +267,7 @@ jobs:
         uses: GabrielBB/xvfb-action@v1
         id: runTests
         with:
-          run: npm test --full-trace -- --server ${{steps.server-download.outputs.download-path}}/server.jar
+          run: npm test --full-trace -- --server ${{steps.server-download.outputs.download-path}}/server.jar --ignoreServerBackwardCompatibility
           working-directory: gobra-ide/client
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
