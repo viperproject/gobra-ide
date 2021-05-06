@@ -7,42 +7,15 @@
 package viper.gobraserver.backend
 
 import viper.silver.ast.Program
-import viper.silver.reporter.{ExceptionReport, Message, OverallFailureMessage, OverallSuccessMessage, Reporter}
-import viper.silver.verifier.{Success, VerificationResult}
-import akka.actor.{Actor, Props}
+import viper.silver.reporter.Reporter
+import viper.silver.verifier.VerificationResult
 import viper.gobra.backend.{ViperVerifier, ViperVerifierConfig}
 
-import scala.concurrent.{Future, Promise}
+import scala.concurrent.Future
 import viper.gobra.util.GobraExecutionContext
 import viper.gobraserver.GobraServerExecutionContext
-import viper.server.core.{CarbonConfig, SiliconConfig, ViperBackendConfig, ViperCoreServer, ViperServerBackendNotFoundException}
+import viper.server.core.{CarbonConfig, SiliconConfig, ViperBackendConfig, ViperCoreServer, ViperCoreServerUtils, ViperServerBackendNotFoundException}
 
-
-object ViperServer {
-
-  case object Result
-
-  class GlueActor(reporter: Reporter, verificationPromise: Promise[VerificationResult]) extends Actor {
-    override def receive: Receive = {
-
-      case msg: Message =>
-        try {
-          reporter.report(msg)
-
-          msg match {
-            case msg: OverallFailureMessage => verificationPromise trySuccess msg.result
-            case _: OverallSuccessMessage   => verificationPromise trySuccess Success
-            case ExceptionReport(e)         => verificationPromise tryFailure e
-            case _ =>
-          }
-        } catch {
-          case e: Throwable => verificationPromise tryFailure e
-        }
-
-      case e: Throwable => verificationPromise tryFailure e
-    }
-  }
-}
 
 object ViperServerConfig {
   object EmptyConfigWithSilicon extends ViperServerWithSilicon {val partialCommandLine: List[String] = Nil}
@@ -55,8 +28,6 @@ trait ViperServerWithCarbon extends ViperVerifierConfig
 
 class ViperServer(server: ViperCoreServer)(executor: GobraServerExecutionContext) extends ViperVerifier {
 
-  import ViperServer._
-
   override def verify(programID: String, config: ViperVerifierConfig, reporter: Reporter, program: Program)(_ctx: GobraExecutionContext): Future[VerificationResult] = {
     // convert ViperVerifierConfig to ViperBackendConfig:
     val serverConfig: ViperBackendConfig = config match {
@@ -65,9 +36,6 @@ class ViperServer(server: ViperCoreServer)(executor: GobraServerExecutionContext
       case c => throw ViperServerBackendNotFoundException(s"unknown backend config $c")
     }
     val handle = server.verify(programID, serverConfig, program)
-    val promise: Promise[VerificationResult] = Promise()
-    val clientActor = executor.actorSystem.actorOf(Props(new GlueActor(reporter, promise)))
-    server.streamMessages(handle, clientActor)
-    promise.future
+    ViperCoreServerUtils.getResultsFuture(server, handle)(executor)
   }
 }
