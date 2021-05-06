@@ -264,7 +264,7 @@ jobs:
         working-directory: gobra-ide/client
 
       - name: Run tests (headless)
-        uses: GabrielBB/xvfb-action@v1.0
+        uses: GabrielBB/xvfb-action@v1
         id: runTests
         with:
           run: npm test --full-trace -- --server ${{steps.server-download.outputs.download-path}}/server.jar
