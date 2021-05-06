@@ -237,7 +237,7 @@ jobs:
       - name: Install Node.js
         uses: actions/setup-node@v1
         with:
-          node-version: '12'
+          node-version: '14'
 
       - name: Setup Java JDK
         uses: actions/setup-java@v1.4.3
