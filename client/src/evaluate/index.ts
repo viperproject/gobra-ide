@@ -22,37 +22,35 @@ import * as path from 'path';
 import * as Mocha from 'mocha';
 import * as glob from 'glob';
 
-export function run(): Promise<void> {
+export async function run(): Promise<void> {
   // Create the mocha test
-  const mocha = new Mocha({
-    ui: 'tdd',
+	const mocha = new Mocha({
+		ui: 'tdd',
     timeout: '500m',
-    color: true
-  });
+    color: true,
+	});
 
-  const evaluateRoot = path.resolve(__dirname, '..');
+	const testsRoot = path.resolve(__dirname, '..');
 
-  return new Promise((c, e) => {
-    glob('**/**.evaluate.js', { cwd: evaluateRoot }, (err, files) => {
-      if (err) {
-        return e(err);
+	const files: Array<string> = await new Promise((resolve, reject) =>
+    glob(
+      "**/*.evaluate.js",
+      {
+        cwd: testsRoot,
+      },
+      (err, result) => {
+        if (err) reject(err)
+        else resolve(result)
       }
+    )
+  )
 
-      // Add files to the evaluation suite
-      files.forEach(f => mocha.addFile(path.resolve(evaluateRoot, f)));
+	// Add files to the test suite
+  files.forEach(f => mocha.addFile(path.resolve(testsRoot, f)));
 
-      try {
-        // Run the mocha test to evaluate the extension.
-        mocha.run(failures => {
-          if (failures > 0) {
-            e(new Error(`${failures} evaluatios failed.`));
-          } else {
-            c();
-          }
-        });
-      } catch (err) {
-        e(err);
-      }
-    });
-  });
+  const failures: number = await new Promise(resolve => mocha.run(resolve));
+
+  if (failures > 0) {
+    throw new Error(`${failures} tests failed.`)
+  }
 }

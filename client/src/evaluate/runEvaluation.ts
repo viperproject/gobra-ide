@@ -22,15 +22,17 @@ import * as path from 'path';
 
 import { runTests } from 'vscode-test';
 
+const PROJECT_ROOT = path.join(__dirname, "..", "..");
+
 async function main() {
   try {
     // The folder containing the Extension Manifest package.json
     // Passed to `--extensionDevelopmentPath`
-    const extensionDevelopmentPath = path.resolve(__dirname, '../../');
+    const extensionDevelopmentPath = PROJECT_ROOT;
 
     // The path to the extension test runner script
     // Passed to --extensionTestsPath
-    const extensionTestsPath = path.resolve(__dirname, './index');
+    const extensionTestsPath = path.resolve(__dirname, 'index');
 
     // Download VS Code, unzip it and run the integration test
     await runTests({ extensionDevelopmentPath, extensionTestsPath });
@@ -41,4 +43,7 @@ async function main() {
   }
 }
 
-main();
+main().catch((err) => {
+	console.error(`main function has ended with an error: ${err}`);
+	process.exit(1);
+});

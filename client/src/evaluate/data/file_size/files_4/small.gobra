@@ -1,0 +1,27 @@
+package _; // Should fail.
+
+requires 0 <= n;
+ensures 2 * r == n * (n+1);
+func sum(n int) (r int) {
+  invariant 2 * r == (i-1) * i;
+  invariant i <= n + 1;
+  for i := 0; i <= n; i++ {
+    r += i;
+  };
+};
+
+requires 0 <= n;
+ensures 6 * r == n * (n+1) * (2*n+1);
+func sum_sq (n int) (r int) {
+  invariant 6 * r == i * (i-1) * (2*i-1);
+  invariant i <= n + 1;
+  for i := 0; i <= n; i++ { r += i * i; };
+};
+
+requires 0 <= n;
+ensures 4 * r == n * n * (n+1) * (n+1);
+func sum_cb (n int) (r int) {
+  invariant 4 * r == (i-1) * (i-1) * i * i;
+  invariant i <= n + 1;
+  for i := 0; i <= n; i++ { r += i * i * i; };
+};

@@ -1,0 +1,53 @@
+package _; // Should fail.
+
+requires 0 <= n;
+ensures 2 * r == n * (n+1);
+func sum(n int) (r int) {
+  invariant 2 * r == (i-1) * i;
+  invariant i <= n + 1;
+  for i := 0; i <= n; i++ {
+    r += i;
+  };
+};
+
+requires 0 <= n;
+ensures 6 * r == n * (n+1) * (2*n+1);
+func sum_sq (n int) (r int) {
+  invariant 6 * r == i * (i-1) * (2*i-1);
+  invariant i <= n + 1;
+  for i := 0; i <= n; i++ { r += i * i; };
+};
+
+requires 0 <= n;
+ensures 4 * r == n * n * (n+1) * (n+1);
+func sum_cb (n int) (r int) {
+  invariant 4 * r == (i-1) * (i-1) * i * i;
+  invariant i <= n + 1;
+  for i := 0; i <= n; i++ { r += i * i * i; };
+};
+
+requires 0 <= n;
+ensures r == n * n * n * n * n * n * n * n;
+func power_8_linearly (n int) (r int) {
+  p1, p2, p3, p4, p5, p6, p7, p8 := 0, 0, 0, 0, 0, 0, 0, 0;
+  invariant p1 == i;
+  invariant p2 == i * p1;
+  invariant p3 == i * p2;
+  invariant p4 == i * p3;
+  invariant p5 == i * p4;
+  invariant p6 == i * p5;
+  invariant p7 == i * p6;
+  invariant p8 == i * p7;
+  invariant i <= n;
+  for i := 0; i < n; i++ {
+    p8 += 8 * p7 + 28 * p6 + 56 * p5 + 70 * p4 + 56 * p3 + 28 * p2 + 8 * p1 + 1;
+    p7 += 7 * p6 + 21 * p5 + 35 * p4 + 35 * p3 + 21 * p2 + 7 * p1 + 1;
+    p6 += 6 * p5 + 15 * p4 + 20 * p3 + 15 * p2 + 6 * p1 + 1;
+    p5 += 5 * p4 + 10 * p3 + 10 * p2 + 5 * p1 + 1;
+    p4 += 4 * p3 + 6 * p2 + 4 * p1 + 1;
+    p3 += 3 * p2 + 3 * p1 + 1;
+    p2 += 2 * p1 + 1;
+    p1++;
+  };
+  r = p8;
+};

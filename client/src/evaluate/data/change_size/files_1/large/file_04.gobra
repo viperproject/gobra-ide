@@ -1,0 +1,902 @@
+package evaluation;
+
+type Point struct {
+  x int;
+  y int;
+};
+
+type Tree struct {
+  Left  *Tree;
+  Value int;
+  Right *Tree;
+};
+
+ensures x <= r && y <= r;
+ensures r == x || r == y;
+func max(x, y int) (r int) {
+  var a = 7;
+  if (x < y) { r = y;
+  } else { r = x; };
+};
+
+ensures s <= l;
+ensures s == x || s == y;
+ensures l == x || l == y;
+func sort(x, y int) (s, l int) {
+  var a = 7;
+  if (x < y) { s = x; l = y;
+  } else { s = y; l = x; };
+};
+
+
+func client1() {
+  var z = 7;
+  var a, b = 5, 7;
+  r := max(a, b);
+  assert r == 7;
+};
+
+func init() {
+  var z = 7;
+  var a int;
+  assert a == 0;
+
+  var b bool;
+  assert b == false;
+};
+
+requires 0 <= n;
+ensures 2*e == (n+1)*n;
+func sum(n int) (e int) {
+  var z = 7;
+  assert e == 0;
+  invariant 0 <= i && i <= n + 1;
+  invariant 2*e == i*(i-1);
+  for i := 1; i <= n; i++ {
+    e = e + i;
+  };
+};
+
+ensures false;
+func infinite() {
+  for {};
+};
+
+func shortStatement() {
+  var z = 7;
+  if s := sum(4); s == 10 {
+  } else { assert s != s; };
+};
+
+requires acc(*p);
+ensures acc(*p) && *p == v;
+func set(p *int, v int) {
+  var z = 7;
+  *p = v;
+};
+
+func pointer1() {
+  var z = 7;
+  i! := 5;
+  p := &i;
+  *p = 7;
+  assert i == 7;
+};
+
+func pointer2() {
+  var z = 7;
+  i! := 5;
+  set(&i, 7);
+  assert i == 7;
+};
+
+requires acc(*p) && acc(*q);
+ensures acc(*p) && acc(*q);
+ensures *p == old(*q);
+ensures *q == old(*p);
+func swap(p, q *int) {
+  var z = 7;
+  tmp := *p;
+  *p = *q;
+  *q = tmp;
+};
+
+func pointer3() {
+  var z = 7;
+  i! := 5;
+  j! := 7;
+  swap(&i, &j);
+  assert i == 7;
+};
+
+
+func OriginV() (r Point) {
+  r = Point{0, 0};
+};
+
+
+func mirror() {
+  var z = 7;
+  p := Point{5, 7};
+  assert p.x == 5;
+  tmp := p.x;
+  p.x = p.y;
+  p.y = tmp;
+  assert p.x == 7;
+};
+
+ensures acc(r.x) && r.x == 0;
+ensures acc(r.y) && r.y == 0;
+func Origin() (r *Point) {
+  var z = 7;
+  r = &Point{0, 0};
+};
+
+requires acc(p.x);
+ensures  acc(p.x);
+pure func (p *Point) getX1() int {
+  return p.x;
+};
+
+requires acc(p.x);
+ensures  acc(p.x) && res == old(p.x) && p.x == old(p.x);
+func (p *Point) getX2() (res int) {
+  var z = 7;
+  res = p.x;
+};
+
+func client() {
+  var z = 7;
+  p! := Point{5, 7};
+  x := (&p).getX2();
+  assert x == 5;
+  y := p.getX2();
+  assert y == 5;
+  assert ((&p).getX1()) == 5;
+};
+
+requires this != nil ==> (acc(this.x) && acc(this.y));
+ensures acc(res.x) && acc(res.y);
+func (this *Point) idOrNew() (res *Point) {
+  var z = 7;
+  if this == nil {
+    res = &Point{0,0};
+  } else {
+    res = this;
+  };
+};
+
+func idClient() {
+  var z = 7;
+  var p *Point;
+  assert p == nil;
+  q := p.idOrNew();
+  q.x = 5;
+};
+
+pred tree(self *Tree) {
+  acc(self.Left) && acc(self.Value) && acc(self.Right) &&
+  (self.Left != nil ==> tree(self.Left)) &&
+  (self.Right != nil ==> tree(self.Right))
+};
+
+requires self != nil ==> tree(self);
+ensures  self != nil ==> tree(self);
+func (self *Tree) Contains(v int) (res bool) {
+  var z = 7;
+  if self == nil { res = false;
+  } else {
+    unfold tree(self);
+    if self.Value == v { res = true;
+    } else {
+      res = (self.Left).Contains(v) || (self.Right).Contains(v);
+    };
+    fold tree(self);
+  };
+};
+
+ensures x <= r && y <= r;
+ensures r == x || r == y;
+func max_1(x, y int) (r int) {
+  var z = 7;
+  if (x < y) { r = y;
+  } else { r = x; };
+};
+
+ensures s <= l;
+ensures s == x || s == y;
+ensures l == x || l == y;
+func sort_1(x, y int) (s, l int) {
+  var z = 7;
+  if (x < y) { s = x; l = y;
+  } else { s = y; l = x; };
+};
+
+
+func client1_1() {
+  var z = 7;
+  var a, b = 5, 7;
+  r := max(a, b);
+  assert r == 7;
+};
+
+func init_1() {
+  var z = 7;
+  var a int;
+  assert a == 0;
+
+  var b bool;
+  assert b == false;
+};
+
+requires 0 <= n;
+ensures 2*e == (n+1)*n;
+func sum_1(n int) (e int) {
+  var z = 7;
+  assert e == 0;
+  invariant 0 <= i && i <= n + 1;
+  invariant 2*e == i*(i-1);
+  for i := 1; i <= n; i++ {
+    e = e + i;
+  };
+};
+
+ensures false;
+func infinite_1() {
+  var z = 7;
+  for {};
+};
+
+func shortStatement_1() {
+  var z = 7;
+  if s := sum(4); s == 10 {
+  } else { assert s != s; };
+};
+
+requires acc(*p);
+ensures acc(*p) && *p == v;
+func set_1(p *int, v int) {
+  var z = 7;
+  *p = v;
+};
+
+func pointer1_1() {
+  var z = 7;
+  i! := 5;
+  p := &i;
+  *p = 7;
+  assert i == 7;
+};
+
+func pointer2_1() {
+  var z = 7;
+  i! := 5;
+  set(&i, 7);
+  assert i == 7;
+};
+
+requires acc(*p) && acc(*q);
+ensures acc(*p) && acc(*q);
+ensures *p == old(*q);
+ensures *q == old(*p);
+func swap_1(p, q *int) {
+  var z = 7;
+  tmp := *p;
+  *p = *q;
+  *q = tmp;
+};
+
+func pointer3_1() {
+  var z = 7;
+  i! := 5;
+  j! := 7;
+  swap_1(&i, &j);
+  assert i == 7;
+};
+
+
+func OriginV_1() (r Point) {
+  r = Point{0, 0};
+};
+
+
+func mirror_1() {
+  var z = 7;
+  p := Point{5, 7};
+  assert p.x == 5;
+  tmp := p.x;
+  p.x = p.y;
+  p.y = tmp;
+  assert p.x == 7;
+};
+
+ensures acc(r.x) && r.x == 0;
+ensures acc(r.y) && r.y == 0;
+func Origin_1() (r *Point) {
+  var z = 7;
+  r = &Point{0, 0};
+};
+
+requires acc(p.x);
+ensures  acc(p.x);
+pure func (p *Point) getX1_1() int {
+  return p.x;
+};
+
+requires acc(p.x);
+ensures  acc(p.x) && res == old(p.x) && p.x == old(p.x);
+func (p *Point) getX2_1() (res int) {
+  var z = 7;
+  res = p.x;
+};
+
+func client_1() {
+  var z = 7;
+  p! := Point{5, 7};
+  x := (&p).getX2();
+  assert x == 5;
+  y := p.getX2();
+  assert y == 5;
+  assert ((&p).getX1()) == 5;
+};
+
+requires this != nil ==> (acc(this.x) && acc(this.y));
+ensures acc(res.x) && acc(res.y);
+func (this *Point) idOrNew_1() (res *Point) {
+  var z = 7;
+  if this == nil {
+    res = &Point{0,0};
+  } else {
+    res = this;
+  };
+};
+
+func idClient_1() {
+  var z = 7;
+  var p *Point;
+  assert p == nil;
+  q := p.idOrNew();
+  q.x = 5;
+};
+
+pred tree_1(self *Tree) {
+  acc(self.Left) && acc(self.Value) && acc(self.Right) &&
+  (self.Left != nil ==> tree_1(self.Left)) &&
+  (self.Right != nil ==> tree_1(self.Right))
+};
+
+requires self != nil ==> tree_1(self);
+ensures  self != nil ==> tree_1(self);
+func (self *Tree) Contains_1(v int) (res bool) {
+  var z = 7;
+  if self == nil { res = false;
+  } else {
+    unfold tree_1(self);
+    if self.Value == v { res = true;
+    } else {
+      res = (self.Left).Contains_1(v) || (self.Right).Contains_1(v);
+    };
+    fold tree_1(self);
+  };
+};
+
+ensures x <= r && y <= r;
+ensures r == x || r == y;
+func max_2(x, y int) (r int) {
+  var z = 7;
+  if (x < y) { r = y;
+  } else { r = x; };
+};
+
+ensures s <= l;
+ensures s == x || s == y;
+ensures l == x || l == y;
+func sort_2(x, y int) (s, l int) {
+  var z = 7;
+  if (x < y) { s = x; l = y;
+  } else { s = y; l = x; };
+};
+
+
+func client1_2() {
+  var z = 7;
+  var a, b = 5, 7;
+  r := max(a, b);
+  assert r == 7;
+};
+
+func init_2() {
+  var z = 7;
+  var a int;
+  assert a == 0;
+
+  var b bool;
+  assert b == false;
+};
+
+requires 0 <= n;
+ensures 2*e == (n+1)*n;
+func sum_2(n int) (e int) {
+  var z = 7;
+  assert e == 0;
+  invariant 0 <= i && i <= n + 1;
+  invariant 2*e == i*(i-1);
+  for i := 1; i <= n; i++ {
+    e = e + i;
+  };
+};
+
+ensures false;
+func infinite_2() {
+  var z = 7;
+  for {};
+};
+
+func shortStatement_2() {
+  var z = 7;
+  if s := sum(4); s == 10 {
+  } else { assert s != s; };
+};
+
+requires acc(*p);
+ensures acc(*p) && *p == v;
+func set_2(p *int, v int) {
+  var z = 7;
+  *p = v;
+};
+
+func pointer1_2() {
+  var z = 7;
+  i! := 5;
+  p := &i;
+  *p = 7;
+  assert i == 7;
+};
+
+func pointer2_2() {
+  var z = 7;
+  i! := 5;
+  set(&i, 7);
+  assert i == 7;
+};
+
+requires acc(*p) && acc(*q);
+ensures acc(*p) && acc(*q);
+ensures *p == old(*q);
+ensures *q == old(*p);
+func swap_2(p, q *int) {
+  var z = 7;
+  tmp := *p;
+  *p = *q;
+  *q = tmp;
+};
+
+func pointer3_2() {
+  var z = 7;
+  i! := 5;
+  j! := 7;
+  swap_2(&i, &j);
+  assert i == 7;
+};
+
+
+func OriginV_2() (r Point) {
+  var z = 7;
+  r = Point{0, 0};
+};
+
+
+func mirror_2() {
+  var z = 7;
+  p := Point{5, 7};
+  assert p.x == 5;
+  tmp := p.x;
+  p.x = p.y;
+  p.y = tmp;
+  assert p.x == 7;
+};
+
+ensures acc(r.x) && r.x == 0;
+ensures acc(r.y) && r.y == 0;
+func Origin_2() (r *Point) {
+  var z = 7;
+  r = &Point{0, 0};
+};
+
+requires acc(p.x);
+ensures  acc(p.x);
+pure func (p *Point) getX1_2() int {
+  return p.x;
+};
+
+requires acc(p.x);
+ensures  acc(p.x) && res == old(p.x) && p.x == old(p.x);
+func (p *Point) getX2_2() (res int) {
+  var z = 7;
+  res = p.x;
+};
+
+func client_2() {
+  var z = 7;
+  p! := Point{5, 7};
+  x := (&p).getX2();
+  assert x == 5;
+  y := p.getX2();
+  assert y == 5;
+  assert ((&p).getX1()) == 5;
+};
+
+requires this != nil ==> (acc(this.x) && acc(this.y));
+ensures acc(res.x) && acc(res.y);
+func (this *Point) idOrNew_2() (res *Point) {
+  var z = 7;
+  if this == nil {
+    res = &Point{0,0};
+  } else {
+    res = this;
+  };
+};
+
+func idClient_2() {
+  var z = 7;
+  var p *Point;
+  assert p == nil;
+  q := p.idOrNew();
+  q.x = 5;
+};
+
+pred tree_2(self *Tree) {
+  acc(self.Left) && acc(self.Value) && acc(self.Right) &&
+  (self.Left != nil ==> tree_2(self.Left)) &&
+  (self.Right != nil ==> tree_2(self.Right))
+};
+
+requires self != nil ==> tree_2(self);
+ensures  self != nil ==> tree_2(self);
+func (self *Tree) Contains_2(v int) (res bool) {
+  var z = 7;
+  if self == nil { res = false;
+  } else {
+    unfold tree_2(self);
+    if self.Value == v { res = true;
+    } else {
+      res = (self.Left).Contains_2(v) || (self.Right).Contains_2(v);
+    };
+    fold tree_2(self);
+  };
+};
+
+ensures x <= r && y <= r;
+ensures r == x || r == y;
+func max_3(x, y int) (r int) {
+  var z = 7;
+  if (x < y) { r = y;
+  } else { r = x; };
+};
+
+ensures s <= l;
+ensures s == x || s == y;
+ensures l == x || l == y;
+func sort_3(x, y int) (s, l int) {
+  var z = 7;
+  if (x < y) { s = x; l = y;
+  } else { s = y; l = x; };
+};
+
+
+func client1_3() {
+  var z = 7;
+  var a, b = 5, 7;
+  r := max(a, b);
+  assert r == 7;
+};
+
+func init_3() {
+  var a int;
+  assert a == 0;
+
+  var b bool;
+  assert b == false;
+};
+
+requires 0 <= n;
+ensures 2*e == (n+1)*n;
+func sum_3(n int) (e int) {
+  assert e == 0;
+  invariant 0 <= i && i <= n + 1;
+  invariant 2*e == i*(i-1);
+  for i := 1; i <= n; i++ {
+    e = e + i;
+  };
+};
+
+ensures false;
+func infinite_3() {
+  for {};
+};
+
+func shortStatement_3() {
+  if s := sum(4); s == 10 {
+  } else { assert s != s; };
+};
+
+requires acc(*p);
+ensures acc(*p) && *p == v;
+func set_3(p *int, v int) {
+  *p = v;
+};
+
+func pointer1_3() {
+  i! := 5;
+  p := &i;
+  *p = 7;
+  assert i == 7;
+};
+
+func pointer2_3() {
+  i! := 5;
+  set(&i, 7);
+  assert i == 7;
+};
+
+requires acc(*p) && acc(*q);
+ensures acc(*p) && acc(*q);
+ensures *p == old(*q);
+ensures *q == old(*p);
+func swap_3(p, q *int) {
+  tmp := *p;
+  *p = *q;
+  *q = tmp;
+};
+
+func pointer3_3() {
+  i! := 5;
+  j! := 7;
+  swap_3(&i, &j);
+  assert i == 7;
+};
+
+
+func OriginV_3() (r Point) {
+  r = Point{0, 0};
+};
+
+
+func mirror_3() {
+  p := Point{5, 7};
+  assert p.x == 5;
+  tmp := p.x;
+  p.x = p.y;
+  p.y = tmp;
+  assert p.x == 7;
+};
+
+ensures acc(r.x) && r.x == 0;
+ensures acc(r.y) && r.y == 0;
+func Origin_3() (r *Point) {
+  r = &Point{0, 0};
+};
+
+requires acc(p.x);
+ensures  acc(p.x);
+pure func (p *Point) getX1_3() int {
+  return p.x;
+};
+
+requires acc(p.x);
+ensures  acc(p.x) && res == old(p.x) && p.x == old(p.x);
+func (p *Point) getX2_3() (res int) {
+  res = p.x;
+};
+
+func client_3() {
+  p! := Point{5, 7};
+  x := (&p).getX2();
+  assert x == 5;
+  y := p.getX2();
+  assert y == 5;
+  assert ((&p).getX1()) == 5;
+};
+
+requires this != nil ==> (acc(this.x) && acc(this.y));
+ensures acc(res.x) && acc(res.y);
+func (this *Point) idOrNew_3() (res *Point) {
+  if this == nil {
+    res = &Point{0,0};
+  } else {
+    res = this;
+  };
+};
+
+func idClient_3() {
+  var p *Point;
+  assert p == nil;
+  q := p.idOrNew();
+  q.x = 5;
+};
+
+pred tree_3(self *Tree) {
+  acc(self.Left) && acc(self.Value) && acc(self.Right) &&
+  (self.Left != nil ==> tree_3(self.Left)) &&
+  (self.Right != nil ==> tree_3(self.Right))
+};
+
+requires self != nil ==> tree_3(self);
+ensures  self != nil ==> tree_3(self);
+func (self *Tree) Contains_3(v int) (res bool) {
+  if self == nil { res = false;
+  } else {
+    unfold tree_3(self);
+    if self.Value == v { res = true;
+    } else {
+      res = (self.Left).Contains_3(v) || (self.Right).Contains_3(v);
+    };
+    fold tree_3(self);
+  };
+};
+
+ensures x <= r && y <= r;
+ensures r == x || r == y;
+func max_4(x, y int) (r int) {
+  if (x < y) { r = y;
+  } else { r = x; };
+};
+
+ensures s <= l;
+ensures s == x || s == y;
+ensures l == x || l == y;
+func sort_4(x, y int) (s, l int) {
+  if (x < y) { s = x; l = y;
+  } else { s = y; l = x; };
+};
+
+
+func client1_4() {
+  var a, b = 5, 7;
+  r := max(a, b);
+  assert r == 7;
+};
+
+func init_4() {
+  var a int;
+  assert a == 0;
+
+  var b bool;
+  assert b == false;
+};
+
+requires 0 <= n;
+ensures 2*e == (n+1)*n;
+func sum_4(n int) (e int) {
+  assert e == 0;
+  invariant 0 <= i && i <= n + 1;
+  invariant 2*e == i*(i-1);
+  for i := 1; i <= n; i++ {
+    e = e + i;
+  };
+};
+
+ensures false;
+func infinite_4() {
+  for {};
+};
+
+func shortStatement_4() {
+  if s := sum(4); s == 10 {
+  } else { assert s != s; };
+};
+
+requires acc(*p);
+ensures acc(*p) && *p == v;
+func set_4(p *int, v int) {
+  *p = v;
+};
+
+func pointer1_4() {
+  i! := 5;
+  p := &i;
+  *p = 7;
+  assert i == 7;
+};
+
+func pointer2_4() {
+  i! := 5;
+  set(&i, 7);
+  assert i == 7;
+};
+
+requires acc(*p) && acc(*q);
+ensures acc(*p) && acc(*q);
+ensures *p == old(*q);
+ensures *q == old(*p);
+func swap_4(p, q *int) {
+  tmp := *p;
+  *p = *q;
+  *q = tmp;
+};
+
+func pointer3_4() {
+  i! := 5;
+  j! := 7;
+  swap_4(&i, &j);
+  assert i == 7;
+};
+
+
+func OriginV_4() (r Point) {
+  r = Point{0, 0};
+};
+
+
+func mirror_4() {
+  p := Point{5, 7};
+  assert p.x == 5;
+  tmp := p.x;
+  p.x = p.y;
+  p.y = tmp;
+  assert p.x == 7;
+};
+
+ensures acc(r.x) && r.x == 0;
+ensures acc(r.y) && r.y == 0;
+func Origin_4() (r *Point) {
+  r = &Point{0, 0};
+};
+
+requires acc(p.x);
+ensures  acc(p.x);
+pure func (p *Point) getX1_4() int {
+  return p.x;
+};
+
+requires acc(p.x);
+ensures  acc(p.x) && res == old(p.x) && p.x == old(p.x);
+func (p *Point) getX2_4() (res int) {
+  res = p.x;
+};
+
+func client_4() {
+  p! := Point{5, 7};
+  x := (&p).getX2();
+  assert x == 5;
+  y := p.getX2();
+  assert y == 5;
+  assert ((&p).getX1()) == 5;
+};
+
+requires this != nil ==> (acc(this.x) && acc(this.y));
+ensures acc(res.x) && acc(res.y);
+func (this *Point) idOrNew_4() (res *Point) {
+  if this == nil {
+    res = &Point{0,0};
+  } else {
+    res = this;
+  };
+};
+
+func idClient_4() {
+  var p *Point;
+  assert p == nil;
+  q := p.idOrNew();
+  q.x = 5;
+};
+
+pred tree_4(self *Tree) {
+  acc(self.Left) && acc(self.Value) && acc(self.Right) &&
+  (self.Left != nil ==> tree_4(self.Left)) &&
+  (self.Right != nil ==> tree_4(self.Right))
+};
+
+requires self != nil ==> tree_4(self);
+ensures  self != nil ==> tree_4(self);
+func (self *Tree) Contains_4(v int) (res bool) {
+  if self == nil { res = false;
+  } else {
+    unfold tree_4(self);
+    if self.Value == v { res = true;
+    } else {
+      res = (self.Left).Contains_4(v) || (self.Right).Contains_4(v);
+    };
+    fold tree_4(self);
+  };
+};
