@@ -15,6 +15,7 @@ import { Helper, FileSchemes } from "./Helper";
 import { IdeEvents } from "./IdeEvents";
 import { Verifier } from "./VerificationService";
 import { CodePreviewProvider } from "./CodePreviewProvider";
+import { Location } from 'vs-verification-toolbox';
 
 
 export class State {
@@ -69,7 +70,7 @@ export class State {
 
 
   // creates the language client and starts the server
-  public static startLanguageServer(context: vscode.ExtensionContext, fileSystemWatcher: vscode.FileSystemWatcher): Promise<void> {
+  public static startLanguageServer(context: vscode.ExtensionContext, fileSystemWatcher: vscode.FileSystemWatcher, location: Location): Promise<void> {
 
     this.updatingGobraTools = false;
 
@@ -87,19 +88,19 @@ export class State {
     this.internalPreviewProvider = new CodePreviewProvider();
     vscode.workspace.registerTextDocumentContentProvider(FileSchemes.internal, this.internalPreviewProvider);
 
-    const serverBin = Helper.getServerJarPath(Helper.isNightly());
+    const serverBin = Helper.getServerJarPath(location);
     // use the following serverBin when you want to directly use the compiled server jar:
     // const prefix = __dirname.split("client")[0];
     // const serverBin = path.join(prefix, 'server', 'target', 'scala-2.12', 'server.jar')
 
-    const serverOptions: ServerOptions = () => State.startServerProcess(serverBin);
+    const serverOptions: ServerOptions = () => State.startServerProcess(location, serverBin);
     // use the following lines to connect to a server instance instead of starting a new one (e.g. for debugging purposes)
     /*
     const connectionInfo = {
       host: "localhost",
       port: 8080
     }
-    const serverOptions: ServerOptions = () => State.connectToServer(connectionInfo);
+    const serverOptions: ServerOptions = () => State.connectToServer(location, connectionInfo);
     */
 
     // server binary was not found
@@ -130,8 +131,8 @@ export class State {
   }
 
   // creates a server for the given server binary
-  private static async startServerProcess(serverBin: string): Promise<StreamInfo> {
-    const javaPath = await State.checkDependenciesAndGetJavaPath();
+  private static async startServerProcess(location: Location, serverBin: string): Promise<StreamInfo> {
+    const javaPath = await State.checkDependenciesAndGetJavaPath(location);
 
     // spawn Gobra Server and get port number on which it is reachable:
     const portNr = await new Promise((resolve:(port: number) => void, reject) => {
@@ -187,8 +188,8 @@ export class State {
   }
 
   // creates a server for the given server binary
-  private static async connectToServer(connectionInfo: net.NetConnectOpts): Promise<StreamInfo> {
-    await State.checkDependenciesAndGetJavaPath();
+  private static async connectToServer(location: Location, connectionInfo: net.NetConnectOpts): Promise<StreamInfo> {
+    await State.checkDependenciesAndGetJavaPath(location);
     const socket = net.connect(connectionInfo);
     return {
       reader: socket,
@@ -196,13 +197,13 @@ export class State {
     };
   }
 
-  private static async checkDependenciesAndGetJavaPath(): Promise<string> {
+  private static async checkDependenciesAndGetJavaPath(location: Location): Promise<string> {
     // test whether java and z3 binaries can be used:
     Helper.log("Checking Java...");
     const javaPath = await Helper.getJavaPath();
     await Helper.spawn(javaPath, ["-version"]);
     Helper.log("Checking Z3...");
-    const z3Path = Helper.getZ3Path(Helper.isNightly());
+    const z3Path = Helper.getZ3Path(location);
     await Helper.spawn(z3Path, ["--version"]);
     return javaPath;
   }

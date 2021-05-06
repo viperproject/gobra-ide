@@ -11,20 +11,22 @@ import { Verifier } from './VerificationService';
 import { VerifierConfig } from './MessagePayloads';
 import { Helper } from './Helper';
 import * as Notifier from './Notifier';
+import { Location } from 'vs-verification-toolbox';
 
 
 let fileSystemWatcher: vscode.FileSystemWatcher;
 
 export function activate(context: vscode.ExtensionContext): Thenable<any> {
 
-	function startServer(): Promise<void> {
+	async function startServer(location: Location): Promise<Location> {
 		// create and start Gobra Server
 		fileSystemWatcher = vscode.workspace.createFileSystemWatcher("**/*.{gobra, go}");
-		return State.startLanguageServer(context, fileSystemWatcher);
+		await State.startLanguageServer(context, fileSystemWatcher, location);
+		return location;
 	}
 
-	function initVerifier(): void {
-		let verifierConfig = new VerifierConfig();
+	function initVerifier(location: Location): void {
+		let verifierConfig = new VerifierConfig(location);
 		Verifier.initialize(context, verifierConfig, fileUri);
 		Notifier.notifyExtensionActivation();
 	}
@@ -33,7 +35,7 @@ export function activate(context: vscode.ExtensionContext): Thenable<any> {
 	let fileUri: string = Helper.getFileUri();
 
 	// install gobra tools
-	return Verifier.updateGobraTools(false)
+	return Verifier.updateGobraTools(context, false)
 		.then(startServer)
 		.then(initVerifier);
 }

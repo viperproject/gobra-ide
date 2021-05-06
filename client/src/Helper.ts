@@ -5,11 +5,12 @@
 // Copyright (c) 2011-2020 ETH Zurich.
 
 import * as vscode from 'vscode';
-import { URI } from 'vscode-uri';
+import { URI, Utils } from 'vscode-uri';
+import * as path from "path";
 import { VerifierConfig, OverallVerificationResult, FileData, GobraSettings, PlatformDependendPath, GobraDependencies, PreviewData, HighlightingPosition } from "./MessagePayloads";
 import * as locate_java_home from 'locate-java-home';
 import * as child_process from 'child_process';
-import { GitHubReleaseAsset } from 'vs-verification-toolbox';
+import { GitHubReleaseAsset, Location } from 'vs-verification-toolbox';
 import { IJavaHomeInfo } from 'locate-java-home/js/es5/lib/interfaces';
 
 
@@ -129,13 +130,6 @@ export class Helper {
     return "";
   }
 
-  /**
-    * Specifies the Path added by the zip extractor.
-    */
-  private static extractionAddition(): string {
-    return Helper.isWin ? "\\Gobra\\GobraTools" : "/Gobra/GobraTools"
-  }
-
   private static getJavaHome(): Promise<IJavaHomeInfo> {
     return new Promise((resolve, reject) => {
       try {
@@ -249,25 +243,23 @@ export class Helper {
   /**
     * Get Location where Gobra Tools will be installed.
     */
-  public static getGobraToolsPath(): string {
-    let gobraToolsPaths = Helper.getGobraDependencies().gobraToolsPaths.gobraToolsPath;
-    return Helper.getPlatformPath(gobraToolsPaths);
+  public static getGobraToolsPath(context: vscode.ExtensionContext): string {
+    return Utils.joinPath(context.globalStorageUri, "gobraTools").fsPath;
   }
 
-  public static getServerJarPath(nightly: boolean = false): string {
+  public static getServerJarPath(location: Location): string {
     let serverJarPaths = Helper.getGobraDependencies().gobraToolsPaths.serverJar;
-    return Helper.getPlatformPath(serverJarPaths).replace("$gobraTools$", Helper.getGobraToolsPath() + Helper.extractionAddition());
+    return Helper.getPlatformPath(serverJarPaths).replace("$gobraTools$", location.basePath);
   }
 
-  
-  public static getBoogiePath(nightly: boolean = false): string {
+  public static getBoogiePath(location: Location): string {
     let boogiePaths = Helper.getGobraDependencies().gobraToolsPaths.boogieExecutable;
-    return Helper.getPlatformPath(boogiePaths).replace("$gobraTools$", Helper.getGobraToolsPath() + Helper.extractionAddition());
+    return Helper.getPlatformPath(boogiePaths).replace("$gobraTools$", location.basePath);
   }
 
-  public static getZ3Path(nightly: boolean = false): string {
+  public static getZ3Path(location: Location): string {
     let z3Paths = Helper.getGobraDependencies().gobraToolsPaths.z3Executable;
-    return Helper.getPlatformPath(z3Paths).replace("$gobraTools$", Helper.getGobraToolsPath() + Helper.extractionAddition());
+    return Helper.getPlatformPath(z3Paths).replace("$gobraTools$", location.basePath);
   }
 
 

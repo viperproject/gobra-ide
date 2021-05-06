@@ -10,7 +10,6 @@ import * as path from 'path';
 import { State } from '../ExtensionState';
 import { Commands, Helper } from '../Helper';
 import { TestHelper } from './TestHelper';
-import { PathSettings } from '../MessagePayloads';
 
 const PROJECT_ROOT = path.join(__dirname, "..", "..");
 const DATA_ROOT = path.join(PROJECT_ROOT, "src", "test", "data");

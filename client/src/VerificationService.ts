@@ -28,13 +28,13 @@ export class Verifier {
     /**
       * Register Commands for Command Palette.
       */
-    Helper.registerCommand(ContributionCommands.flushCache, Verifier.flushCache, State.context);
-    Helper.registerCommand(ContributionCommands.goifyFile, Verifier.goifyFile, State.context);
-    Helper.registerCommand(ContributionCommands.gobrafyFile, Verifier.gobrafyFile, State.context);
-    Helper.registerCommand(ContributionCommands.verifyFile, Verifier.manualVerifyFile, State.context);
-    Helper.registerCommand(ContributionCommands.updateGobraTools, () => Verifier.updateGobraTools(true), State.context);
-    Helper.registerCommand(ContributionCommands.showViperCodePreview, Verifier.showViperCodePreview, State.context);
-    Helper.registerCommand(ContributionCommands.showInternalCodePreview, Verifier.showInternalCodePreview, State.context);
+    Helper.registerCommand(ContributionCommands.flushCache, Verifier.flushCache, context);
+    Helper.registerCommand(ContributionCommands.goifyFile, Verifier.goifyFile, context);
+    Helper.registerCommand(ContributionCommands.gobrafyFile, Verifier.gobrafyFile, context);
+    Helper.registerCommand(ContributionCommands.verifyFile, Verifier.manualVerifyFile, context);
+    Helper.registerCommand(ContributionCommands.updateGobraTools, () => Verifier.updateGobraTools(context, true), context);
+    Helper.registerCommand(ContributionCommands.showViperCodePreview, Verifier.showViperCodePreview, context);
+    Helper.registerCommand(ContributionCommands.showInternalCodePreview, Verifier.showInternalCodePreview, context);
 
     /**
       * Register Notification handlers for Gobra-Server notifications.
@@ -97,7 +97,7 @@ export class Verifier {
     // change of build version
     State.context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(e => {
       if (e.affectsConfiguration("gobraSettings.buildVersion"))
-        Verifier.updateGobraTools(true, Texts.changedBuildVersion);
+        Verifier.updateGobraTools(context, true, Texts.changedBuildVersion);
     }))
 
 
@@ -261,7 +261,7 @@ export class Verifier {
   /**
     * Update GobraTools by downloading them if necessary. 
     */
-  public static async updateGobraTools(shouldUpdate: boolean, notificationText?: string): Promise<Location> {
+  public static async updateGobraTools(context: vscode.ExtensionContext, shouldUpdate: boolean, notificationText?: string): Promise<Location> {
     State.updatingGobraTools = true;
 
     const gobraToolsRawProviderUrl = Helper.getGobraToolsProvider(Helper.isNightly());
@@ -280,12 +280,9 @@ export class Verifier {
       dependencyInstaller = new RemoteZipExtractor(url, folderName);
     }
 
-    let gobraToolsPath = Helper.getGobraToolsPath();
-    let boogiePath = Helper.getBoogiePath();
-    let z3Path = Helper.getZ3Path();
-
+    const gobraToolsPath = Helper.getGobraToolsPath(context);
     if (!fs.existsSync(gobraToolsPath)) {
-      fs.mkdirSync(gobraToolsPath);
+      fs.mkdirSync(gobraToolsPath, { recursive: true });
     }
 
     const gobraTools = new Dependency<"Gobra">(
@@ -299,6 +296,8 @@ export class Verifier {
     ).catch(Helper.rethrow(`Downloading and unzipping the Gobra Tools has failed`));
 
     if (Helper.isLinux || Helper.isMac) {
+      const boogiePath = Helper.getBoogiePath(location);
+      const z3Path = Helper.getZ3Path(location);
       fs.chmodSync(z3Path, '755');
       fs.chmodSync(boogiePath, '755');
       fs.chmodSync(boogiePath + ".exe", '755')
