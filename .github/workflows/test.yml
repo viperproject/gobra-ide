@@ -253,6 +253,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
+      # npm ci fails to clone GitHub repos referenced in package.json with recent node versions
+      # the following work around has been proposed here: https://github.com/actions/setup-node/issues/214#issuecomment-810829250
+      - name: Reconfigure git to use HTTPS authentication
+        run: >
+          git config --global url."https://github.com/".insteadOf
+          ssh://git@github.com/
+
       - run: npm ci --cache .npm --prefer-offline
         working-directory: gobra-ide/client
 
