@@ -9,7 +9,7 @@ package viper.gobraserver.backend
 import viper.silver.ast.Program
 import viper.silver.reporter.{ExceptionReport, Message, OverallFailureMessage, OverallSuccessMessage, Reporter}
 import viper.silver.verifier.{Success, VerificationResult}
-import akka.actor.{Actor, Props}
+import akka.actor.{Actor, Props, Status}
 import viper.gobra.backend.{ViperVerifier, ViperVerifierConfig}
 
 import scala.concurrent.{Future, Promise}
@@ -38,6 +38,15 @@ object ViperServer {
         } catch {
           case e: Throwable => verificationPromise tryFailure e
         }
+
+      case Status.Success =>
+        // this message is the last one to be received meaning that all messages belonging to the current verification
+        // should be received by now. To make sure that the promise is eventually completed (even if not
+        // OverallSuccessMessage or OverallFailureMessage was received), we let the promise fail. This failure is
+        // ignored if the promise has already been completed before:
+        verificationPromise tryFailure new RuntimeException("no overall success or failue message has been received")
+
+      case Status.Failure(cause) => verificationPromise tryFailure cause
 
       case e: Throwable => verificationPromise tryFailure e
     }
