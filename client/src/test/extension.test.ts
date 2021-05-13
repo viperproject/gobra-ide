@@ -15,6 +15,8 @@ const PROJECT_ROOT = path.join(__dirname, "..", "..");
 const DATA_ROOT = path.join(PROJECT_ROOT, "src", "test", "data");
 const ASSERT_TRUE = "assert_true.gobra";
 const ASSERT_FALSE = "assert_false.gobra";
+const FAILING_POST_GOBRA = "failing_post.gobra";
+const FAILING_POST_GO = "failing_post.go";
 
 const URL_CONVERSION_TIMEOUT_MS = 1000; // 1s
 const GOBRA_TOOL_UPDATE_TIMEOUT_MS = 4 * 60 * 1000; // 4min
@@ -70,7 +72,7 @@ suite("Extension", () => {
     });
     
     test("Recognize Go files", async () => {
-        const document = await openFile("failing_post.go");
+        const document = await openFile(FAILING_POST_GO);
         assert.strictEqual(document.languageId, "go");
     });
 
@@ -126,7 +128,7 @@ suite("Extension", () => {
 
     test("Underline the 'false' in the failing postcondition", async function() {
         this.timeout(GOBRA_VERIFICATION_TIMEOUT_MS);
-        const document = await openAndVerify("failing_post.gobra");
+        const document = await openAndVerify(FAILING_POST_GOBRA);
         const diagnostics = vscode.languages.getDiagnostics(document.uri);
         assert.ok(
             diagnostics.some(
@@ -140,7 +142,7 @@ suite("Extension", () => {
     
     test("Underline the 'false' in the failing postcondition of a go program", async function() {
         this.timeout(GOBRA_VERIFICATION_TIMEOUT_MS);
-        const document = await openAndVerify("failing_post.go");
+        const document = await openAndVerify(FAILING_POST_GO);
         const diagnostics = vscode.languages.getDiagnostics(document.uri);
         assert.ok(
             diagnostics.some(
@@ -155,6 +157,8 @@ suite("Extension", () => {
     test("Update Gobra tools", async function() {
         // execute this test as the last one as the IDE has to be restarted afterwards
         this.timeout(GOBRA_TOOL_UPDATE_TIMEOUT_MS);
+        // opening a file might help in keeping the extension alive:
+        await openFile(ASSERT_TRUE);
         log("start updating Gobra tools");
         await vscode.commands.executeCommand("gobra.updateGobraTools")
         log("done updating Gobra tools");
