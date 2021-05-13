@@ -8,6 +8,7 @@ import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { State } from '../ExtensionState';
+import { Verifier } from '../VerificationService';
 import { Commands, Helper } from '../Helper';
 import { TestHelper } from './TestHelper';
 
@@ -160,7 +161,13 @@ suite("Extension", () => {
         // opening a file might help in keeping the extension alive:
         await openFile(ASSERT_TRUE);
         log("start updating Gobra tools");
-        await vscode.commands.executeCommand("gobra.updateGobraTools")
+        await Verifier.updateGobraTools(State.context, true)
+        log("Verifier.updateGobraTools is done");
+        try {
+            await vscode.commands.executeCommand("gobra.updateGobraTools");
+        } catch(e) {
+            log(`executingCommand \`gobra.updateGobraTools\` has failed with ${e}`);
+        }
         log("done updating Gobra tools");
     });
 });
