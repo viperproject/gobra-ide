@@ -35,6 +35,7 @@ export class Verifier {
     Helper.registerCommand(ContributionCommands.updateGobraTools, () => Verifier.updateGobraTools(true), State.context);
     Helper.registerCommand(ContributionCommands.showViperCodePreview, Verifier.showViperCodePreview, State.context);
     Helper.registerCommand(ContributionCommands.showInternalCodePreview, Verifier.showInternalCodePreview, State.context);
+    Helper.registerCommand(ContributionCommands.showJavaPath, () => Verifier.showJavaPath(), context);
 
     /**
       * Register Notification handlers for Gobra-Server notifications.
@@ -331,7 +332,16 @@ export class Verifier {
       State.client.sendNotification(Commands.codePreview, Helper.previewDataToJson(new PreviewData(State.verifierConfig.fileData, true, false, selections)));
     });
   }
-  
+
+  /**
+   * Displays an information popup listing the path to the selected Java binary.
+   */
+  public static async showJavaPath(): Promise<void> {
+    const javaPath = await Helper.getJavaPath();
+    const javaVersion = await Helper.spawn(javaPath, ["-version"]);
+    // at leat on macOS, stdout is empty and the version is in stderr. Thus, simply concatenate them:
+    await vscode.window.showInformationMessage(Texts.javaLocation(javaPath, javaVersion.stdout.concat(javaVersion.stderr)));
+  }
 
   /**
     * Handler Functions handling notifications from Gobra-Server.
