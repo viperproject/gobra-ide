@@ -6,7 +6,6 @@
 
 package viper.gobraserver
 
-import java.io.File
 import java.nio.charset.StandardCharsets.UTF_8
 import java.nio.file.Path
 
@@ -16,6 +15,7 @@ import viper.gobra.backend.ViperBackend
 import viper.gobra.reporting._
 import viper.gobra.util.{GobraExecutionContext, OutputUtil}
 import viper.gobraserver.backend.ViperServerBackend
+import viper.silver.logger.ViperLogger
 import viper.silver.reporter.StatisticsReport
 
 import scala.collection.mutable
@@ -32,7 +32,8 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
                             goify: Boolean = false,
                             debug: Boolean = false,
                             printInternal: Boolean = false,
-                            printVpr: Boolean = false)(executor: GobraExecutionContext) extends GobraReporter {
+                            printVpr: Boolean = false,
+                            logger: ViperLogger)(executor: GobraExecutionContext) extends GobraReporter {
 
   /**
     * State and Helper functions used for tracking the progress of the Verification.
@@ -124,64 +125,67 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
   /**
     * Function handling the reports arriving from the verification.
     */
-  override def report(msg: GobraMessage): Unit = msg match {
-    case CopyrightReport(text) => println(text)
+  override def report(msg: GobraMessage): Unit = {
+    logger.get.trace(s"GobraIdeReport has received message $msg")
+    msg match {
+      case CopyrightReport(text) => println(text)
 
-    case PreprocessedInputMessage(_, _) => updateProgress(preprocessEntityProgress)
+      case PreprocessedInputMessage(_, _) => updateProgress(preprocessEntityProgress)
 
-    case ParsedInputMessage(input, program) =>
-      updateProgress(preprocessEntityProgress)
-      if (unparse) write(input, "unparsed", program().formatted)
+      case ParsedInputMessage(input, program) =>
+        updateProgress(preprocessEntityProgress)
+        if (unparse) write(input, "unparsed", program().formatted)
 
-    case ParserErrorMessage(_, result) =>
-      updateDiagnostics(VerifierResult.Failure(result))
-      finishedVerification()
+      case ParserErrorMessage(_, result) =>
+        updateDiagnostics(VerifierResult.Failure(result))
+        finishedVerification()
 
-    case TypeCheckSuccessMessage(input, _, erasedGhostCode, goifiedGhostCode) =>
-      updateProgress(nonVerificationEntityProgress)
-      if (eraseGhost) write(input, "ghostLess", erasedGhostCode())
-      if (goify) write(input, "go", goifiedGhostCode())
+      case TypeCheckSuccessMessage(input, _, erasedGhostCode, goifiedGhostCode) =>
+        updateProgress(nonVerificationEntityProgress)
+        if (eraseGhost) write(input, "ghostLess", erasedGhostCode())
+        if (goify) write(input, "go", goifiedGhostCode())
 
-    case TypeCheckFailureMessage(_, _, _, result) =>
-      updateDiagnostics(VerifierResult.Failure(result))
-      finishedVerification()
+      case TypeCheckFailureMessage(_, _, _, result) =>
+        updateDiagnostics(VerifierResult.Failure(result))
+        finishedVerification()
 
-    case TypeCheckDebugMessage(input, _, debugTypeInfo) if debug => write(input, "debugType", debugTypeInfo())
+      case TypeCheckDebugMessage(input, _, debugTypeInfo) if debug => write(input, "debugType", debugTypeInfo())
 
-    case DesugaredMessage(input, internal) =>
-      updateProgress(nonVerificationEntityProgress)
-      if (printInternal) write(input, "internal", internal().formatted)
+      case DesugaredMessage(input, internal) =>
+        updateProgress(nonVerificationEntityProgress)
+        if (printInternal) write(input, "internal", internal().formatted)
 
-    case m@GeneratedViperMessage(input, ast, backtrack) =>
-      updateProgress(nonVerificationEntityProgress)
-      if (printVpr){
-        write(input, "vpr", m.vprAstFormatted)
+      case m@GeneratedViperMessage(input, ast, backtrack) =>
+        updateProgress(nonVerificationEntityProgress)
+        if (printVpr){
+          write(input, "vpr", m.vprAstFormatted)
+        }
+        // submit the Viper AST's verification to the thread pool:
+        VerifierState.submitVerificationJob(ast(), backtrack(), startTime, verifierConfig)(executor)
+
+      case GobraOverallSuccessMessage(_) =>
+        VerifierState.removeDiagnostics(fileUri)
+        if (fileUri == VerifierState.openFileUri) VerifierState.publishDiagnostics(fileUri)
+        finishedVerification()
+
+      case GobraOverallFailureMessage(_, result) =>
+        updateDiagnostics(result)
+        finishedVerification()
+
+      case GobraEntitySuccessMessage(_, _) => updateProgress(verificationEntityProgress)
+
+      case GobraEntityFailureMessage(_, _, result) =>
+        updateProgress(verificationEntityProgress)
+        updateDiagnostics(result)
+
+      case RawMessage(m) => m match {
+        case StatisticsReport(nOfMethods, nOfFunctions, nOfPredicates, _, _) =>
+          totalEntities = nOfMethods + nOfFunctions + nOfPredicates
+
+        case _ => // ignore
       }
-      // submit the Viper AST's verification to the thread pool:
-      VerifierState.submitVerificationJob(ast(), backtrack(), startTime, verifierConfig)(executor)
-    
-    case GobraOverallSuccessMessage(_) =>
-      VerifierState.removeDiagnostics(fileUri)
-      if (fileUri == VerifierState.openFileUri) VerifierState.publishDiagnostics(fileUri)
-      finishedVerification()
-
-    case GobraOverallFailureMessage(_, result) =>
-      updateDiagnostics(result)
-      finishedVerification()
-
-    case GobraEntitySuccessMessage(_, _) => updateProgress(verificationEntityProgress)
-
-    case GobraEntityFailureMessage(_, _, result) =>
-      updateProgress(verificationEntityProgress)
-      updateDiagnostics(result)
-
-    case RawMessage(m) => m match {
-      case StatisticsReport(nOfMethods, nOfFunctions, nOfPredicates, _, _) =>
-        totalEntities = nOfMethods + nOfFunctions + nOfPredicates
 
       case _ => // ignore
     }
-
-    case _ => // ignore
   }
 }

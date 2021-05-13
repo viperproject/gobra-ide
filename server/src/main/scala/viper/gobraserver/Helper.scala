@@ -15,12 +15,13 @@ import java.nio.file.{Files, Paths}
 import ch.qos.logback.classic.Level
 import viper.gobra.util.GobraExecutionContext
 import viper.gobraserver.backend.{ViperServerBackend, ViperServerConfig}
+import viper.silver.logger.ViperLogger
 
 object Helper {
 
   val defaultVerificationFraction = 0.75
 
-  def verificationConfigFromTask(config: VerifierConfig, startTime: Long, verify: Boolean, progress: Int = 0)(executor: GobraExecutionContext): Config = {
+  def verificationConfigFromTask(config: VerifierConfig, startTime: Long, verify: Boolean, progress: Int = 0, logger: ViperLogger)(executor: GobraExecutionContext): Config = {
     config match {
       case VerifierConfig(
         FileData(path, fileUri),
@@ -58,7 +59,8 @@ object Helper {
           goify = goify,
           debug = debug,
           printInternal = printInternal,
-          printVpr = printViper
+          printVpr = printViper,
+          logger = logger
         )(executor)
 
         val verifierConfig =
