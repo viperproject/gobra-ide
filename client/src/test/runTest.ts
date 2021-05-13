@@ -103,7 +103,11 @@ async function main() {
 					launchArgs: ["--disable-extensions", tmpWorkspace.name],
 				});
 			} finally {
-				tmpWorkspace.removeCallback();
+				try {
+					tmpWorkspace.removeCallback();
+				} catch (e) {
+					console.warn(`cleaning temporary directory has failed with error ${e}`);
+				}
 			}
 		}
 	}
