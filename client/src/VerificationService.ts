@@ -282,6 +282,18 @@ export class Verifier {
 
     const gobraToolsPath = Helper.getGobraToolsPath(context);
     if (!fs.existsSync(gobraToolsPath)) {
+      // ask user for consent to install Gobra Tools on first launch:
+      if (!shouldUpdate) {
+        const confirmation = await vscode.window.showInformationMessage(
+          Texts.installingGobraToolsConfirmationMessage,
+          Texts.installingGobraToolsConfirmationYesButton,
+          Texts.installingGobraToolsConfirmationNoButton);
+        if (confirmation != Texts.installingGobraToolsConfirmationYesButton) {
+          // user has dismissed message without confirming
+          return Promise.reject(Texts.gobraToolsInstallationDenied);
+        }
+      }
+
       fs.mkdirSync(gobraToolsPath, { recursive: true });
     }
 
@@ -291,7 +303,7 @@ export class Verifier {
     );
 
     const { result: location, didReportProgress } = await withProgressInWindow(
-      shouldUpdate ? Texts.updatingGobraTools : Texts.installingGobraTools,
+      shouldUpdate ? Texts.updatingGobraTools : Texts.ensuringGobraTools,
       listener => gobraTools.install("Gobra", shouldUpdate, listener)
     ).catch(Helper.rethrow(`Downloading and unzipping the Gobra Tools has failed`));
 
@@ -309,7 +321,7 @@ export class Verifier {
       } else if (shouldUpdate) {
         vscode.window.showInformationMessage(Texts.successfulUpdatingGobraTools);
       } else {
-        vscode.window.showInformationMessage(Texts.successfulInstallingGobraTools);
+        vscode.window.showInformationMessage(Texts.successfulEnsuringGobraTools);
       }
     }
 

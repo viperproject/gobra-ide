@@ -365,10 +365,14 @@ export class Texts {
   public static runningVerification = "Verification of ";
   public static helloGobra = "Hello from Gobra";
   public static flushCache = "Flush Cache";
+  public static installingGobraToolsConfirmationMessage = "Gobra-IDE requires Gobra and additional tools. Do you want to install them?";
+  public static installingGobraToolsConfirmationYesButton = "Yes";
+  public static installingGobraToolsConfirmationNoButton = "No";
+  public static gobraToolsInstallationDenied = "Installation of Gobra and required tools has been denied. Restart Visual Studio Code and allow their installation.";
   public static updatingGobraTools = "Updating Gobra Tools";
-  public static installingGobraTools = "Installing Gobra Tools";
+  public static ensuringGobraTools = "Ensuring Gobra Tools";
   public static successfulUpdatingGobraTools = "Successfully updated Gobra Tools. Please restart the IDE.";
-  public static successfulInstallingGobraTools = "Successfully installed Gobra Tools.";
+  public static successfulEnsuringGobraTools = "Successfully ensured Gobra Tools.";
   public static changedBuildVersion = "Changed the build version of Gobra Tools. Please restart the IDE.";
 }
 
