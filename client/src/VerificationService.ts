@@ -281,6 +281,12 @@ export class Verifier {
     }
 
     const gobraToolsPath = Helper.getGobraToolsPath(context);
+    
+    if (Helper.cleanInstall() && fs.existsSync(gobraToolsPath)) {
+      // wipe gobraToolsPath if it exists:
+      fs.rmSync(gobraToolsPath, { recursive: true });
+    }
+
     if (!fs.existsSync(gobraToolsPath)) {
       // ask user for consent to install Gobra Tools on first launch:
       if (!shouldUpdate && !Helper.assumeYes()) {

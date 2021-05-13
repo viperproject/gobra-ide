@@ -86,8 +86,11 @@ async function main() {
 
 				// get environment variables
 				const env: NodeJS.ProcessEnv = process.env;
-				// add additional environment variable to auto accept confirmation messages of Gobra-IDE:
+				// add additional environment variable to
+				// - auto accept confirmation messages of Gobra-IDE
+				// - wipe global storage path to force install Gobra Tools after each activation
 				env.GOBRA_IDE_ASSUME_YES = "1";
+				env.GOBRA_IDE_CLEAN_INSTALL = "1";
 				
 				// Run the tests in the workspace
 				await runTests({

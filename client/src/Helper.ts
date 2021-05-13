@@ -241,6 +241,15 @@ export class Helper {
   }
 
   /**
+   * Returns true if `getGobraToolsPath` should be wiped after activating the extension to ensure a clean system state.
+   */
+  public static cleanInstall(): boolean {
+    const value = process.env["GOBRA_IDE_CLEAN_INSTALL"];
+    return value != null && 
+      (value == "1" || value == "true" || value == "TRUE");
+  }
+
+  /**
    * Returns true if Gobra-IDE runs in a non-interactive environment and confirmations should automatically be accepted.
    */
   public static assumeYes(): boolean {
