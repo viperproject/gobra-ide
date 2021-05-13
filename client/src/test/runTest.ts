@@ -94,6 +94,7 @@ async function main() {
 					version: vscode_version,
 					extensionDevelopmentPath,
 					extensionTestsPath,
+					// note that passing environment variables seems to only work when invoking the tests via CLI
 					extensionTestsEnv: env,
 					// Disable any other extension
 					launchArgs: ["--disable-extensions", tmpWorkspace.name],
