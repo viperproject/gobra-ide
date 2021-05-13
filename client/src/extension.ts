@@ -5,6 +5,7 @@
 // Copyright (c) 2011-2020 ETH Zurich.
 
 import * as vscode from 'vscode';
+import * as fs from 'fs';
 
 import { State } from './ExtensionState';
 import { Verifier } from './VerificationService';
@@ -17,6 +18,8 @@ import { Location } from 'vs-verification-toolbox';
 let fileSystemWatcher: vscode.FileSystemWatcher;
 
 export function activate(context: vscode.ExtensionContext): Thenable<any> {
+	// Uri of the file which triggered the plugin activation.
+	const fileUri: string = Helper.getFileUri();
 
 	async function startServer(location: Location): Promise<Location> {
 		// create and start Gobra Server
@@ -26,13 +29,23 @@ export function activate(context: vscode.ExtensionContext): Thenable<any> {
 	}
 
 	function initVerifier(location: Location): void {
-		let verifierConfig = new VerifierConfig(location);
+		const verifierConfig = new VerifierConfig(location);
 		Verifier.initialize(context, verifierConfig, fileUri);
 		Notifier.notifyExtensionActivation();
 	}
 
-	// Uri of the file which triggered the plugin activation.
-	let fileUri: string = Helper.getFileUri();
+	// start of in a clean state by wiping Gobra Tools if this was requested via
+	// environment variables. In particular, this is used for the extension tests.
+	if (Helper.cleanInstall()) {
+		const gobraToolsPath = Helper.getGobraToolsPath(context);
+		if (fs.existsSync(gobraToolsPath)) {
+			Helper.log(`cleanInstall has been requested and gobra tools already exist --> delete them`);
+			// wipe gobraToolsPath if it exists:
+			fs.rmdirSync(gobraToolsPath, { recursive: true });
+		} else {
+			Helper.log(`cleanInstall has been requested but gobra tools do not exist yet --> NOP`);
+		}
+	}
 
 	// install gobra tools
 	return Verifier.updateGobraTools(context, false)

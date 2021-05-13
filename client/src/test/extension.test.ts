@@ -158,16 +158,12 @@ suite("Extension", () => {
     test("Update Gobra tools", async function() {
         // execute this test as the last one as the IDE has to be restarted afterwards
         this.timeout(GOBRA_TOOL_UPDATE_TIMEOUT_MS);
-        // opening a file might help in keeping the extension alive:
-        // await openFile(ASSERT_TRUE);
         log("start updating Gobra tools");
-        await Verifier.updateGobraTools(State.context, true)
-        log("Verifier.updateGobraTools is done");
-        try {
-            await vscode.commands.executeCommand("gobra.updateGobraTools");
-        } catch(e) {
-            log(`executingCommand \`gobra.updateGobraTools\` has failed with ${e}`);
-        }
+        // the following command directly invokes the update function (without going via the VSCode ecosystem).
+        // this is in particular useful for debugging / reproducing / understanding an issue as the error / exception 
+        // will be visible in the output and will not be swallowed by VSCode.
+        // await Verifier.updateGobraTools(State.context, true);
+        await vscode.commands.executeCommand("gobra.updateGobraTools");
         log("done updating Gobra tools");
     });
 });
