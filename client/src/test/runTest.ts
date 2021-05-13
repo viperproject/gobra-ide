@@ -77,19 +77,24 @@ async function main() {
 			try {
 				// Prepare the workspace with the settings
 				const settings_path = path.join(DATA_ROOT, "settings", settings_file);
-				const workspace_vscode_path = path.join(tmpWorkspace.name, ".vscode")
-				const workspace_settings_path = path.join(workspace_vscode_path, "settings.json")
+				const workspace_vscode_path = path.join(tmpWorkspace.name, ".vscode");
+				const workspace_settings_path = path.join(workspace_vscode_path, "settings.json");
 				fs.mkdirSync(workspace_vscode_path);
-				fs.copyFileSync(settings_path, workspace_settings_path)
+				fs.copyFileSync(settings_path, workspace_settings_path);
 				// modify settings file:
-				addOptionsToSettingsFile(workspace_settings_path, addSettings)
+				addOptionsToSettingsFile(workspace_settings_path, addSettings);
+
+				// get environment variables
+				const env: NodeJS.ProcessEnv = process.env;
+				// add additional environment variable to auto accept confirmation messages of Gobra-IDE:
+				env.GOBRA_IDE_ASSUME_YES = "1";
 				
 				// Run the tests in the workspace
 				await runTests({
 					version: vscode_version,
 					extensionDevelopmentPath,
 					extensionTestsPath,
-					extensionTestsEnv: process.env,
+					extensionTestsEnv: env,
 					// Disable any other extension
 					launchArgs: ["--disable-extensions", tmpWorkspace.name],
 				});

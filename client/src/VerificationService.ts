@@ -283,7 +283,7 @@ export class Verifier {
     const gobraToolsPath = Helper.getGobraToolsPath(context);
     if (!fs.existsSync(gobraToolsPath)) {
       // ask user for consent to install Gobra Tools on first launch:
-      if (!shouldUpdate) {
+      if (!shouldUpdate && !Helper.assumeYes()) {
         const confirmation = await vscode.window.showInformationMessage(
           Texts.installingGobraToolsConfirmationMessage,
           Texts.installingGobraToolsConfirmationYesButton,

@@ -241,6 +241,15 @@ export class Helper {
   }
 
   /**
+   * Returns true if Gobra-IDE runs in a non-interactive environment and confirmations should automatically be accepted.
+   */
+  public static assumeYes(): boolean {
+    const value = process.env["GOBRA_IDE_ASSUME_YES"];
+    return value != null && 
+      (value == "1" || value == "true" || value == "TRUE");
+  }
+
+  /**
     * Get Location where Gobra Tools will be installed.
     */
   public static getGobraToolsPath(context: vscode.ExtensionContext): string {
