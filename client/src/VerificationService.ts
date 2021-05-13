@@ -284,7 +284,7 @@ export class Verifier {
     
     if (Helper.cleanInstall() && fs.existsSync(gobraToolsPath)) {
       // wipe gobraToolsPath if it exists:
-      fs.rmSync(gobraToolsPath, { recursive: true });
+      fs.rmdirSync(gobraToolsPath, { recursive: true });
     }
 
     if (!fs.existsSync(gobraToolsPath)) {

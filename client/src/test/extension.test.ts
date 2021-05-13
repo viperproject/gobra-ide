@@ -159,7 +159,7 @@ suite("Extension", () => {
         // execute this test as the last one as the IDE has to be restarted afterwards
         this.timeout(GOBRA_TOOL_UPDATE_TIMEOUT_MS);
         // opening a file might help in keeping the extension alive:
-        await openFile(ASSERT_TRUE);
+        // await openFile(ASSERT_TRUE);
         log("start updating Gobra tools");
         await Verifier.updateGobraTools(State.context, true)
         log("Verifier.updateGobraTools is done");
