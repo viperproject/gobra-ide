@@ -41,7 +41,7 @@ object ViperServer {
 
       case Status.Success =>
         // this message is the last one to be received meaning that all messages belonging to the current verification
-        // should be received by now. To make sure that the promise is eventually completed (even if not
+        // should be received by now. To make sure that the promise is eventually completed (even if no
         // OverallSuccessMessage or OverallFailureMessage was received), we let the promise fail. This failure is
         // ignored if the promise has already been completed before:
         verificationPromise tryFailure new RuntimeException("no overall success or failue message has been received")
