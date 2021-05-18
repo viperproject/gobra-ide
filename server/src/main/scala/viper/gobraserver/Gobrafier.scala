@@ -94,7 +94,7 @@ object Gobrafier {
       (if (m.group(4) == "") "" else ", ") +
       addGhostKeywordToParamsList(m.group(1))) +
       " " +
-      m.group(5)
+        (if (m.group(5) == null) "" else m.group(5))
     })
 
     /**
@@ -109,9 +109,10 @@ object Gobrafier {
       parens(m.group(4)) +
       " " +
       parens(
-        (if (m.group(5) == null) "" else m.group(6)) +
-        (if (m.group(6) == "" || m.group(6) == null) "" else ", ") +
-        addGhostKeywordToParamsList(m.group(1)))
+        (if (m.group(5) == null) "" else m.group(5)) +
+        (if (m.group(5) == null || m.group(5) == "" || m.group(1) == null || m.group(1) == "") "" else ", ") +
+        addGhostKeywordToParamsList(m.group(1))) +
+      (if (m.group(5) == null) " " else "") // add an additional space if no returns have existed before
     })
 
     /**
