@@ -54,7 +54,7 @@ case class PreviewReporter(name: String = "preview_reporter",
   }
 
   override def report(msg: GobraMessage): Unit = msg match {
-    case DesugaredMessage(file, internal) if internalPreview =>
+    case DesugaredMessage(_, internal) if internalPreview =>
       val internalFormatted = internal().formatted
       val positionStore = Node.defaultPrettyPrinter.positionStore
 
@@ -66,7 +66,7 @@ case class PreviewReporter(name: String = "preview_reporter",
       }
 
 
-    case GeneratedViperMessage(file, ast, _) if viperPreview =>
+    case GeneratedViperMessage(_, ast, _) if viperPreview =>
       val vprAstFormatted = HighlightingPrettyPrinter.pretty(ast())
       val positionStore = HighlightingPrettyPrinter.positionStore
 

@@ -80,11 +80,10 @@ object VerifierState {
   /**
     * Diagnostics of the verification stored per file in a key value pair.
     */
-  private var _diagnostics = mutable.Map[String, List[Diagnostic]]()
+  private val _diagnostics = mutable.Map[String, List[Diagnostic]]()
 
-  def addDiagnostics(fileUri: String, diagnostics: List[Diagnostic]) {
+  def addDiagnostics(fileUri: String, diagnostics: List[Diagnostic]): Unit =
     _diagnostics += (fileUri -> diagnostics)
-  }
 
   def getDiagnostics(fileUri: String): List[Diagnostic] = {
     _diagnostics.get(fileUri) match {
@@ -101,7 +100,7 @@ object VerifierState {
     */
   private val _cachedDiagnostics = mutable.Map[String, mutable.Map[VerifierError, Diagnostic]]()
 
-  def addDiagnosticsCache(fileUri: String, errors: List[VerifierError], diagnostics: List[Diagnostic]) {
+  def addDiagnosticsCache(fileUri: String, errors: List[VerifierError], diagnostics: List[Diagnostic]): Unit = {
     val diagnosticsMap = (errors zip diagnostics).toMap
     _cachedDiagnostics.get(fileUri) match {
       case Some(cachedDiagnostics) => _cachedDiagnostics += (fileUri -> (cachedDiagnostics ++ diagnosticsMap))
@@ -122,14 +121,13 @@ object VerifierState {
   /**
     * Publish all available diagnostics.
     */
-  def publishDiagnostics(fileUri: String) {
+  def publishDiagnostics(fileUri: String): Unit =
     client match {
       case Some(c) =>
         val params = new PublishDiagnosticsParams(fileUri, getDiagnostics(fileUri).asJava)
         c.publishDiagnostics(params)
       case None =>
     }
-  }
 
 
   def translateDiagnostics(changes: List[TextDocumentContentChangeEvent], diagnostics: List[Diagnostic]): List[Diagnostic] = {
@@ -269,7 +267,7 @@ object VerifierState {
     newDiagnostics
   }
 
-  def updateDiagnostics(fileUri: String, changes: List[TextDocumentContentChangeEvent]) {
+  def updateDiagnostics(fileUri: String, changes: List[TextDocumentContentChangeEvent]): Unit = {
     if (changes.isEmpty) return
 
     _diagnostics.get(fileUri) match {

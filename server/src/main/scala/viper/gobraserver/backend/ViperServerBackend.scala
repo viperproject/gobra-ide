@@ -19,7 +19,7 @@ object ViperServerBackend extends ViperBackend {
     executor = executionContext
   }
 
-  def setServer(coreServer: ViperCoreServer) {
+  def setServer(coreServer: ViperCoreServer): Unit = {
     require(server == null, "ViperCoreServer is already set.")
     server = coreServer
   }
@@ -30,11 +30,9 @@ object ViperServerBackend extends ViperBackend {
     new ViperServer(server)(executor)
   }
 
-  def resetExecutor(): Unit = {
+  def resetExecutor(): Unit =
     executor = null
-  }
 
-  def resetServer() {
+  def resetServer(): Unit =
     server = null
-  }
 }
