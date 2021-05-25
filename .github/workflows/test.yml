@@ -405,6 +405,12 @@ jobs:
     needs: [create-gobra-tools, build-and-test-client]
     runs-on: ubuntu-latest
     steps:
+      # we have to checkout the repo to read client/package.json later on:
+      - name: Checkout Gobra-IDE
+        uses: actions/checkout@v2
+        with:
+          path: gobra-ide
+
       - name: Download Gobra tools artifact
         uses: actions/download-artifact@v2
         with:
@@ -474,3 +480,42 @@ jobs:
           asset_path: gobra-ide/client/gobra-ide.vsix
           asset_name: gobra-ide.vsix
           asset_content_type: application/octet-stream
+
+      # compare version in client/package.json with last published version on
+      # VS Marketplace and deploy this version if newer.
+      # credits go to @fpoli!
+      - name: Obtain version information
+        run: |
+          VSCE_OUTPUT="$(
+            npx vsce show viper-admin.gobra-ide --json
+          )"
+          if [[ $(echo $VSCE_OUTPUT | grep --fixed-strings --line-regexp undefined) ]]; then
+            LAST_PUBLISHED_VERSION="0"
+          else
+            LAST_PUBLISHED_VERSION="$(
+              echo $VSCE_OUTPUT | jq '.versions[0].version' --raw-output
+            )"
+          fi
+          CURRENT_VERSION="$(
+            cat gobra-ide/client/package.json | jq '.version' --raw-output
+          )"
+          echo "LAST_PUBLISHED_VERSION=$LAST_PUBLISHED_VERSION" >> $GITHUB_ENV
+          echo "CURRENT_VERSION=$CURRENT_VERSION" >> $GITHUB_ENV
+
+      - name: Publish the extension to Visual Studio Marketplace
+        uses: HaaLeo/publish-vscode-extension@v0
+        if: env.CURRENT_VERSION != env.LAST_PUBLISHED_VERSION
+        with:
+          pat: ${{ secrets.VSCE_TOKEN }}
+          registryUrl: https://marketplace.visualstudio.com
+          extensionFile: gobra-ide/client/gobra-ide.vsix
+          packagePath: ''
+
+      - name: Publish the extension to Open VSX Registry
+        uses: HaaLeo/publish-vscode-extension@v0
+        if: env.CURRENT_VERSION != env.LAST_PUBLISHED_VERSION
+        with:
+          pat: ${{ secrets.OPEN_VSX_TOKEN }}
+          registryUrl: https://open-vsx.org
+          extensionFile: gobra-ide/client/gobra-ide.vsix
+          packagePath: ''
