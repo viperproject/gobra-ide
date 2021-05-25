@@ -392,6 +392,10 @@ export class Texts {
   public static successfulUpdatingGobraTools = "Successfully updated Gobra Tools. Please restart the IDE.";
   public static successfulEnsuringGobraTools = "Successfully ensured Gobra Tools.";
   public static changedBuildVersion = "Changed the build version of Gobra Tools. Please restart the IDE.";
+  public static javaLocation(path: string, version: string) {
+    // note that VSCode (at least currently) strips new-line characters. Thus, make sure it is nonetheless somewhat readable
+    return `Gobra uses java located at: \n\`${path}\`.\n\nThe java version is: \n\`${version}\`.`;
+  }
 }
 
 export class Color {
@@ -414,6 +418,7 @@ export class ContributionCommands {
   public static updateGobraTools = "gobra.updateGobraTools";
   public static showViperCodePreview = "gobra.showViperCodePreview";
   public static showInternalCodePreview = "gobra.showInternalCodePreview";
+  public static showJavaPath = "gobra.showJavaPath";
 }
 
 
