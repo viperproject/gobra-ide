@@ -37,7 +37,7 @@ jobs:
       SILVER_REF: "v.21.01-release"
       SILICON_REF: "v.21.01-release"
       CARBON_REF: "v.21.01-release"
-      VIPERSERVER_REF: "master"
+      VIPERSERVER_REF: "61150cbd24763e9ed3e7dce0c246c7085ebcb0f8" # commit 9e0f9d61e0522e705f5378fd69db6731975089e3 is not compatible with current version of Gobra
     steps:
       - name: Checkout Gobra-IDE
         uses: actions/checkout@v2
