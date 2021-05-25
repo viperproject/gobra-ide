@@ -123,6 +123,11 @@
         "command": "gobra.showInternalCodePreview",
         "title": "Show internal representation preview",
         "category": "Gobra"
+      },
+      {
+        "command": "gobra.showJavaPath",
+        "title": "Show path to Java binary",
+        "category": "Gobra"
       }
     ],
     "menus": {
