@@ -1,7 +1,9 @@
 .nyc_output
 .gitignore
 codecov.yml
+coverage/
 evaluationResults.txt
+package-lock.json
 package-notes.md
 report.csv
 tsconfig.json

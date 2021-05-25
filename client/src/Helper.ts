@@ -21,10 +21,10 @@ export class Helper {
 
   public static isServerMode(): boolean {
     const mode = vscode.workspace.getConfiguration("gobraSettings").get<boolean>("serverMode");
-    if (mode) {
-      return mode;
-    } else {
+    if (mode == null) {
       return true;
+    } else {
+      return mode;
     }
   }
 
@@ -34,19 +34,19 @@ export class Helper {
 
   public static isAutoVerify(): boolean {
     const autoVerify = vscode.workspace.getConfiguration("gobraSettings").get<boolean>("autoVerify");
-    if (autoVerify) {
-      return autoVerify;
-    } else {
+    if (autoVerify == null) {
       return true;
+    } else {
+      return autoVerify;
     }
   }
 
   public static getTimeout(): number {
     const timeout = vscode.workspace.getConfiguration("gobraSettings").get<number>("timeout");
-    if (timeout) {
-      return timeout;
-    } else {
+    if (timeout == null) {
       return 1000;
+    } else {
+      return timeout;
     }
   }
 
@@ -65,10 +65,10 @@ export class Helper {
 
   public static getFileName(path: string): string {
     const filename = path.split('/').pop();
-    if (filename) {
-      return filename;
-    } else {
+    if (filename == null) {
       return "";
+    } else {
+      return filename;
     }
   }
 
@@ -246,7 +246,7 @@ export class Helper {
   public static cleanInstall(): boolean {
     const value = process.env["GOBRA_IDE_CLEAN_INSTALL"];
     return value != null && 
-      (value == "1" || value == "true" || value == "TRUE");
+      (value == "1" || value.toUpperCase() == "TRUE");
   }
 
   /**
@@ -255,7 +255,7 @@ export class Helper {
   public static assumeYes(): boolean {
     const value = process.env["GOBRA_IDE_ASSUME_YES"];
     return value != null && 
-      (value == "1" || value == "true" || value == "TRUE");
+      (value == "1" || value.toUpperCase() == "TRUE");
   }
 
   /**

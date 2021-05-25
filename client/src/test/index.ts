@@ -24,7 +24,7 @@ import * as glob from 'glob';
 import NYC = require("nyc");
 
 export async function run(): Promise<void> {
-	const nyc: NYC = new NYC({
+    const nyc: NYC = new NYC({
         cwd: path.join(__dirname, "..", ".."),
         instrument: true,
         extension: [
@@ -43,17 +43,17 @@ export async function run(): Promise<void> {
     await nyc.createTempDirectory();
     await nyc.wrap();
 
-	// Create the mocha test
-	const mocha = new Mocha({
-		ui: 'tdd',
-		// Installing and starting Gobra might take some minutes
+    // Create the mocha test
+    const mocha = new Mocha({
+        ui: 'tdd',
+        // Installing and starting Gobra might take some minutes
         timeout: 600_000, // ms
         color: true,
-	});
+    });
 
-	const testsRoot = path.resolve(__dirname, '..');
+    const testsRoot = path.resolve(__dirname, '..');
 
-	const files: Array<string> = await new Promise((resolve, reject) =>
+    const files: Array<string> = await new Promise((resolve, reject) =>
         glob(
             "**/*.test.js",
             {
@@ -66,7 +66,7 @@ export async function run(): Promise<void> {
         )
     )
 
-	// Add files to the test suite
+    // Add files to the test suite
     files.forEach(f => mocha.addFile(path.resolve(testsRoot, f)));
 
     const failures: number = await new Promise(resolve => mocha.run(resolve));
