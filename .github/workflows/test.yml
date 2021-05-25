@@ -32,7 +32,12 @@ jobs:
     # we enforce here that the nightly build job only runs in the main repo:
     if: (github.event_name == 'schedule' && github.repository == 'viperproject/gobra-ide') || (github.event_name != 'schedule')
     runs-on: ubuntu-latest
-    container: gobraverifier/gobra-base:v2
+    container: gobraverifier/gobra-base:v5_z3_4.8.7
+    env:
+      SILVER_REF: "v.21.01-release"
+      SILICON_REF: "v.21.01-release"
+      CARBON_REF: "v.21.01-release"
+      VIPERSERVER_REF: "61150cbd24763e9ed3e7dce0c246c7085ebcb0f8" # commit 9e0f9d61e0522e705f5378fd69db6731975089e3 is not compatible with current version of Gobra
     steps:
       - name: Checkout Gobra-IDE
         uses: actions/checkout@v2
@@ -49,21 +54,25 @@ jobs:
         uses: actions/checkout@v2
         with:
           repository: viperproject/silver
+          ref: ${{ env.SILVER_REF }}
           path: silver
       - name: Checkout Silicon
         uses: actions/checkout@v2
         with:
           repository: viperproject/silicon
+          ref: ${{ env.SILICON_REF }}
           path: silicon
       - name: Checkout Carbon
         uses: actions/checkout@v2
         with:
           repository: viperproject/carbon
+          ref: ${{ env.CARBON_REF }}
           path: carbon
       - name: Checkout ViperServer
         uses: actions/checkout@v2
         with:
           repository: viperproject/viperserver
+          ref: ${{ env.VIPERSERVER_REF }}
           path: viperserver
 
       - name: Java Version
