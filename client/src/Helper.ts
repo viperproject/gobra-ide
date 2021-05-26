@@ -5,11 +5,12 @@
 // Copyright (c) 2011-2020 ETH Zurich.
 
 import * as vscode from 'vscode';
-import { URI } from 'vscode-uri';
+import { URI, Utils } from 'vscode-uri';
+import * as path from "path";
 import { VerifierConfig, OverallVerificationResult, FileData, GobraSettings, PlatformDependendPath, GobraDependencies, PreviewData, HighlightingPosition } from "./MessagePayloads";
 import * as locate_java_home from 'locate-java-home';
 import * as child_process from 'child_process';
-import { GitHubReleaseAsset } from 'vs-verification-toolbox';
+import { GitHubReleaseAsset, Location } from 'vs-verification-toolbox';
 import { IJavaHomeInfo } from 'locate-java-home/js/es5/lib/interfaces';
 
 
@@ -19,7 +20,12 @@ export class Helper {
   public static isMac = /^darwin/.test(process.platform);
 
   public static isServerMode(): boolean {
-    return vscode.workspace.getConfiguration("gobraSettings").get("serverMode");
+    const mode = vscode.workspace.getConfiguration("gobraSettings").get<boolean>("serverMode");
+    if (mode == null) {
+      return true;
+    } else {
+      return mode;
+    }
   }
 
   public static isNightly(): boolean {
@@ -27,11 +33,21 @@ export class Helper {
   }
 
   public static isAutoVerify(): boolean {
-    return vscode.workspace.getConfiguration("gobraSettings").get("autoVerify");
+    const autoVerify = vscode.workspace.getConfiguration("gobraSettings").get<boolean>("autoVerify");
+    if (autoVerify == null) {
+      return true;
+    } else {
+      return autoVerify;
+    }
   }
 
   public static getTimeout(): number {
-    return vscode.workspace.getConfiguration("gobraSettings").get("timeout");
+    const timeout = vscode.workspace.getConfiguration("gobraSettings").get<number>("timeout");
+    if (timeout == null) {
+      return 1000;
+    } else {
+      return timeout;
+    }
   }
 
 
@@ -48,7 +64,12 @@ export class Helper {
   }
 
   public static getFileName(path: string): string {
-    return path.split('/').pop();
+    const filename = path.split('/').pop();
+    if (filename == null) {
+      return "";
+    } else {
+      return filename;
+    }
   }
 
   public static getFileUri(): string {
@@ -56,7 +77,12 @@ export class Helper {
   }
 
   public static getSelections(): vscode.Range[] {
-    return vscode.window.activeTextEditor.selections.map(s => new vscode.Range(s.start, s.end));
+    const editor = vscode.window.activeTextEditor
+    if (editor) {
+      return editor.selections.map(s => new vscode.Range(s.start, s.end));
+    } else {
+      return [];
+    }
   }
 
   public static configToJson(config: VerifierConfig): string {
@@ -101,14 +127,7 @@ export class Helper {
     if (Helper.isWin && paths.windows) return paths.windows;
     if (Helper.isLinux && paths.linux) return paths.linux;
     if (Helper.isMac && paths.mac) return paths.mac;
-    return null;
-  }
-
-  /**
-    * Specifies the Path added by the zip extractor.
-    */
-  private static extractionAddition(): string {
-    return Helper.isWin ? "\\Gobra\\GobraTools" : "/Gobra/GobraTools"
+    return "";
   }
 
   private static getJavaHome(): Promise<IJavaHomeInfo> {
@@ -217,32 +236,48 @@ export class Helper {
     };
   }
 
-  public static getGitHubToken(): string {
+  public static getGitHubToken(): string | undefined {
     return process.env["GITHUB_TOKEN"];
+  }
+
+  /**
+   * Returns true if `getGobraToolsPath` should be wiped after activating the extension to ensure a clean system state.
+   */
+  public static cleanInstall(): boolean {
+    const value = process.env["GOBRA_IDE_CLEAN_INSTALL"];
+    return value != null && 
+      (value == "1" || value.toUpperCase() == "TRUE");
+  }
+
+  /**
+   * Returns true if Gobra-IDE runs in a non-interactive environment and confirmations should automatically be accepted.
+   */
+  public static assumeYes(): boolean {
+    const value = process.env["GOBRA_IDE_ASSUME_YES"];
+    return value != null && 
+      (value == "1" || value.toUpperCase() == "TRUE");
   }
 
   /**
     * Get Location where Gobra Tools will be installed.
     */
-  public static getGobraToolsPath(): string {
-    let gobraToolsPaths = Helper.getGobraDependencies().gobraToolsPaths.gobraToolsPath;
-    return Helper.getPlatformPath(gobraToolsPaths);
+  public static getGobraToolsPath(context: vscode.ExtensionContext): string {
+    return Utils.joinPath(context.globalStorageUri, "gobraTools").fsPath;
   }
 
-  public static getServerJarPath(nightly: boolean = false): string {
+  public static getServerJarPath(location: Location): string {
     let serverJarPaths = Helper.getGobraDependencies().gobraToolsPaths.serverJar;
-    return Helper.getPlatformPath(serverJarPaths).replace("$gobraTools$", Helper.getGobraToolsPath() + Helper.extractionAddition());
+    return Helper.getPlatformPath(serverJarPaths).replace("$gobraTools$", location.basePath);
   }
 
-  
-  public static getBoogiePath(nightly: boolean = false): string {
+  public static getBoogiePath(location: Location): string {
     let boogiePaths = Helper.getGobraDependencies().gobraToolsPaths.boogieExecutable;
-    return Helper.getPlatformPath(boogiePaths).replace("$gobraTools$", Helper.getGobraToolsPath() + Helper.extractionAddition());
+    return Helper.getPlatformPath(boogiePaths).replace("$gobraTools$", location.basePath);
   }
 
-  public static getZ3Path(nightly: boolean = false): string {
+  public static getZ3Path(location: Location): string {
     let z3Paths = Helper.getGobraDependencies().gobraToolsPaths.z3Executable;
-    return Helper.getPlatformPath(z3Paths).replace("$gobraTools$", Helper.getGobraToolsPath() + Helper.extractionAddition());
+    return Helper.getPlatformPath(z3Paths).replace("$gobraTools$", location.basePath);
   }
 
 
@@ -348,10 +383,14 @@ export class Texts {
   public static runningVerification = "Verification of ";
   public static helloGobra = "Hello from Gobra";
   public static flushCache = "Flush Cache";
+  public static installingGobraToolsConfirmationMessage = "Gobra-IDE requires Gobra and additional tools. Do you want to install them?";
+  public static installingGobraToolsConfirmationYesButton = "Yes";
+  public static installingGobraToolsConfirmationNoButton = "No";
+  public static gobraToolsInstallationDenied = "Installation of Gobra and required tools has been denied. Restart Visual Studio Code and allow their installation.";
   public static updatingGobraTools = "Updating Gobra Tools";
-  public static installingGobraTools = "Installing Gobra Tools";
+  public static ensuringGobraTools = "Ensuring Gobra Tools";
   public static successfulUpdatingGobraTools = "Successfully updated Gobra Tools. Please restart the IDE.";
-  public static successfulInstallingGobraTools = "Successfully installed Gobra Tools.";
+  public static successfulEnsuringGobraTools = "Successfully ensured Gobra Tools.";
   public static changedBuildVersion = "Changed the build version of Gobra Tools. Please restart the IDE.";
   public static javaLocation(path: string, version: string) {
     // note that VSCode (at least currently) strips new-line characters. Thus, make sure it is nonetheless somewhat readable
@@ -402,5 +441,5 @@ export class PreviewUris {
 export interface Output {
   stdout: string;
   stderr: string;
-  code: number;
+  code: number | null;
 }

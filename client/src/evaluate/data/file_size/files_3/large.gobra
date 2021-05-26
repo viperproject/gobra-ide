@@ -1,0 +1,1113 @@
+// Any copyright is dedicated to the Public Domain.
+// http://creativecommons.org/publicdomain/zero/1.0/
+
+package evaluation;
+
+type node struct {
+  value int;
+  next *node;
+};
+
+type cell struct{
+	val int;
+};
+
+type coordinate struct{
+    x, y, val int;
+};
+
+pred cooMem(self *coordinate) {
+    acc(self.x) && acc(self.y) && acc(self.val)
+};
+
+pred infList(headPtr *node) {
+  headPtr != nil && acc(headPtr.value) && acc(headPtr.next) && infList(headPtr.next)
+};
+
+requires 0 <= n;
+ensures r == n * n * n * n * n * n * n * n;
+func power_8_linearly (n int) (r int) {
+  p1, p2, p3, p4, p5, p6, p7, p8 := 0, 0, 0, 0, 0, 0, 0, 0;
+  invariant p1 == i;
+  invariant p2 == i * p1;
+  invariant p3 == i * p2;
+  invariant p4 == i * p3;
+  invariant p5 == i * p4;
+  invariant p6 == i * p5;
+  invariant p7 == i * p6;
+  invariant p8 == i * p7;
+  invariant i <= n;
+  for i := 0; i < n; i++ {
+    p8 += 8 * p7 + 28 * p6 + 56 * p5 + 70 * p4 + 56 * p3 + 28 * p2 + 8 * p1 + 1;
+    p7 += 7 * p6 + 21 * p5 + 35 * p4 + 35 * p3 + 21 * p2 + 7 * p1 + 1;
+    p6 += 6 * p5 + 15 * p4 + 20 * p3 + 15 * p2 + 6 * p1 + 1;
+    p5 += 5 * p4 + 10 * p3 + 10 * p2 + 5 * p1 + 1;
+    p4 += 4 * p3 + 6 * p2 + 4 * p1 + 1;
+    p3 += 3 * p2 + 3 * p1 + 1;
+    p2 += 2 * p1 + 1;
+    p1++;
+  };
+  r = p8;
+};
+
+requires infList(ptr);
+requires n >= 0;
+ensures infList(ptr);
+func nth(ptr *node,n int) int {
+  unfold infList(ptr);
+  if(n == 0) {
+    r := ptr.value;
+    fold infList(ptr);
+    return r;
+  } else {
+    r := nth(ptr.next,n-1);
+    fold infList(ptr);
+    return r;
+  };
+};
+
+pred list(ptr *node) {
+  ptr != nil ==> acc(ptr.value) && acc(ptr.next) && list(ptr.next)
+};
+
+requires list(ptr);
+requires list(rev);
+ensures list(res);
+func tail_reverse (ptr, rev *node) (res *node) {
+  unfold list(ptr);
+  if(ptr == nil) {
+    return rev;
+  } else {
+    tmp := ptr;
+    ptr = ptr.next;
+    tmp.next = rev;
+    fold list(tmp);
+    return tail_reverse(ptr,tmp);
+  };
+};
+
+requires list(ptr);
+ensures list (res);
+func reverse (ptr *node) (res *node) {
+  fold list(nil);
+  return tail_reverse(ptr,nil);
+};
+
+requires acc(x.val) && acc(y.val);
+requires x.val == a && y.val == b;
+ensures  acc(x.val) && acc(y.val);
+ensures  x.val == b && y.val == a;
+func swap1(x, y *cell, ghost a, b int) {
+	x.val, y.val = y.val, x.val;
+};
+
+
+requires acc(x.val) && acc(y.val);
+ensures  acc(x.val) && acc(y.val);
+ensures  x.val == old(y.val) && y.val == old(x.val);
+func swap2(x, y *cell) {
+	x.val, y.val = y.val, x.val;
+};
+
+requires acc(self.val) && acc(other.val);
+ensures  acc(self.val) && acc(other.val);
+ensures  self.val == old(other.val) && other.val == old(self.val);
+func (self *cell) swap3(other *cell) {
+  self.val, other.val = other.val, self.val;
+};
+
+
+func client() {
+    x! := cell{42};
+    y! := cell{17};
+    
+    swap1(&x, &y, 42, 17);
+    assert x == cell{17} && y.val == 42;
+
+    swap2(&x, &y);
+    assert x == cell{42} && y == cell{17};
+
+    (&x).swap3(&y);
+    assert x == cell{17} && y == cell{42};
+};
+
+requires x >= 0;
+ensures  z == x*y;
+func testWhile(x, y int) (z int) {
+
+	invariant z == i*y;
+	invariant i <= x;
+	for i := 0; i < x; i += 1 {
+		z += y;
+	};
+};
+
+func test() {
+	v! := 42;
+	ar!, br! := &v, &v;
+	arr, brr := &ar, &br;
+
+	assert ar == br;
+
+	assert arr != brr;
+};
+
+func foo() {
+	x, y, z := 1, 2, 3;
+	y, z, x = z, x, y;
+	assert x == 2 && y == 3 && z == 1;
+};
+
+func foo1() {
+	x := &cell{42};
+	x.val = 17;
+	assert x.val == 17;
+
+	y := cell{42};
+	z! := y;
+	y.val = 17;
+	assert y.val == 17 && z.val == 42;
+
+    a! := cell{42};
+    z = a;
+    ap := &a;
+    zp := &z;
+    a.val = 17;
+    assert a.val == 17 && z.val == 42;
+};
+
+func indirectAddressability() {
+    x! := cell{42};
+    p := &x;
+    p.val = 17;
+    assert x.val == 17;
+};
+
+func bar() {
+    x := cell{42};
+    p := &x.val;
+    *p = 17;
+    assert x.val == 17;
+    assert x == cell{17};
+    y := x;
+    *p = 29;
+    assert y.val == 17 && x.val == 29;
+};
+
+requires 0 <= n;
+ensures 2 * r == n * (n+1);
+func sum(n int) (r int) {
+  invariant 2 * r == (i-1) * i;
+  invariant i <= n + 1;
+  for i := 0; i <= n; i++ {
+    r += i;
+  };
+};
+
+requires 0 <= n;
+ensures 6 * r == n * (n+1) * (2*n+1);
+func sum_sq (n int) (r int) {
+  invariant 6 * r == i * (i-1) * (2*i-1);
+  invariant i <= n + 1;
+  for i := 0; i <= n; i++ { r += i * i; };
+};
+
+ensures y == x + 42;
+func foo2(x int) (y int) {
+	return x + 42;
+};
+
+func client1() {
+	x := 13;
+	z := foo2(x) + 14;
+	assert z == 69;
+};
+
+
+requires x >= 0;
+func fib(x int) (y int) {
+	if x == 0 {
+		return 0;
+	} else if x == 1 {
+		return 1;
+	} else {
+		a, b := fib(x-1), fib(x-2);
+		return a + b;
+	};
+};
+
+requires cooMem(self);
+ensures  cooMem(self);
+pure func (self *coordinate) value() int {
+    return unfolding cooMem(self) in self.val;
+};
+
+func test1() {
+    coo := &coordinate{1,2,3};
+    fold cooMem(coo);
+    assert coo.value() == 3;
+    unfold cooMem(coo);
+    assert coo.val == 3;
+};
+
+func test2(z int) {
+	var x int = 5;
+	assume z == 6;
+	assert x != z;
+};
+
+pred cooMem_1(self *coordinate) {
+    acc(self.x) && acc(self.y) && acc(self.val)
+};
+
+pred infList_1(headPtr *node) {
+  headPtr != nil && acc(headPtr.value) && acc(headPtr.next) && infList_1(headPtr.next)
+};
+
+requires infList_1(ptr);
+requires n >= 0;
+ensures infList_1(ptr);
+func nth_1(ptr *node,n int) int {
+  unfold infList_1(ptr);
+  if(n == 0) {
+    r := ptr.value;
+    fold infList_1(ptr);
+    return r;
+  } else {
+    r := nth_1(ptr.next,n-1);
+    fold infList_1(ptr);
+    return r;
+  };
+};
+
+pred list_1(ptr *node) {
+  ptr != nil ==> acc(ptr.value) && acc(ptr.next) && list_1(ptr.next)
+};
+
+requires list_1(ptr);
+requires list_1(rev);
+ensures list_1(res);
+func tail_reverse_1 (ptr, rev *node) (res *node) {
+  unfold list_1(ptr);
+  if(ptr == nil) {
+    return rev;
+  } else {
+    tmp := ptr;
+    ptr = ptr.next;
+    tmp.next = rev;
+    fold list_1(tmp);
+    return tail_reverse_1(ptr,tmp);
+  };
+};
+
+requires list_1(ptr);
+ensures list_1 (res);
+func reverse_1 (ptr *node) (res *node) {
+  fold list_1(nil);
+  return tail_reverse_1(ptr,nil);
+};
+
+requires acc(x.val) && acc(y.val);
+requires x.val == a && y.val == b;
+ensures  acc(x.val) && acc(y.val);
+ensures  x.val == b && y.val == a;
+func swap1_1(x, y *cell, ghost a, b int) {
+	x.val, y.val = y.val, x.val;
+};
+
+
+requires acc(x.val) && acc(y.val);
+ensures  acc(x.val) && acc(y.val);
+ensures  x.val == old(y.val) && y.val == old(x.val);
+func swap2_1(x, y *cell) {
+	x.val, y.val = y.val, x.val;
+};
+
+requires acc(self.val) && acc(other.val);
+ensures  acc(self.val) && acc(other.val);
+ensures  self.val == old(other.val) && other.val == old(self.val);
+func (self *cell) swap3_1(other *cell) {
+  self.val, other.val = other.val, self.val;
+};
+
+
+func client_1() {
+    x! := cell{42};
+    y! := cell{17};
+    
+    swap1_1(&x, &y, 42, 17);
+    assert x == cell{17} && y.val == 42;
+
+    swap2_1(&x, &y);
+    assert x == cell{42} && y == cell{17};
+
+    (&x).swap3_1(&y);
+    assert x == cell{17} && y == cell{42};
+};
+
+requires x >= 0;
+ensures  z == x*y;
+func testWhile_1(x, y int) (z int) {
+
+	invariant z == i*y;
+	invariant i <= x;
+	for i := 0; i < x; i += 1 {
+		z += y;
+	};
+};
+
+func test_1() {
+	v! := 42;
+	ar!, br! := &v, &v;
+	arr, brr := &ar, &br;
+
+	assert ar == br;
+
+	assert arr != brr;
+};
+
+func foo_1() {
+	x, y, z := 1, 2, 3;
+	y, z, x = z, x, y;
+	assert x == 2 && y == 3 && z == 1;
+};
+
+func foo1_1() {
+	x := &cell{42};
+	x.val = 17;
+	assert x.val == 17;
+
+	y := cell{42};
+	z! := y;
+	y.val = 17;
+	assert y.val == 17 && z.val == 42;
+
+    a! := cell{42};
+    z = a;
+    ap := &a;
+    zp := &z;
+    a.val = 17;
+    assert a.val == 17 && z.val == 42;
+};
+
+func indirectAddressability_1() {
+    x! := cell{42};
+    p := &x;
+    p.val = 17;
+    assert x.val == 17;
+};
+
+func bar_1() {
+    x := cell{42};
+    p := &x.val;
+    *p = 17;
+    assert x.val == 17;
+    assert x == cell{17};
+    y := x;
+    *p = 29;
+    assert y.val == 17 && x.val == 29;
+};
+
+requires 0 <= n;
+ensures 2 * r == n * (n+1);
+func sum_1(n int) (r int) {
+  invariant 2 * r == (i-1) * i;
+  invariant i <= n + 1;
+  for i := 0; i <= n; i++ {
+    r += i;
+  };
+};
+
+requires 0 <= n;
+ensures 6 * r == n * (n+1) * (2*n+1);
+func sum_sq_1 (n int) (r int) {
+  invariant 6 * r == i * (i-1) * (2*i-1);
+  invariant i <= n + 1;
+  for i := 0; i <= n; i++ { r += i * i; };
+};
+
+ensures y == x + 42;
+func foo2_1(x int) (y int) {
+	return x + 42;
+};
+
+func client1_1() {
+	x := 13;
+	z := foo2(x) + 14;
+	assert z == 69;
+};
+
+
+requires x >= 0;
+func fib_1(x int) (y int) {
+	if x == 0 {
+		return 0;
+	} else if x == 1 {
+		return 1;
+	} else {
+		a, b := fib(x-1), fib(x-2);
+		return a + b;
+	};
+};
+
+requires cooMem_1(self);
+ensures  cooMem_1(self);
+pure func (self *coordinate) value_1() int {
+    return unfolding cooMem_1(self) in self.val;
+};
+
+func test1_1() {
+    coo := &coordinate{1,2,3};
+    fold cooMem_1(coo);
+    assert coo.value_1() == 3;
+    unfold cooMem_1(coo);
+    assert coo.val == 3;
+};
+
+func test2_1(z int) {
+	var x int = 5;
+	assume z == 6;
+	assert x != z;
+};
+
+pred cooMem_2(self *coordinate) {
+    acc(self.x) && acc(self.y) && acc(self.val)
+};
+
+pred infList_2(headPtr *node) {
+  headPtr != nil && acc(headPtr.value) && acc(headPtr.next) && infList_2(headPtr.next)
+};
+
+requires infList_2(ptr);
+requires n >= 0;
+ensures infList_2(ptr);
+func nth_2(ptr *node,n int) int {
+  unfold infList_2(ptr);
+  if(n == 0) {
+    r := ptr.value;
+    fold infList_2(ptr);
+    return r;
+  } else {
+    r := nth_2(ptr.next,n-1);
+    fold infList_2(ptr);
+    return r;
+  };
+};
+
+pred list_2(ptr *node) {
+  ptr != nil ==> acc(ptr.value) && acc(ptr.next) && list_2(ptr.next)
+};
+
+requires list_2(ptr);
+requires list_2(rev);
+ensures list_2(res);
+func tail_reverse_2 (ptr, rev *node) (res *node) {
+  unfold list_2(ptr);
+  if(ptr == nil) {
+    return rev;
+  } else {
+    tmp := ptr;
+    ptr = ptr.next;
+    tmp.next = rev;
+    fold list_2(tmp);
+    return tail_reverse_2(ptr,tmp);
+  };
+};
+
+requires list_2(ptr);
+ensures list_2 (res);
+func reverse_2 (ptr *node) (res *node) {
+  fold list_2(nil);
+  return tail_reverse_2(ptr,nil);
+};
+
+requires acc(x.val) && acc(y.val);
+requires x.val == a && y.val == b;
+ensures  acc(x.val) && acc(y.val);
+ensures  x.val == b && y.val == a;
+func swap1_2(x, y *cell, ghost a, b int) {
+	x.val, y.val = y.val, x.val;
+};
+
+
+requires acc(x.val) && acc(y.val);
+ensures  acc(x.val) && acc(y.val);
+ensures  x.val == old(y.val) && y.val == old(x.val);
+func swap2_2(x, y *cell) {
+	x.val, y.val = y.val, x.val;
+};
+
+requires acc(self.val) && acc(other.val);
+ensures  acc(self.val) && acc(other.val);
+ensures  self.val == old(other.val) && other.val == old(self.val);
+func (self *cell) swap3_2(other *cell) {
+  self.val, other.val = other.val, self.val;
+};
+
+
+func client_2() {
+    x! := cell{42};
+    y! := cell{17};
+    
+    swap1_2(&x, &y, 42, 17);
+    assert x == cell{17} && y.val == 42;
+
+    swap2_2(&x, &y);
+    assert x == cell{42} && y == cell{17};
+
+    (&x).swap3_2(&y);
+    assert x == cell{17} && y == cell{42};
+};
+
+requires x >= 0;
+ensures  z == x*y;
+func testWhile_2(x, y int) (z int) {
+
+	invariant z == i*y;
+	invariant i <= x;
+	for i := 0; i < x; i += 1 {
+		z += y;
+	};
+};
+
+func test_2() {
+	v! := 42;
+	ar!, br! := &v, &v;
+	arr, brr := &ar, &br;
+
+	assert ar == br;
+
+	assert arr != brr;
+};
+
+func foo_2() {
+	x, y, z := 1, 2, 3;
+	y, z, x = z, x, y;
+	assert x == 2 && y == 3 && z == 1;
+};
+
+func foo1_2() {
+	x := &cell{42};
+	x.val = 17;
+	assert x.val == 17;
+
+	y := cell{42};
+	z! := y;
+	y.val = 17;
+	assert y.val == 17 && z.val == 42;
+
+    a! := cell{42};
+    z = a;
+    ap := &a;
+    zp := &z;
+    a.val = 17;
+    assert a.val == 17 && z.val == 42;
+};
+
+func indirectAddressability_2() {
+    x! := cell{42};
+    p := &x;
+    p.val = 17;
+    assert x.val == 17;
+};
+
+func bar_2() {
+    x := cell{42};
+    p := &x.val;
+    *p = 17;
+    assert x.val == 17;
+    assert x == cell{17};
+    y := x;
+    *p = 29;
+    assert y.val == 17 && x.val == 29;
+};
+
+requires 0 <= n;
+ensures 2 * r == n * (n+1);
+func sum_2(n int) (r int) {
+  invariant 2 * r == (i-1) * i;
+  invariant i <= n + 1;
+  for i := 0; i <= n; i++ {
+    r += i;
+  };
+};
+
+requires 0 <= n;
+ensures 6 * r == n * (n+1) * (2*n+1);
+func sum_sq_2 (n int) (r int) {
+  invariant 6 * r == i * (i-1) * (2*i-1);
+  invariant i <= n + 1;
+  for i := 0; i <= n; i++ { r += i * i; };
+};
+
+ensures y == x + 42;
+func foo2_2(x int) (y int) {
+	return x + 42;
+};
+
+func client1_2() {
+	x := 13;
+	z := foo2(x) + 14;
+	assert z == 69;
+};
+
+
+requires x >= 0;
+func fib_2(x int) (y int) {
+	if x == 0 {
+		return 0;
+	} else if x == 1 {
+		return 1;
+	} else {
+		a, b := fib(x-1), fib(x-2);
+		return a + b;
+	};
+};
+
+requires cooMem_2(self);
+ensures  cooMem_2(self);
+pure func (self *coordinate) value_2() int {
+    return unfolding cooMem_2(self) in self.val;
+};
+
+func test1_2() {
+    coo := &coordinate{1,2,3};
+    fold cooMem_2(coo);
+    assert coo.value_2() == 3;
+    unfold cooMem_2(coo);
+    assert coo.val == 3;
+};
+
+func test2_2(z int) {
+	var x int = 5;
+	assume z == 6;
+	assert x != z;
+};
+
+pred cooMem_3(self *coordinate) {
+    acc(self.x) && acc(self.y) && acc(self.val)
+};
+
+pred infList_3(headPtr *node) {
+  headPtr != nil && acc(headPtr.value) && acc(headPtr.next) && infList_3(headPtr.next)
+};
+
+requires infList_3(ptr);
+requires n >= 0;
+ensures infList_3(ptr);
+func nth_3(ptr *node,n int) int {
+  unfold infList_3(ptr);
+  if(n == 0) {
+    r := ptr.value;
+    fold infList_3(ptr);
+    return r;
+  } else {
+    r := nth_3(ptr.next,n-1);
+    fold infList_3(ptr);
+    return r;
+  };
+};
+
+pred list_3(ptr *node) {
+  ptr != nil ==> acc(ptr.value) && acc(ptr.next) && list_3(ptr.next)
+};
+
+requires list_3(ptr);
+requires list_3(rev);
+ensures list_3(res);
+func tail_reverse_3 (ptr, rev *node) (res *node) {
+  unfold list_3(ptr);
+  if(ptr == nil) {
+    return rev;
+  } else {
+    tmp := ptr;
+    ptr = ptr.next;
+    tmp.next = rev;
+    fold list_3(tmp);
+    return tail_reverse_3(ptr,tmp);
+  };
+};
+
+requires list_3(ptr);
+ensures list_3 (res);
+func reverse_3 (ptr *node) (res *node) {
+  fold list_3(nil);
+  return tail_reverse_3(ptr,nil);
+};
+
+requires acc(x.val) && acc(y.val);
+requires x.val == a && y.val == b;
+ensures  acc(x.val) && acc(y.val);
+ensures  x.val == b && y.val == a;
+func swap1_3(x, y *cell, ghost a, b int) {
+	x.val, y.val = y.val, x.val;
+};
+
+
+requires acc(x.val) && acc(y.val);
+ensures  acc(x.val) && acc(y.val);
+ensures  x.val == old(y.val) && y.val == old(x.val);
+func swap2_3(x, y *cell) {
+	x.val, y.val = y.val, x.val;
+};
+
+requires acc(self.val) && acc(other.val);
+ensures  acc(self.val) && acc(other.val);
+ensures  self.val == old(other.val) && other.val == old(self.val);
+func (self *cell) swap3_3(other *cell) {
+  self.val, other.val = other.val, self.val;
+};
+
+
+func client_3() {
+    x! := cell{42};
+    y! := cell{17};
+    
+    swap1_3(&x, &y, 42, 17);
+    assert x == cell{17} && y.val == 42;
+
+    swap2_3(&x, &y);
+    assert x == cell{42} && y == cell{17};
+
+    (&x).swap3_3(&y);
+    assert x == cell{17} && y == cell{42};
+};
+
+requires x >= 0;
+ensures  z == x*y;
+func testWhile_3(x, y int) (z int) {
+
+	invariant z == i*y;
+	invariant i <= x;
+	for i := 0; i < x; i += 1 {
+		z += y;
+	};
+};
+
+func test_3() {
+	v! := 42;
+	ar!, br! := &v, &v;
+	arr, brr := &ar, &br;
+
+	assert ar == br;
+
+	assert arr != brr;
+};
+
+func foo_3() {
+	x, y, z := 1, 2, 3;
+	y, z, x = z, x, y;
+	assert x == 2 && y == 3 && z == 1;
+};
+
+func foo1_3() {
+	x := &cell{42};
+	x.val = 17;
+	assert x.val == 17;
+
+	y := cell{42};
+	z! := y;
+	y.val = 17;
+	assert y.val == 17 && z.val == 42;
+
+    a! := cell{42};
+    z = a;
+    ap := &a;
+    zp := &z;
+    a.val = 17;
+    assert a.val == 17 && z.val == 42;
+};
+
+func indirectAddressability_3() {
+    x! := cell{42};
+    p := &x;
+    p.val = 17;
+    assert x.val == 17;
+};
+
+func bar_3() {
+    x := cell{42};
+    p := &x.val;
+    *p = 17;
+    assert x.val == 17;
+    assert x == cell{17};
+    y := x;
+    *p = 29;
+    assert y.val == 17 && x.val == 29;
+};
+
+requires 0 <= n;
+ensures 2 * r == n * (n+1);
+func sum_3(n int) (r int) {
+  invariant 2 * r == (i-1) * i;
+  invariant i <= n + 1;
+  for i := 0; i <= n; i++ {
+    r += i;
+  };
+};
+
+requires 0 <= n;
+ensures 6 * r == n * (n+1) * (2*n+1);
+func sum_sq_3 (n int) (r int) {
+  invariant 6 * r == i * (i-1) * (2*i-1);
+  invariant i <= n + 1;
+  for i := 0; i <= n; i++ { r += i * i; };
+};
+
+ensures y == x + 42;
+func foo2_3(x int) (y int) {
+	return x + 42;
+};
+
+func client1_3() {
+	x := 13;
+	z := foo2(x) + 14;
+	assert z == 69;
+};
+
+
+requires x >= 0;
+func fib_3(x int) (y int) {
+	if x == 0 {
+		return 0;
+	} else if x == 1 {
+		return 1;
+	} else {
+		a, b := fib(x-1), fib(x-2);
+		return a + b;
+	};
+};
+
+requires cooMem_3(self);
+ensures  cooMem_3(self);
+pure func (self *coordinate) value_3() int {
+    return unfolding cooMem_3(self) in self.val;
+};
+
+func test1_3() {
+    coo := &coordinate{1,2,3};
+    fold cooMem_3(coo);
+    assert coo.value_3() == 3;
+    unfold cooMem_3(coo);
+    assert coo.val == 3;
+};
+
+func test2_3(z int) {
+	var x int = 5;
+	assume z == 6;
+	assert x != z;
+};
+
+pred cooMem_4(self *coordinate) {
+    acc(self.x) && acc(self.y) && acc(self.val)
+};
+
+pred infList_4(headPtr *node) {
+  headPtr != nil && acc(headPtr.value) && acc(headPtr.next) && infList_4(headPtr.next)
+};
+
+requires infList_4(ptr);
+requires n >= 0;
+ensures infList_4(ptr);
+func nth_4(ptr *node,n int) int {
+  unfold infList_4(ptr);
+  if(n == 0) {
+    r := ptr.value;
+    fold infList_4(ptr);
+    return r;
+  } else {
+    r := nth_4(ptr.next,n-1);
+    fold infList_4(ptr);
+    return r;
+  };
+};
+
+pred list_4(ptr *node) {
+  ptr != nil ==> acc(ptr.value) && acc(ptr.next) && list_4(ptr.next)
+};
+
+requires list_4(ptr);
+requires list_4(rev);
+ensures list_4(res);
+func tail_reverse_4 (ptr, rev *node) (res *node) {
+  unfold list_4(ptr);
+  if(ptr == nil) {
+    return rev;
+  } else {
+    tmp := ptr;
+    ptr = ptr.next;
+    tmp.next = rev;
+    fold list_4(tmp);
+    return tail_reverse_4(ptr,tmp);
+  };
+};
+
+requires list_4(ptr);
+ensures list_4 (res);
+func reverse_4 (ptr *node) (res *node) {
+  fold list_4(nil);
+  return tail_reverse_4(ptr,nil);
+};
+
+requires acc(x.val) && acc(y.val);
+requires x.val == a && y.val == b;
+ensures  acc(x.val) && acc(y.val);
+ensures  x.val == b && y.val == a;
+func swap1_4(x, y *cell, ghost a, b int) {
+	x.val, y.val = y.val, x.val;
+};
+
+
+requires acc(x.val) && acc(y.val);
+ensures  acc(x.val) && acc(y.val);
+ensures  x.val == old(y.val) && y.val == old(x.val);
+func swap2_4(x, y *cell) {
+	x.val, y.val = y.val, x.val;
+};
+
+requires acc(self.val) && acc(other.val);
+ensures  acc(self.val) && acc(other.val);
+ensures  self.val == old(other.val) && other.val == old(self.val);
+func (self *cell) swap3_4(other *cell) {
+  self.val, other.val = other.val, self.val;
+};
+
+
+func client_4() {
+    x! := cell{42};
+    y! := cell{17};
+    
+    swap1_4(&x, &y, 42, 17);
+    assert x == cell{17} && y.val == 42;
+
+    swap2_4(&x, &y);
+    assert x == cell{42} && y == cell{17};
+
+    (&x).swap3_4(&y);
+    assert x == cell{17} && y == cell{42};
+};
+
+requires x >= 0;
+ensures  z == x*y;
+func testWhile_4(x, y int) (z int) {
+
+	invariant z == i*y;
+	invariant i <= x;
+	for i := 0; i < x; i += 1 {
+		z += y;
+	};
+};
+
+func test_4() {
+	v! := 42;
+	ar!, br! := &v, &v;
+	arr, brr := &ar, &br;
+
+	assert ar == br;
+
+	assert arr != brr;
+};
+
+func foo_4() {
+	x, y, z := 1, 2, 3;
+	y, z, x = z, x, y;
+	assert x == 2 && y == 3 && z == 1;
+};
+
+func foo1_4() {
+	x := &cell{42};
+	x.val = 17;
+	assert x.val == 17;
+
+	y := cell{42};
+	z! := y;
+	y.val = 17;
+	assert y.val == 17 && z.val == 42;
+
+    a! := cell{42};
+    z = a;
+    ap := &a;
+    zp := &z;
+    a.val = 17;
+    assert a.val == 17 && z.val == 42;
+};
+
+func indirectAddressability_4() {
+    x! := cell{42};
+    p := &x;
+    p.val = 17;
+    assert x.val == 17;
+};
+
+func bar_4() {
+    x := cell{42};
+    p := &x.val;
+    *p = 17;
+    assert x.val == 17;
+    assert x == cell{17};
+    y := x;
+    *p = 29;
+    assert y.val == 17 && x.val == 29;
+};
+
+requires 0 <= n;
+ensures 2 * r == n * (n+1);
+func sum_4(n int) (r int) {
+  invariant 2 * r == (i-1) * i;
+  invariant i <= n + 1;
+  for i := 0; i <= n; i++ {
+    r += i;
+  };
+};
+
+requires 0 <= n;
+ensures 6 * r == n * (n+1) * (2*n+1);
+func sum_sq_4 (n int) (r int) {
+  invariant 6 * r == i * (i-1) * (2*i-1);
+  invariant i <= n + 1;
+  for i := 0; i <= n; i++ { r += i * i; };
+};
+
+ensures y == x + 42;
+func foo2_4(x int) (y int) {
+	return x + 42;
+};
+
+func client1_4() {
+	x := 13;
+	z := foo2(x) + 14;
+	assert z == 69;
+};
+
+
+requires x >= 0;
+func fib_4(x int) (y int) {
+	if x == 0 {
+		return 0;
+	} else if x == 1 {
+		return 1;
+	} else {
+		a, b := fib(x-1), fib(x-2);
+		return a + b;
+	};
+};
+
+requires cooMem_4(self);
+ensures  cooMem_4(self);
+pure func (self *coordinate) value_4() int {
+    return unfolding cooMem_4(self) in self.val;
+};
+
+func test1_4() {
+    coo := &coordinate{1,2,3};
+    fold cooMem_4(coo);
+    assert coo.value_4() == 3;
+    unfold cooMem_4(coo);
+    assert coo.val == 3;
+};
+
+func test2_4(z int) {
+	var x int = 5;
+	assume z == 6;
+	assert x != z;
+};

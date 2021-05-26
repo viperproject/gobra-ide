@@ -21,39 +21,58 @@
 import * as path from 'path';
 import * as Mocha from 'mocha';
 import * as glob from 'glob';
+import NYC = require("nyc");
 
-export function run(): Promise<void> {
-	// Create the mocha test
-	const mocha = new Mocha({
-		ui: 'tdd',
-		timeout: '10s', // set a quite high timeout as verifying even a trivial program (like assert_true.gobra) almost takes 5s if server has to be started
-		color: true
-	});
+export async function run(): Promise<void> {
+    const nyc: NYC = new NYC({
+        cwd: path.join(__dirname, "..", ".."),
+        instrument: true,
+        extension: [
+            ".ts",
+            ".tsx"
+        ],
+        exclude: [
+            "**/*.d.ts",
+            "**/.vscode-test/**"
+        ],
+        all: true,
+        hookRequire: true,
+        hookRunInContext: true,
+        hookRunInThisContext: true,
+    });
+    await nyc.createTempDirectory();
+    await nyc.wrap();
 
-	const testsRoot = path.resolve(__dirname, '..');
+    // Create the mocha test
+    const mocha = new Mocha({
+        ui: 'tdd',
+        // Installing and starting Gobra might take some minutes
+        timeout: 600_000, // ms
+        color: true,
+    });
 
-	return new Promise((c, e) => {
-		glob('**/**.test.js', { cwd: testsRoot }, (err, files) => {
-			if (err) {
-				return e(err);
-			}
+    const testsRoot = path.resolve(__dirname, '..');
 
-			// Add files to the test suite
-			files.forEach(f => mocha.addFile(path.resolve(testsRoot, f)));
+    const files: Array<string> = await new Promise((resolve, reject) =>
+        glob(
+            "**/*.test.js",
+            {
+                cwd: testsRoot,
+            },
+            (err, result) => {
+                if (err) reject(err)
+                else resolve(result)
+            }
+        )
+    )
 
-			try {
-				// Run the mocha test
-				mocha.run(failures => {
-					if (failures > 0) {
-						e(new Error(`${failures} tests failed.`));
-					} else {
-						c();
-					}
-				});
-			} catch (err) {
-				console.error(err);
-				e(err);
-			}
-		});
-	});
+    // Add files to the test suite
+    files.forEach(f => mocha.addFile(path.resolve(testsRoot, f)));
+
+    const failures: number = await new Promise(resolve => mocha.run(resolve));
+    await nyc.writeCoverageFile()
+
+    if (failures > 0) {
+        throw new Error(`${failures} tests failed.`)
+    }
 }

@@ -244,9 +244,9 @@ jobs:
           # note that download-path is the parent folder (not server.jar)
 
       - name: Install Node.js
-        uses: actions/setup-node@v1.4.4
+        uses: actions/setup-node@v1
         with:
-          node-version: '10'
+          node-version: '14'
 
       - name: Setup Java JDK
         uses: actions/setup-java@v1.4.3
@@ -262,34 +262,40 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
+      # npm ci fails to clone GitHub repos referenced in package.json with recent node versions
+      # the following work around has been proposed here: https://github.com/actions/setup-node/issues/214#issuecomment-810829250
+      - name: Reconfigure git to use HTTPS authentication
+        run: >
+          git config --global url."https://github.com/".insteadOf
+          ssh://git@github.com/
+
       - run: npm ci --cache .npm --prefer-offline
         working-directory: gobra-ide/client
 
-      - name: Start xvfb (ubuntu only)
-        if: startsWith(matrix.os, 'ubuntu')
-        run: /usr/bin/Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 & echo ">>> Started xvfb"
-
-      - name: Run tests (ubuntu only)
-        if: startsWith(matrix.os, 'ubuntu')
-        env:
-          DISPLAY: ':99.0'
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        # run tests as sudo on ubutunu as this is required to install the extension to VSCode:
-        run: sudo npm test -- --server ${{steps.server-download.outputs.download-path}}/server.jar
-        working-directory: gobra-ide/client
-      - name: Run tests (all except ubuntu)
-        if: ${{ !startsWith(matrix.os, 'ubuntu') }}
+      - name: Run tests (headless)
+        uses: GabrielBB/xvfb-action@v1
+        id: runTests
+        with:
+          run: npm test --full-trace -- --server ${{steps.server-download.outputs.download-path}}/server.jar --ignoreServerBackwardCompatibility
+          working-directory: gobra-ide/client
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npm test -- --server ${{steps.server-download.outputs.download-path}}/server.jar
+
+      - name: Collect coverage
+        if: ${{ steps.runTests.outcome == 'success' }}
+        run: npx nyc report --reporter=lcov
         working-directory: gobra-ide/client
 
-      # after running `npm test` as sudo on ubuntu, `npm run package` (as non-root user) will fail
-      # as all files in client/dist/ will be owned by sudo. Hence, the following step deletes the
-      # 'dist' folder (also as root):
+#      - name: Upload coverage to Codecov
+#        uses: codecov/codecov-action@v1
+#        if: ${{ steps.runTests.outcome == 'success' }}
+#        with:
+#          token: ${{ secrets.CODECOV_TOKEN }}
+#          file: gobra-ide/client/coverage/lcov.info
+
       - name: Clean 'dist' folder (ubuntu only)
         if: startsWith(matrix.os, 'ubuntu')
-        run: sudo rm -rf dist
+        run: npm run clean
         working-directory: gobra-ide/client
 
       # `npm run package` resp. `vsce` complains that it cannot find 

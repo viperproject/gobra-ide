@@ -5,8 +5,8 @@
 // Copyright (c) 2011-2020 ETH Zurich.
 
 import * as vscode from 'vscode';
-import { State } from '../ExtensionState';
-import { Event, Notifier } from '../Notifier';
+import * as extension from '../extension';
+import * as Notifier from '../Notifier';
 
 export class TestHelper {
 
@@ -21,17 +21,16 @@ export class TestHelper {
     return document;
   }
 
-  public static startExtension(initialFilePath: string): Promise<void> {
-    const activationPromise = Notifier.wait(Event.EndExtensionActivation);
-    return TestHelper.openFile(initialFilePath)
-      .then(() => activationPromise);
+  public static async startExtension(initialFilePath: string): Promise<void> {
+    await TestHelper.openFile(initialFilePath);
+    await Notifier.waitExtensionActivation();
   }
 
   /** 
    * vscode-test.runTests(...) seems not to terminate on macOS unless this function is called.
    * It looks as if the extension's deactive function is not called and hence the extension is kept alive.
    */
-  public static stopExtension(): Thenable<void> {
-    return State.disposeServer();
+  public static async stopExtension(): Promise<void> {
+    await extension.deactivate();
   }
 }

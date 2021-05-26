@@ -7,44 +7,31 @@
 import { Helper } from "./Helper";
 
 // all credits go to prusti-assistant
+/**
+ * This module keeps a global state and allows clients to wait for the
+ * following events:
+ *  - The extension has been fully activated.
+ */
+
+ let isExtensionActive = false;
 
 type Listener = () => void;
 
-const oneTimeListeners: Map<Event, Listener[]> = new Map();
+const waitingForExtensionActivation: Listener[] = [];
 
-export class Notifier {
-
-    /**
-     * Register a **one-time** listener
-     */
-    public static register(event: Event, listener: Listener) {
-        let listeners = oneTimeListeners.get(event);
-        if (!listeners) {
-            listeners = [];
-            oneTimeListeners.set(event, listeners);
+export function waitExtensionActivation(): Promise<void> {
+    return new Promise(resolve => {
+        if (isExtensionActive) {
+            // Resolve immediately
+            resolve();
+        } else {
+            waitingForExtensionActivation.push(resolve);
         }
-        listeners.push(listener);
-    }
-
-    /**
-     * Wait for a particular event.
-     */
-    public static wait(event: Event): Promise<void> {
-        return new Promise(resolve => {
-            Notifier.register(event, resolve);
-        });
-    }
-
-    public static notify(event: Event) {
-        Helper.log(`Notify event: ${Event[event]}`);
-        const listeners = oneTimeListeners.get(event);
-        oneTimeListeners.delete(event);
-        if (listeners) {
-            listeners.forEach(listener => listener());
-        }
-    }
+    });
 }
 
-export enum Event {
-    EndExtensionActivation
+export function notifyExtensionActivation(): void {
+    Helper.log("The extension is now active.");
+    isExtensionActive = true;
+    waitingForExtensionActivation.forEach(listener => listener());
 }

@@ -10,6 +10,7 @@
       "name": "Launch Client",
       "runtimeExecutable": "${execPath}",
       "args": [
+        "--disable-extensions",
         "--extensionDevelopmentPath=${workspaceFolder}"
       ],
       "outFiles": [
@@ -17,7 +18,7 @@
       ],
       "preLaunchTask": {
         "type": "npm",
-        "script": "webpack"
+        "script": "compile"
       }
     },
     {
@@ -26,6 +27,7 @@
       "request": "launch",
       "runtimeExecutable": "${execPath}",
       "args": [
+        "--disable-extensions",
         "--extensionDevelopmentPath=${workspaceFolder}",
         "--extensionTestsPath=${workspaceFolder}/dist/test"
       ],
@@ -44,6 +46,7 @@
       "runtimeExecutable": "${execPath}",
       "args": [
         "--trace-deprecation",
+        "--disable-extensions",
         "--extensionDevelopmentPath=${workspaceFolder}",
         "--extensionTestsPath=${workspaceFolder}/dist/evaluate"
       ],
