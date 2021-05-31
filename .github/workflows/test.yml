@@ -272,11 +272,22 @@ jobs:
       - run: npm ci --cache .npm --prefer-offline
         working-directory: gobra-ide/client
 
-      - name: Run tests (headless)
+      - name: Run tests (headless - non-windows)
+        if: {{ !(startsWith(matrix.os, 'windows') }}
         uses: GabrielBB/xvfb-action@v1
         id: runTests
         with:
           run: npm test --full-trace -- --server ${{steps.server-download.outputs.download-path}}/server.jar --ignoreServerBackwardCompatibility
+          working-directory: gobra-ide/client
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run tests (headless - windows only)
+        if: startsWith(matrix.os, 'windows')
+        uses: GabrielBB/xvfb-action@v1
+        id: runTests
+        with:
+          run: npm test --full-trace -- --server ${{steps.server-download.outputs.download-path}}\server.jar --ignoreServerBackwardCompatibility
           working-directory: gobra-ide/client
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
