@@ -153,7 +153,7 @@ export class State {
       }
 
       const processArgs = Helper.getServerProcessArgs(serverBin);
-      const command = `${javaPath} ${processArgs}`;
+      const command = `"${javaPath}" ${processArgs}`; // processArgs is already escaped but escape javaPath as well.
       Helper.log(`Gobra IDE: Running '${command}'`);
       // enable shell mode such that arguments do not need to be passed as an array
       // see https://stackoverflow.com/a/45134890/1990080
