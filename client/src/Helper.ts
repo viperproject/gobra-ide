@@ -177,7 +177,7 @@ export class Helper {
 
   public static getServerProcessArgs(serverBinary: string): string {
     const configuredArgString = Helper.getGobraDependencies().java.javaArguments
-      .replace("$serverBinary$", `'${serverBinary}'`); // escape server binary in case it contains spaces
+      .replace("$serverBinary$", `'${serverBinary}'`); // escape `serverBinary` in case it contains spaces
     return configuredArgString;
   }
   
