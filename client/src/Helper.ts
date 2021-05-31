@@ -180,7 +180,7 @@ export class Helper {
       Helper.log(`Error: server jar file should be located at '${serverBinary}' but it does not exist`);
     }
     const configuredArgString = Helper.getGobraDependencies().java.javaArguments
-      .replace("$serverBinary$", `'${serverBinary}'`); // escape `serverBinary` in case it contains spaces
+      .replace("$serverBinary$", `"${serverBinary}"`); // escape `serverBinary` in case it contains spaces
     return configuredArgString;
   }
   
