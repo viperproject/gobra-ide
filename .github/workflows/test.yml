@@ -275,7 +275,6 @@ jobs:
       - name: Run tests (headless - non-windows)
         if: "!startsWith(matrix.os, 'windows')"
         uses: GabrielBB/xvfb-action@v1
-        id: runTests
         with:
           run: npm test --full-trace -- --server ${{steps.server-download.outputs.download-path}}/server.jar --ignoreServerBackwardCompatibility
           working-directory: gobra-ide/client
@@ -285,7 +284,6 @@ jobs:
       - name: Run tests (headless - windows only)
         if: startsWith(matrix.os, 'windows')
         uses: GabrielBB/xvfb-action@v1
-        id: runTests
         with:
           run: npm test --full-trace -- --server ${{steps.server-download.outputs.download-path}}\server.jar --ignoreServerBackwardCompatibility
           working-directory: gobra-ide/client
@@ -293,13 +291,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Collect coverage
-        if: ${{ steps.runTests.outcome == 'success' }}
         run: npx nyc report --reporter=lcov
         working-directory: gobra-ide/client
 
 #      - name: Upload coverage to Codecov
 #        uses: codecov/codecov-action@v1
-#        if: ${{ steps.runTests.outcome == 'success' }}
 #        with:
 #          token: ${{ secrets.CODECOV_TOKEN }}
 #          file: gobra-ide/client/coverage/lcov.info
