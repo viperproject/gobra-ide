@@ -6,7 +6,6 @@
 
 import * as vscode from 'vscode';
 import { URI, Utils } from 'vscode-uri';
-import * as path from "path";
 import { VerifierConfig, OverallVerificationResult, FileData, GobraSettings, PlatformDependendPath, GobraDependencies, PreviewData, HighlightingPosition } from "./MessagePayloads";
 import * as locate_java_home from 'locate-java-home';
 import * as child_process from 'child_process';
@@ -175,10 +174,10 @@ export class Helper {
     }
   }
 
-  public static getServerProcessArgs(serverBinary: string): string[] {
+  public static getServerProcessArgs(serverBinary: string): string {
     const configuredArgString = Helper.getGobraDependencies().java.javaArguments
-      .replace("$serverBinary$", serverBinary);
-    return configuredArgString.split(" ");
+      .replace("$serverBinary$", `"${serverBinary}"`); // escape `serverBinary` in case it contains spaces
+    return configuredArgString;
   }
   
   /**
