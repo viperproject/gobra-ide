@@ -6,7 +6,6 @@
 
 import * as vscode from 'vscode';
 import { URI, Utils } from 'vscode-uri';
-import * as fs from "fs";
 import { VerifierConfig, OverallVerificationResult, FileData, GobraSettings, PlatformDependendPath, GobraDependencies, PreviewData, HighlightingPosition } from "./MessagePayloads";
 import * as locate_java_home from 'locate-java-home';
 import * as child_process from 'child_process';
@@ -176,9 +175,6 @@ export class Helper {
   }
 
   public static getServerProcessArgs(serverBinary: string): string {
-    if (!fs.existsSync(serverBinary)) {
-      Helper.log(`Error: server jar file should be located at '${serverBinary}' but it does not exist`);
-    }
     const configuredArgString = Helper.getGobraDependencies().java.javaArguments
       .replace("$serverBinary$", `"${serverBinary}"`); // escape `serverBinary` in case it contains spaces
     return configuredArgString;
