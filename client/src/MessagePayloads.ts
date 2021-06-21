@@ -6,6 +6,7 @@
 
 import { Helper } from "./Helper";
 import * as vscode from 'vscode';
+import { Location } from "vs-verification-toolbox";
 
 export class FileData {
   filePath: string;
@@ -23,12 +24,12 @@ export class VerifierConfig {
   z3Executable: string;
   boogieExecutable: string;
 
-  constructor() {
+  constructor(location: Location) {
     this.fileData = new FileData();
     this.gobraSettings = Helper.getGobraSettings();
 
-    this.z3Executable = Helper.getZ3Path();
-    this.boogieExecutable = Helper.getBoogiePath();
+    this.z3Executable = Helper.getZ3Path(location);
+    this.boogieExecutable = Helper.getBoogiePath(location);
   }
 }
 
@@ -69,7 +70,6 @@ export interface JavaSettings {
 }
 
 export interface PathSettings {
-  gobraToolsPath: PlatformDependendPath;
   z3Executable: PlatformDependendPath;
   boogieExecutable: PlatformDependendPath;
   serverJar: PlatformDependendPath;

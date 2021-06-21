@@ -32,7 +32,12 @@ jobs:
     # we enforce here that the nightly build job only runs in the main repo:
     if: (github.event_name == 'schedule' && github.repository == 'viperproject/gobra-ide') || (github.event_name != 'schedule')
     runs-on: ubuntu-latest
-    container: gobraverifier/gobra-base:v2
+    container: gobraverifier/gobra-base:v5_z3_4.8.7
+    env:
+      SILVER_REF: "v.21.01-release"
+      SILICON_REF: "v.21.01-release"
+      CARBON_REF: "v.21.01-release"
+      VIPERSERVER_REF: "61150cbd24763e9ed3e7dce0c246c7085ebcb0f8" # commit 9e0f9d61e0522e705f5378fd69db6731975089e3 is not compatible with current version of Gobra
     steps:
       - name: Checkout Gobra-IDE
         uses: actions/checkout@v2
@@ -49,21 +54,25 @@ jobs:
         uses: actions/checkout@v2
         with:
           repository: viperproject/silver
+          ref: ${{ env.SILVER_REF }}
           path: silver
       - name: Checkout Silicon
         uses: actions/checkout@v2
         with:
           repository: viperproject/silicon
+          ref: ${{ env.SILICON_REF }}
           path: silicon
       - name: Checkout Carbon
         uses: actions/checkout@v2
         with:
           repository: viperproject/carbon
+          ref: ${{ env.CARBON_REF }}
           path: carbon
       - name: Checkout ViperServer
         uses: actions/checkout@v2
         with:
           repository: viperproject/viperserver
+          ref: ${{ env.VIPERSERVER_REF }}
           path: viperserver
 
       - name: Java Version
@@ -235,9 +244,9 @@ jobs:
           # note that download-path is the parent folder (not server.jar)
 
       - name: Install Node.js
-        uses: actions/setup-node@v1.4.4
+        uses: actions/setup-node@v1
         with:
-          node-version: '10'
+          node-version: '14'
 
       - name: Setup Java JDK
         uses: actions/setup-java@v1.4.3
@@ -253,34 +262,47 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
+      # npm ci fails to clone GitHub repos referenced in package.json with recent node versions
+      # the following work around has been proposed here: https://github.com/actions/setup-node/issues/214#issuecomment-810829250
+      - name: Reconfigure git to use HTTPS authentication
+        run: >
+          git config --global url."https://github.com/".insteadOf
+          ssh://git@github.com/
+
       - run: npm ci --cache .npm --prefer-offline
         working-directory: gobra-ide/client
 
-      - name: Start xvfb (ubuntu only)
-        if: startsWith(matrix.os, 'ubuntu')
-        run: /usr/bin/Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 & echo ">>> Started xvfb"
-
-      - name: Run tests (ubuntu only)
-        if: startsWith(matrix.os, 'ubuntu')
-        env:
-          DISPLAY: ':99.0'
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        # run tests as sudo on ubutunu as this is required to install the extension to VSCode:
-        run: sudo npm test -- --server ${{steps.server-download.outputs.download-path}}/server.jar
-        working-directory: gobra-ide/client
-      - name: Run tests (all except ubuntu)
-        if: ${{ !startsWith(matrix.os, 'ubuntu') }}
+      - name: Run tests (headless - non-windows)
+        if: "!startsWith(matrix.os, 'windows')"
+        uses: GabrielBB/xvfb-action@v1
+        with:
+          run: npm test --full-trace -- --server "${{steps.server-download.outputs.download-path}}/server.jar" --ignoreServerBackwardCompatibility
+          working-directory: gobra-ide/client
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npm test -- --server ${{steps.server-download.outputs.download-path}}/server.jar
+
+      - name: Run tests (headless - windows only)
+        if: startsWith(matrix.os, 'windows')
+        uses: GabrielBB/xvfb-action@v1
+        with:
+          run: npm test --full-trace -- --server "${{steps.server-download.outputs.download-path}}\server.jar" --ignoreServerBackwardCompatibility
+          working-directory: gobra-ide/client
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Collect coverage
+        run: npx nyc report --reporter=lcov
         working-directory: gobra-ide/client
 
-      # after running `npm test` as sudo on ubuntu, `npm run package` (as non-root user) will fail
-      # as all files in client/dist/ will be owned by sudo. Hence, the following step deletes the
-      # 'dist' folder (also as root):
+#      - name: Upload coverage to Codecov
+#        uses: codecov/codecov-action@v1
+#        with:
+#          token: ${{ secrets.CODECOV_TOKEN }}
+#          file: gobra-ide/client/coverage/lcov.info
+
       - name: Clean 'dist' folder (ubuntu only)
         if: startsWith(matrix.os, 'ubuntu')
-        run: sudo rm -rf dist
+        run: npm run clean
         working-directory: gobra-ide/client
 
       # `npm run package` resp. `vsce` complains that it cannot find 
@@ -396,6 +418,12 @@ jobs:
     needs: [create-gobra-tools, build-and-test-client]
     runs-on: ubuntu-latest
     steps:
+      # we have to checkout the repo to read client/package.json later on:
+      - name: Checkout Gobra-IDE
+        uses: actions/checkout@v2
+        with:
+          path: gobra-ide
+
       - name: Download Gobra tools artifact
         uses: actions/download-artifact@v2
         with:
@@ -465,3 +493,42 @@ jobs:
           asset_path: gobra-ide/client/gobra-ide.vsix
           asset_name: gobra-ide.vsix
           asset_content_type: application/octet-stream
+
+      # compare version in client/package.json with last published version on
+      # VS Marketplace and deploy this version if newer.
+      # credits go to @fpoli!
+      - name: Obtain version information
+        run: |
+          VSCE_OUTPUT="$(
+            npx vsce show viper-admin.gobra-ide --json
+          )"
+          if [[ $(echo $VSCE_OUTPUT | grep --fixed-strings --line-regexp undefined) ]]; then
+            LAST_PUBLISHED_VERSION="0"
+          else
+            LAST_PUBLISHED_VERSION="$(
+              echo $VSCE_OUTPUT | jq '.versions[0].version' --raw-output
+            )"
+          fi
+          CURRENT_VERSION="$(
+            cat gobra-ide/client/package.json | jq '.version' --raw-output
+          )"
+          echo "LAST_PUBLISHED_VERSION=$LAST_PUBLISHED_VERSION" >> $GITHUB_ENV
+          echo "CURRENT_VERSION=$CURRENT_VERSION" >> $GITHUB_ENV
+
+      - name: Publish the extension to Visual Studio Marketplace
+        uses: HaaLeo/publish-vscode-extension@v0
+        if: env.CURRENT_VERSION != env.LAST_PUBLISHED_VERSION
+        with:
+          pat: ${{ secrets.VSCE_TOKEN }}
+          registryUrl: https://marketplace.visualstudio.com
+          extensionFile: gobra-ide/client/gobra-ide.vsix
+          packagePath: ''
+
+      - name: Publish the extension to Open VSX Registry
+        uses: HaaLeo/publish-vscode-extension@v0
+        if: env.CURRENT_VERSION != env.LAST_PUBLISHED_VERSION
+        with:
+          pat: ${{ secrets.OPEN_VSX_TOKEN }}
+          registryUrl: https://open-vsx.org
+          extensionFile: gobra-ide/client/gobra-ide.vsix
+          packagePath: ''

@@ -14,7 +14,7 @@ export class CodePreviewProvider implements vscode.TextDocumentContentProvider {
   });
 
   codePreview = "";
-  highlightedPositions = [];
+  highlightedPositions: HighlightingPosition[] = [];
 
   onDidChangeEmitter = new vscode.EventEmitter<vscode.Uri>();
   onDidChange = this.onDidChangeEmitter.event;

@@ -1,0 +1,263 @@
+// Any copyright is dedicated to the Public Domain.
+// http://creativecommons.org/publicdomain/zero/1.0/
+
+package evaluation;
+
+
+ensures res >= 42
+func function_1 (a int) (res int) {
+  res = 0
+
+  if (a > 10098) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 4561) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 75642) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 786545) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 78945) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 123546) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 789) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 54686879) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 2435) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 4567) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 6789) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 34512) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 345675) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 3245236) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+    if (a > 10098) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 4561) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 3142) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 34665) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 99678) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 45686) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 2345) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 54678) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 2456) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 567564) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 4567587) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 2345) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 3456) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 46578) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+    if (a > 4567) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 2345) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 12323456) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 2345) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 6666) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 2333) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 65745636) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 7890) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 4567) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 2346) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 2345) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 4568767) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 234) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 3424) {
+    res += 2
+  } else {
+    res += 1
+  }
+  
+}

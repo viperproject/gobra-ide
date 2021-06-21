@@ -1,0 +1,30 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+#
+# Copyright (c) 2011-2021 ETH Zurich.
+
+# Documentation: https://docs.codecov.io/docs/codecov-yaml
+
+codecov:
+  # Avoid "Missing base report" errors
+  # https://docs.codecov.io/docs/comparing-commits
+  allow_coverage_offsets: true
+
+comment: false
+
+coverage:
+  precision: 1
+  round: down
+  range: 0..100
+
+coverage:
+  status:
+    project:
+      default:
+        target: 30
+        threshold: 0.10
+    patch:
+      default:
+        target: 30
+        threshold: 0.10

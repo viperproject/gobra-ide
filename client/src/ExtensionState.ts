@@ -10,11 +10,13 @@ import * as fs from 'fs';
 import * as net from 'net';
 import * as child_process from "child_process";
 import * as readline from 'readline';
+import * as os from 'os';
 import { FileData, VerifierConfig } from "./MessagePayloads";
 import { Helper, FileSchemes } from "./Helper";
 import { IdeEvents } from "./IdeEvents";
 import { Verifier } from "./VerificationService";
 import { CodePreviewProvider } from "./CodePreviewProvider";
+import { Location } from 'vs-verification-toolbox';
 
 
 export class State {
@@ -32,7 +34,7 @@ export class State {
   public static runningGoifications: Set<string>;
   public static runningGobrafications: Set<string>;
 
-  public static verificationRequestTimeout: NodeJS.Timeout;
+  public static verificationRequestTimeout: NodeJS.Timeout | null;
 
   public static verifierConfig: VerifierConfig;
 
@@ -55,17 +57,21 @@ export class State {
   }
 
   public static clearVerificationRequestTimeout(): void {
-    clearTimeout(State.verificationRequestTimeout);
-    State.verificationRequestTimeout = null;
+    if (State.verificationRequestTimeout != null) {
+      clearTimeout(State.verificationRequestTimeout);
+      State.verificationRequestTimeout = null;
+    }
   }
 
   public static refreshVerificationRequestTimeout(): void {
-    State.verificationRequestTimeout.refresh();
+    if (State.verificationRequestTimeout != null) {
+      State.verificationRequestTimeout.refresh();
+    }
   }
 
 
   // creates the language client and starts the server
-  public static startLanguageServer(context: vscode.ExtensionContext, fileSystemWatcher: vscode.FileSystemWatcher): Promise<void> {
+  public static startLanguageServer(context: vscode.ExtensionContext, fileSystemWatcher: vscode.FileSystemWatcher, location: Location): Promise<void> {
 
     this.updatingGobraTools = false;
 
@@ -83,19 +89,19 @@ export class State {
     this.internalPreviewProvider = new CodePreviewProvider();
     vscode.workspace.registerTextDocumentContentProvider(FileSchemes.internal, this.internalPreviewProvider);
 
-    const serverBin = Helper.getServerJarPath(Helper.isNightly());
+    const serverBin = Helper.getServerJarPath(location);
     // use the following serverBin when you want to directly use the compiled server jar:
     // const prefix = __dirname.split("client")[0];
     // const serverBin = path.join(prefix, 'server', 'target', 'scala-2.12', 'server.jar')
 
-    const serverOptions: ServerOptions = () => State.startServerProcess(serverBin);
+    const serverOptions: ServerOptions = () => State.startServerProcess(location, serverBin);
     // use the following lines to connect to a server instance instead of starting a new one (e.g. for debugging purposes)
     /*
     const connectionInfo = {
       host: "localhost",
       port: 8080
     }
-    const serverOptions: ServerOptions = () => State.connectToServer(connectionInfo);
+    const serverOptions: ServerOptions = () => State.connectToServer(location, connectionInfo);
     */
 
     // server binary was not found
@@ -126,8 +132,8 @@ export class State {
   }
 
   // creates a server for the given server binary
-  private static async startServerProcess(serverBin: string): Promise<StreamInfo> {
-    const javaPath = await State.checkDependenciesAndGetJavaPath();
+  private static async startServerProcess(location: Location, serverBin: string): Promise<StreamInfo> {
+    const javaPath = await State.checkDependenciesAndGetJavaPath(location);
 
     // spawn Gobra Server and get port number on which it is reachable:
     const portNr = await new Promise((resolve:(port: number) => void, reject) => {
@@ -148,8 +154,12 @@ export class State {
       }
 
       const processArgs = Helper.getServerProcessArgs(serverBin);
-      Helper.log(`Gobra IDE: Running '${javaPath} ${processArgs.join(' ')}'`);
-      const serverProcess = child_process.spawn(javaPath, processArgs);
+      const command = `"${javaPath}" ${processArgs}`; // processArgs is already escaped but escape javaPath as well.
+      const tmpDir = os.tmpdir();
+      Helper.log(`Gobra IDE: Running '${command}' (relative to '${tmpDir}')`);
+      // enable shell mode such that arguments do not need to be passed as an array
+      // see https://stackoverflow.com/a/45134890/1990080
+      const serverProcess = child_process.spawn(command, [], { shell: true, cwd: tmpDir });
       // redirect stdout to readline which nicely combines and splits lines
       const rl = readline.createInterface({ input: serverProcess.stdout });
       rl.on('line', stdOutLineHandler);
@@ -183,8 +193,8 @@ export class State {
   }
 
   // creates a server for the given server binary
-  private static async connectToServer(connectionInfo: net.NetConnectOpts): Promise<StreamInfo> {
-    await State.checkDependenciesAndGetJavaPath();
+  private static async connectToServer(location: Location, connectionInfo: net.NetConnectOpts): Promise<StreamInfo> {
+    await State.checkDependenciesAndGetJavaPath(location);
     const socket = net.connect(connectionInfo);
     return {
       reader: socket,
@@ -192,13 +202,13 @@ export class State {
     };
   }
 
-  private static async checkDependenciesAndGetJavaPath(): Promise<string> {
+  private static async checkDependenciesAndGetJavaPath(location: Location): Promise<string> {
     // test whether java and z3 binaries can be used:
     Helper.log("Checking Java...");
     const javaPath = await Helper.getJavaPath();
     await Helper.spawn(javaPath, ["-version"]);
     Helper.log("Checking Z3...");
-    const z3Path = Helper.getZ3Path(Helper.isNightly());
+    const z3Path = Helper.getZ3Path(location);
     await Helper.spawn(z3Path, ["--version"]);
     return javaPath;
   }

@@ -1,0 +1,1255 @@
+// Any copyright is dedicated to the Public Domain.
+// http://creativecommons.org/publicdomain/zero/1.0/
+
+package evaluation;
+
+
+ensures res >= 42
+func function_1 (a int) (res int) {
+  var z = 7;
+  res = 0
+
+  if (a > 10098) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 4561) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 75642) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 786545) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 78945) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 123546) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 789) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 54686879) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 2435) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 4567) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 6789) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 34512) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 345675) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 3245236) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+    if (a > 10098) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 4561) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 3142) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 34665) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 99678) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 45686) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 2345) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 54678) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 2456) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 567564) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 4567587) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 2345) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 3456) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 46578) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+    if (a > 4567) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 2345) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 12323456) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 2345) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 6666) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 2333) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 65745636) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 7890) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 4567) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 2346) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 2345) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 4568767) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 234) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 3424) {
+    res += 2
+  } else {
+    res += 1
+  }
+  
+}
+
+ensures res >= 40
+func function_2 (a int) (res int) {
+  var z = 7;
+  var y = 1291;
+  res = 0
+
+  if (a > 2231) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 123) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 2345) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 43567) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 123) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 6789) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 34567) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 197) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 546) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 45678) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 7898) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 4567) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+    if (a > 24536) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 467) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 7589) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 3456) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 1234) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 6798) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 5674) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 45) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 98897879) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 123) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 2346) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 345) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 568) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 1234) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 36547) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 66) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 2345) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 1291) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 453345) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 5686) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 24356123) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 456) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 1) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 45678) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 2345) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 2222) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 4568) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 5678) {
+    res += 2
+  } else {
+    res += 1
+  }
+  
+}
+
+ensures res >= 50
+func function_3 (a int) (res int) {
+  var z = 7;
+  var y = 1291;
+  res = 0
+
+  if (a > 2231) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 123) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 2345) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 43567) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 123) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 6789) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 34567) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 197) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 546) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 45678) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 7898) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 4567) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+    if (a > 24536) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 467) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 7589) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 3456) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 1234) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 6798) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 5674) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 45) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 98897879) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 123) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 2346) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 345) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 568) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 1234) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 36547) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 66) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 2345) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 1291) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 453345) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 5686) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 24356123) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 456) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 1) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 45678) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 2345) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 2222) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 4568) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 1234) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 23456) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 12341234) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 3567) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 23456) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 11234) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 343456) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 678897) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 12345) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 3456) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 24356) {
+    res += 2
+  } else {
+    res += 1
+  }
+  
+}
+
+ensures res >= 20
+func function_4 (a int) (res int) {
+  var z = 7;
+  var y = 1291;
+  res = 0
+
+  if (a > 658567) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 2345) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 34557) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 4568) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 678) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 4567) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 2345) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 23) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 8978976) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 4567456) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 35467) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 2345) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 13245) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 765765) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 444) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 222) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 3233) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 3333333) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 4444) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 1234) {
+    res += 2
+  } else {
+    res += 1
+  }
+  
+}
+
+ensures res >= 50
+func function_5 (a int) (res int) {
+  var z = 7;
+  res = 0
+
+  if (a > 2231) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 123) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 2345) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 43567) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 123) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 6789) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 34567) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 197) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 546) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 45678) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 7898) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 4567) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+    if (a > 24536) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 467) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 7589) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 3456) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 1234) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 6798) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 5674) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 45) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 98897879) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 123) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 2346) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 345) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 568) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 1234) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 36547) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 66) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 2345) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 1291) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 453345) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 5686) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 24356123) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 456) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 1) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 45678) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 2345) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 2222) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 4568) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 1234) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 23456) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 12341234) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 3567) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 23456) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 11234) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 343456) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 678897) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 12345) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 3456) {
+    res += 2
+  } else {
+    res += 1
+  }
+
+  if (a > 24356) {
+    res += 2
+  } else {
+    res += 1
+  }
+  
+}

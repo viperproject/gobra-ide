@@ -8,14 +8,16 @@ import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { State } from '../ExtensionState';
+import { Verifier } from '../VerificationService';
 import { Commands, Helper } from '../Helper';
 import { TestHelper } from './TestHelper';
-import { PathSettings } from '../MessagePayloads';
 
-const PROJECT_ROOT = path.join(__dirname, "../../");
+const PROJECT_ROOT = path.join(__dirname, "..", "..");
 const DATA_ROOT = path.join(PROJECT_ROOT, "src", "test", "data");
 const ASSERT_TRUE = "assert_true.gobra";
 const ASSERT_FALSE = "assert_false.gobra";
+const FAILING_POST_GOBRA = "failing_post.gobra";
+const FAILING_POST_GO = "failing_post.go";
 
 const URL_CONVERSION_TIMEOUT_MS = 1000; // 1s
 const GOBRA_TOOL_UPDATE_TIMEOUT_MS = 4 * 60 * 1000; // 4min
@@ -27,40 +29,6 @@ function log(msg: string) {
 
 function getTestDataPath(fileName: string): string {
     return path.join(DATA_ROOT, fileName);
-}
-
-const gobraToolsPathsSection = "gobraDependencies.gobraToolsPaths";
-function getServerJarPath(): string {
-    const config = vscode.workspace.getConfiguration();
-    const toolsPathsConfig = config.get(gobraToolsPathsSection) as PathSettings;
-    if (Helper.isWin) {
-        return toolsPathsConfig.serverJar.windows;
-    } else if (Helper.isLinux) {
-        return toolsPathsConfig.serverJar.linux;
-    } else if (Helper.isMac) {
-        return toolsPathsConfig.serverJar.mac;
-    } else {
-        return null;
-    }
-}
-
-function setServerJarPath(path: string): Thenable<void> {
-    const config = vscode.workspace.getConfiguration();
-    const toolsPathsConfig = config.get(gobraToolsPathsSection) as PathSettings;
-    if (Helper.isWin) {
-        toolsPathsConfig.serverJar.windows = path;
-    } else if (Helper.isLinux) {
-        toolsPathsConfig.serverJar.linux = path;
-    } else if (Helper.isMac) {
-        toolsPathsConfig.serverJar.mac = path;
-    } else {
-        return Promise.reject("unkown platform");
-    }
-    
-    return config.update(
-        gobraToolsPathsSection,
-        toolsPathsConfig,
-        vscode.ConfigurationTarget.Global);
 }
 
 /**
@@ -86,21 +54,17 @@ async function openAndVerify(fileName: string): Promise<vscode.TextDocument> {
 
 suite("Extension", () => {
 
-    let previousServerJarPath: string;
-
     suiteSetup(async function() {
         // set timeout to a large value such that extension can be started and Gobra tools installed:
         this.timeout(GOBRA_TOOL_UPDATE_TIMEOUT_MS);
-        // check whether a path to the gobra tools has been manually provided and if yes, set it as extension settings:
-        const gobraServerJarPath = process.env["SERVER"];
-        if (gobraServerJarPath) {
-            previousServerJarPath = getServerJarPath();
-            await setServerJarPath(gobraServerJarPath)
-            log(`successfully set gobra server binary settings to ${gobraServerJarPath}`);
-        }
         // activate extension:
         await TestHelper.startExtension(getTestDataPath(ASSERT_TRUE));
         log("suiteSetup done");
+    });
+
+    suiteTeardown(async function() {
+        log("Tear down test suite");
+        await TestHelper.stopExtension();
     });
     
     test("Recognize Gobra files", async () => {
@@ -109,7 +73,7 @@ suite("Extension", () => {
     });
     
     test("Recognize Go files", async () => {
-        const document = await openFile("failing_post.go");
+        const document = await openFile(FAILING_POST_GO);
         assert.strictEqual(document.languageId, "go");
     });
 
@@ -165,7 +129,7 @@ suite("Extension", () => {
 
     test("Underline the 'false' in the failing postcondition", async function() {
         this.timeout(GOBRA_VERIFICATION_TIMEOUT_MS);
-        const document = await openAndVerify("failing_post.gobra");
+        const document = await openAndVerify(FAILING_POST_GOBRA);
         const diagnostics = vscode.languages.getDiagnostics(document.uri);
         assert.ok(
             diagnostics.some(
@@ -179,7 +143,7 @@ suite("Extension", () => {
     
     test("Underline the 'false' in the failing postcondition of a go program", async function() {
         this.timeout(GOBRA_VERIFICATION_TIMEOUT_MS);
-        const document = await openAndVerify("failing_post.go");
+        const document = await openAndVerify(FAILING_POST_GO);
         const diagnostics = vscode.languages.getDiagnostics(document.uri);
         assert.ok(
             diagnostics.some(
@@ -195,17 +159,11 @@ suite("Extension", () => {
         // execute this test as the last one as the IDE has to be restarted afterwards
         this.timeout(GOBRA_TOOL_UPDATE_TIMEOUT_MS);
         log("start updating Gobra tools");
-        await vscode.commands.executeCommand("gobra.updateGobraTools")
+        // the following command directly invokes the update function (without going via the VSCode ecosystem).
+        // this is in particular useful for debugging / reproducing / understanding an issue as the error / exception 
+        // will be visible in the output and will not be swallowed by VSCode.
+        // await Verifier.updateGobraTools(State.context, true);
+        await vscode.commands.executeCommand("gobra.updateGobraTools");
         log("done updating Gobra tools");
-    });
-
-    suiteTeardown(async function() {
-        // restore gobra tools path in case we have changed the settings for running these tests:
-        if (previousServerJarPath) {
-            await setServerJarPath(previousServerJarPath);
-            log(`successfully restored gobra server binary settings to ${previousServerJarPath}`);
-        }
-        await TestHelper.stopExtension();
-        log(`the extension was stopped successfully`);
     });
 });

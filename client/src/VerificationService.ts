@@ -28,13 +28,14 @@ export class Verifier {
     /**
       * Register Commands for Command Palette.
       */
-    Helper.registerCommand(ContributionCommands.flushCache, Verifier.flushCache, State.context);
-    Helper.registerCommand(ContributionCommands.goifyFile, Verifier.goifyFile, State.context);
-    Helper.registerCommand(ContributionCommands.gobrafyFile, Verifier.gobrafyFile, State.context);
-    Helper.registerCommand(ContributionCommands.verifyFile, Verifier.manualVerifyFile, State.context);
-    Helper.registerCommand(ContributionCommands.updateGobraTools, () => Verifier.updateGobraTools(true), State.context);
-    Helper.registerCommand(ContributionCommands.showViperCodePreview, Verifier.showViperCodePreview, State.context);
-    Helper.registerCommand(ContributionCommands.showInternalCodePreview, Verifier.showInternalCodePreview, State.context);
+    Helper.registerCommand(ContributionCommands.flushCache, Verifier.flushCache, context);
+    Helper.registerCommand(ContributionCommands.goifyFile, Verifier.goifyFile, context);
+    Helper.registerCommand(ContributionCommands.gobrafyFile, Verifier.gobrafyFile, context);
+    Helper.registerCommand(ContributionCommands.verifyFile, Verifier.manualVerifyFile, context);
+    Helper.registerCommand(ContributionCommands.updateGobraTools, () => Verifier.updateGobraTools(context, true), context);
+    Helper.registerCommand(ContributionCommands.showViperCodePreview, Verifier.showViperCodePreview, context);
+    Helper.registerCommand(ContributionCommands.showInternalCodePreview, Verifier.showInternalCodePreview, context);
+    Helper.registerCommand(ContributionCommands.showJavaPath, () => Verifier.showJavaPath(), context);
 
     /**
       * Register Notification handlers for Gobra-Server notifications.
@@ -53,9 +54,9 @@ export class Verifier {
       * Register VSCode Event listeners.
       */
     State.context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(editor => {
-      if (editor.document.uri.toString() === PreviewUris.viper.toString()) {
+      if (editor && editor.document.uri.toString() === PreviewUris.viper.toString()) {
         State.viperPreviewProvider.setDecorations(PreviewUris.viper);
-      } else if (editor.document.uri.toString() == PreviewUris.internal.toString()) {
+      } else if (editor && editor.document.uri.toString() == PreviewUris.internal.toString()) {
         State.internalPreviewProvider.setDecorations(PreviewUris.internal);
       } else {
         Verifier.changeFile();
@@ -97,7 +98,7 @@ export class Verifier {
     // change of build version
     State.context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(e => {
       if (e.affectsConfiguration("gobraSettings.buildVersion"))
-        Verifier.updateGobraTools(true, Texts.changedBuildVersion);
+        Verifier.updateGobraTools(context, true, Texts.changedBuildVersion);
     }))
 
 
@@ -162,8 +163,8 @@ export class Verifier {
     * Verifies the File if it is in the verification requests queue.
     */
   private static reverifyFile(fileUri: string): void {
-    if (State.verificationRequests.has(fileUri) && Helper.isAutoVerify()) {
-      let event = State.verificationRequests.get(fileUri);
+    const event = State.verificationRequests.get(fileUri)
+    if (event && Helper.isAutoVerify()) {
       State.verificationRequests.delete(fileUri);
       Verifier.verifyFile(fileUri, event);
     }
@@ -189,11 +190,16 @@ export class Verifier {
 
     if (!State.runningGoifications.has(fileUri)) {
       State.runningGoifications.add(fileUri);
-
-      vscode.window.activeTextEditor.document.save().then((saved: boolean) => {
-        Helper.log("sending goification request");
-        State.client.sendNotification(Commands.goifyFile, Helper.fileDataToJson(State.verifierConfig.fileData));
-      })
+      
+      const editor = vscode.window.activeTextEditor;
+      if (editor) {
+        editor.document.save().then((saved: boolean) => {
+          Helper.log("sending goification request");
+          State.client.sendNotification(Commands.goifyFile, Helper.fileDataToJson(State.verifierConfig.fileData));
+        })
+      } else {
+        Helper.log("saving document for goifying was not possible");
+      }
     } else {
       vscode.window.showInformationMessage("There is already a Goification running for file " + filePath);
     }
@@ -219,10 +225,15 @@ export class Verifier {
     if (!State.runningGobrafications.has(filePath)) {
       State.runningGobrafications.add(filePath);
 
-      vscode.window.activeTextEditor.document.save().then((saved: boolean) => {
-        Helper.log("sending gobrafication request");
-        State.client.sendNotification(Commands.gobrafyFile, Helper.fileDataToJson(State.verifierConfig.fileData));
-      })
+      const editor = vscode.window.activeTextEditor;
+      if (editor) {
+        editor.document.save().then((saved: boolean) => {
+          Helper.log("sending gobrafication request");
+          State.client.sendNotification(Commands.gobrafyFile, Helper.fileDataToJson(State.verifierConfig.fileData));
+        })
+      } else {
+        Helper.log("saving document for gobrafying was not possible");
+      }
     } else {
       vscode.window.showInformationMessage("There is already a Gobrafication running for file " + filePath);
     }
@@ -251,7 +262,7 @@ export class Verifier {
   /**
     * Update GobraTools by downloading them if necessary. 
     */
-  public static async updateGobraTools(shouldUpdate: boolean, notificationText?: string): Promise<Location> {
+  public static async updateGobraTools(context: vscode.ExtensionContext, shouldUpdate: boolean, notificationText?: string): Promise<Location> {
     State.updatingGobraTools = true;
 
     const gobraToolsRawProviderUrl = Helper.getGobraToolsProvider(Helper.isNightly());
@@ -270,12 +281,21 @@ export class Verifier {
       dependencyInstaller = new RemoteZipExtractor(url, folderName);
     }
 
-    let gobraToolsPath = Helper.getGobraToolsPath();
-    let boogiePath = Helper.getBoogiePath();
-    let z3Path = Helper.getZ3Path();
-
+    const gobraToolsPath = Helper.getGobraToolsPath(context);
     if (!fs.existsSync(gobraToolsPath)) {
-      fs.mkdirSync(gobraToolsPath);
+      // ask user for consent to install Gobra Tools on first launch:
+      if (!shouldUpdate && !Helper.assumeYes()) {
+        const confirmation = await vscode.window.showInformationMessage(
+          Texts.installingGobraToolsConfirmationMessage,
+          Texts.installingGobraToolsConfirmationYesButton,
+          Texts.installingGobraToolsConfirmationNoButton);
+        if (confirmation != Texts.installingGobraToolsConfirmationYesButton) {
+          // user has dismissed message without confirming
+          return Promise.reject(Texts.gobraToolsInstallationDenied);
+        }
+      }
+
+      fs.mkdirSync(gobraToolsPath, { recursive: true });
     }
 
     const gobraTools = new Dependency<"Gobra">(
@@ -284,11 +304,13 @@ export class Verifier {
     );
 
     const { result: location, didReportProgress } = await withProgressInWindow(
-      shouldUpdate ? Texts.updatingGobraTools : Texts.installingGobraTools,
+      shouldUpdate ? Texts.updatingGobraTools : Texts.ensuringGobraTools,
       listener => gobraTools.install("Gobra", shouldUpdate, listener)
     ).catch(Helper.rethrow(`Downloading and unzipping the Gobra Tools has failed`));
 
     if (Helper.isLinux || Helper.isMac) {
+      const boogiePath = Helper.getBoogiePath(location);
+      const z3Path = Helper.getZ3Path(location);
       fs.chmodSync(z3Path, '755');
       fs.chmodSync(boogiePath, '755');
       fs.chmodSync(boogiePath + ".exe", '755')
@@ -300,7 +322,7 @@ export class Verifier {
       } else if (shouldUpdate) {
         vscode.window.showInformationMessage(Texts.successfulUpdatingGobraTools);
       } else {
-        vscode.window.showInformationMessage(Texts.successfulInstallingGobraTools);
+        vscode.window.showInformationMessage(Texts.successfulEnsuringGobraTools);
       }
     }
 
@@ -315,9 +337,14 @@ export class Verifier {
     let selections = Helper.getSelections();
 
     State.updateFileData();
-    vscode.window.activeTextEditor.document.save().then((saved: boolean) => {
-      State.client.sendNotification(Commands.codePreview, Helper.previewDataToJson(new PreviewData(State.verifierConfig.fileData, false, true, selections)));
-    });
+    const editor = vscode.window.activeTextEditor;
+    if (editor) {
+      editor.document.save().then((saved: boolean) => {
+        State.client.sendNotification(Commands.codePreview, Helper.previewDataToJson(new PreviewData(State.verifierConfig.fileData, false, true, selections)));
+      });
+    } else {
+      Helper.log("saving document for showing Viper Code Preview was not possible");
+    }
   }
 
   /**
@@ -327,11 +354,25 @@ export class Verifier {
     let selections = Helper.getSelections();
 
     State.updateFileData();
-    vscode.window.activeTextEditor.document.save().then((saved: boolean) => {
-      State.client.sendNotification(Commands.codePreview, Helper.previewDataToJson(new PreviewData(State.verifierConfig.fileData, true, false, selections)));
-    });
+    const editor = vscode.window.activeTextEditor;
+    if (editor) {
+      editor.document.save().then((saved: boolean) => {
+        State.client.sendNotification(Commands.codePreview, Helper.previewDataToJson(new PreviewData(State.verifierConfig.fileData, true, false, selections)));
+      });
+    } else {
+      Helper.log("saving document for showing Internal Code Preview was not possible");
+    }
   }
-  
+
+  /**
+   * Displays an information popup listing the path to the selected Java binary.
+   */
+  public static async showJavaPath(): Promise<void> {
+    const javaPath = await Helper.getJavaPath();
+    const javaVersion = await Helper.spawn(javaPath, ["-version"]);
+    // at leat on macOS, stdout is empty and the version is in stderr. Thus, simply concatenate them:
+    await vscode.window.showInformationMessage(Texts.javaLocation(javaPath, javaVersion.stdout.concat(javaVersion.stderr)));
+  }
 
   /**
     * Handler Functions handling notifications from Gobra-Server.

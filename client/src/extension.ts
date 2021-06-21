@@ -5,41 +5,56 @@
 // Copyright (c) 2011-2020 ETH Zurich.
 
 import * as vscode from 'vscode';
+import * as fs from 'fs';
 
 import { State } from './ExtensionState';
 import { Verifier } from './VerificationService';
 import { VerifierConfig } from './MessagePayloads';
 import { Helper } from './Helper';
-import { Notifier, Event } from './Notifier';
+import * as Notifier from './Notifier';
+import { Location } from 'vs-verification-toolbox';
 
 
 let fileSystemWatcher: vscode.FileSystemWatcher;
 
 export function activate(context: vscode.ExtensionContext): Thenable<any> {
+	// Uri of the file which triggered the plugin activation.
+	const fileUri: string = Helper.getFileUri();
 
-	function startServer(): Promise<void> {
+	async function startServer(location: Location): Promise<Location> {
 		// create and start Gobra Server
 		fileSystemWatcher = vscode.workspace.createFileSystemWatcher("**/*.{gobra, go}");
-		return State.startLanguageServer(context, fileSystemWatcher);
+		await State.startLanguageServer(context, fileSystemWatcher, location);
+		return location;
 	}
 
-	function initVerifier(): void {
-		let verifierConfig = new VerifierConfig();
+	function initVerifier(location: Location): void {
+		const verifierConfig = new VerifierConfig(location);
 		Verifier.initialize(context, verifierConfig, fileUri);
-		Notifier.notify(Event.EndExtensionActivation);
+		Notifier.notifyExtensionActivation();
 	}
 
-	// Uri of the file which triggered the plugin activation.
-	let fileUri: string = Helper.getFileUri();
+	// start of in a clean state by wiping Gobra Tools if this was requested via
+	// environment variables. In particular, this is used for the extension tests.
+	if (Helper.cleanInstall()) {
+		const gobraToolsPath = Helper.getGobraToolsPath(context);
+		if (fs.existsSync(gobraToolsPath)) {
+			Helper.log(`cleanInstall has been requested and gobra tools already exist --> delete them`);
+			// wipe gobraToolsPath if it exists:
+			fs.rmdirSync(gobraToolsPath, { recursive: true });
+		} else {
+			Helper.log(`cleanInstall has been requested but gobra tools do not exist yet --> NOP`);
+		}
+	}
 
 	// install gobra tools
-	return Verifier.updateGobraTools(false)
+	return Verifier.updateGobraTools(context, false)
 		.then(startServer)
 		.then(initVerifier);
 }
 
-export function deactivate(): Thenable<void> | undefined {
+export async function deactivate(): Promise<void> {
 	Helper.log("Deactivating");
-	return State.disposeServer()
-		.then(() => Helper.log("Server is disposed"));
+	await State.disposeServer();
+	Helper.log("Server is disposed");
 }

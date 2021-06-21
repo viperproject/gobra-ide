@@ -23,6 +23,12 @@
     },
     {
         "include": [
+            "**/*.yml"
+        ],
+        "license": "./.github/license-check/headers/MPLv2-ETH-hashtags.txt"
+    },
+    {
+        "include": [
             "client/src/evaluate/index.ts",
             "client/src/evaluate/runEvaluation.ts",
             "client/src/test/index.ts",
@@ -49,12 +55,14 @@
             "client/tmp/**",
             "client/evaluationResults.txt",
             "client/package-notes.md",
+            "client/src/evaluate/data/lines_of_code.txt",
             "server/gobra/**",
             "server/project/build.properties",
             "server/project/plugins.sbt",
             "server/project/project/**",
             "server/project/target/**",
             "server/target/**",
+            "**/vscode-version",
             "**/*.json",
             "**/README.md",
             "**/LICENSE"

@@ -42,4 +42,7 @@ Other files located in the same folder are ignored.
 Furthermore, it is at the moment not possible to configure Gobra IDE to consider other directories than specified in the `GOPATH` environment variable when importing packages.
 
 ## Requirements
-- [Java Runtime Environment (or JDK), 64 bit, version 1.8 or later](https://www.java.com/en/download/)
+- [Java JDK, 64 bit, version 1.8 or later](https://www.java.com/en/download/)
+
+Gobra IDE automatically looks for a java installation.
+The command `Gobra: Show path to Java binary` in the command palette will show the path to the Java binary as well as its version.
