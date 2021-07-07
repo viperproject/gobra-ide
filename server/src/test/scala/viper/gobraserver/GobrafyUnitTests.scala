@@ -39,6 +39,87 @@ class GobrafyUnitTests extends AnyFunSuite with Matchers with Inside {
     frontend.gobrafy(input, expected)
   }
 
+  test("pure interface function should stay pure") {
+    val input =
+      """
+        |type stream interface {
+        |  //@ pred mem()
+        |
+        |  //@ requires acc(mem(), 1/2)
+        |  //@ pure
+        |  hasNext() bool
+        |
+        |  //@ requires mem() && hasNext()
+        |  //@ ensures mem()
+        |  next() interface{}
+        |}""".stripMargin
+    val expected =
+      """
+        |type stream interface {
+        |  pred mem()
+        |
+        |  requires acc(mem(), 1/2)
+        |  pure
+        |  hasNext() bool
+        |
+        |  requires mem() && hasNext()
+        |  ensures mem()
+        |  next() interface{}
+        |}""".stripMargin
+    frontend.gobrafy(input, expected)
+  }
+
+  test("pure interface function should stay pure even with provided implementation") {
+    val input =
+      """
+        |package presentation
+        |
+        |type stream interface {
+        | //@ pred mem()
+        |
+        | //@ requires acc(mem(), 1/2)
+        | //@ pure
+        | hasNext() bool
+        |}
+        |
+        |/** Implementation **/
+        |
+        |type counter struct{ f, max int }
+        |
+        |//@ requires acc(x, 1/2)
+        |//@ pure
+        |func (x *counter) hasNext() bool {
+        |	return x.f < x.max
+        |}
+        |
+        |""".stripMargin
+    val expected =
+      """
+        |package presentation
+        |
+        |type stream interface {
+        | pred mem()
+        |
+        | requires acc(mem(), 1/2)
+        | pure
+        | hasNext() bool
+        |}
+        |
+        |/** Implementation **/
+        |
+        |type counter struct{ f, max int }
+        |
+        |requires acc(x, 1/2)
+        |pure
+        |func (x *counter) hasNext() bool {
+        |	return x.f < x.max
+        |}
+        |
+        |""".stripMargin
+    frontend.gobrafy(input, expected)
+  }
+
+
   /* ** Stubs, mocks and other test setup */
 
   class TestFrontend {
