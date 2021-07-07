@@ -31,7 +31,7 @@ object Gobrafier {
   private val args = "(.*?)"
   private val argList = "\\((.*?)\\)"
   private val functionInvocation = s"$identifier$argList"
-  private val functionDecl = s"func\\s+$identifier\\s*$argList\\s*($argList)?"
+  private val functionDecl = s"$func_keyword\\s+$identifier\\s*$argList\\s*($argList)?"
   private val spec = "(.*?)"
   private val vars = "(.*?)"
   private val predicate = "(.*?)"
@@ -39,10 +39,12 @@ object Gobrafier {
   private val goifiedComment = s"([;]\\s*(.*?))?"
 
 
+  // "(?s)" means that `.` matches even new-line characters
+  // "(?m)" means that `^` and `$` will match beginning and end of a line, respectively
   private val ghostParamsRegex = s"(?s)${singlelineComment(s"$ghost_parameters(.*?)\\n$spec$functionDecl")}".r
   private val ghostResultsRegex = s"(?s)${singlelineComment(s"$ghost_results\\s*(.*?)\\n$spec$functionDecl")}".r
   private val returnGhostRegex = s"(?m)$return_keyword\\s*$args${singlelineComment(s"$with_keyword\\s*$args")}$$".r
-  private val pureKeywordRegex = s"(?s)${singlelineComment(s"$pure_keyword$spec$func_keyword")}".r
+  private val pureKeywordRegex = s"(?m)${singlelineComment(s"$pure_keyword$spec")}$$".r
   private val assignGhostRegex = s"(?m)$assignment\\s*${singlelineComment(s"$with_keyword\\s*$assignment\\s*$goifiedComment")}$$".r
 
   private val addressableVariablesRegex = s"(?m)(^.*?)\\s*${singlelineComment(addressable_variables)}$vars$$".r
@@ -94,7 +96,7 @@ object Gobrafier {
       (if (m.group(4) == "") "" else ", ") +
       addGhostKeywordToParamsList(m.group(1))) +
       " " +
-      m.group(5)
+        (if (m.group(5) == null) "" else m.group(5))
     })
 
     /**
@@ -109,9 +111,10 @@ object Gobrafier {
       parens(m.group(4)) +
       " " +
       parens(
-        (if (m.group(5) == null) "" else m.group(6)) +
-        (if (m.group(6) == "" || m.group(6) == null) "" else ", ") +
-        addGhostKeywordToParamsList(m.group(1)))
+        (if (m.group(5) == null) "" else m.group(5)) +
+        (if (m.group(5) == null || m.group(5) == "" || m.group(1) == null || m.group(1) == "") "" else ", ") +
+        addGhostKeywordToParamsList(m.group(1))) +
+      (if (m.group(5) == null) " " else "") // add an additional space if no returns have existed before
     })
 
     /**
@@ -129,8 +132,8 @@ object Gobrafier {
       * Add pure keyword to function declaration.
       */
     newFileContents = pureKeywordRegex.replaceAllIn(newFileContents, m => {
-      m.group(1) +
-      "pure func"
+      "pure" +
+      m.group(1)
     })
 
     /**
