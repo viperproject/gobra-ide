@@ -34,10 +34,10 @@ jobs:
     runs-on: ubuntu-latest
     container: gobraverifier/gobra-base:v5_z3_4.8.7
     env:
-      SILVER_REF: "v.21.01-release"
-      SILICON_REF: "v.21.01-release"
-      CARBON_REF: "v.21.01-release"
-      VIPERSERVER_REF: "61150cbd24763e9ed3e7dce0c246c7085ebcb0f8" # commit 9e0f9d61e0522e705f5378fd69db6731975089e3 is not compatible with current version of Gobra
+      SILVER_REF: "v.21.07-release"
+      SILICON_REF: "v.21.07-release"
+      CARBON_REF: "v.21.07-release"
+      VIPERSERVER_REF: "v.21.07-release"
     steps:
       - name: Checkout Gobra-IDE
         uses: actions/checkout@v2
