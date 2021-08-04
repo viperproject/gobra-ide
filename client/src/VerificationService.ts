@@ -309,11 +309,16 @@ export class Verifier {
     ).catch(Helper.rethrow(`Downloading and unzipping the Gobra Tools has failed`));
 
     if (Helper.isLinux || Helper.isMac) {
-      const boogiePath = Helper.getBoogiePath(location);
       const z3Path = Helper.getZ3Path(location);
+      const boogiePath = Helper.getBoogiePath(location);
+      const boogieExePath = `${boogiePath}.exe`;
       fs.chmodSync(z3Path, '755');
-      fs.chmodSync(boogiePath, '755');
-      fs.chmodSync(boogiePath + ".exe", '755')
+      if (fs.existsSync(boogiePath)) {
+        fs.chmodSync(boogiePath, '755');
+      }
+      if (fs.existsSync(boogieExePath)) {
+        fs.chmodSync(boogieExePath, '755');
+      }
     }
 
     if (didReportProgress) {

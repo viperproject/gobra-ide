@@ -18,4 +18,19 @@ trait GobraServerExecutionContext extends VerificationExecutionContext with Gobr
 class DefaultGobraServerExecutionContext(val threadPoolSize: Int = DefaultVerificationExecutionContext.minNumberOfThreads) extends DefaultVerificationExecutionContext with GobraServerExecutionContext {
   override lazy val nThreads: Int = threadPoolSize
   lazy val service: ExecutorService = executorService
+
+  /**
+    * In contrast to `terminate`, this function terminates the context but also checks whether it was successfully
+    * shutdown meaning that no timeout has occurred while doing so.
+    */
+  @throws(classOf[InterruptedException])
+  override def terminateAndAssertInexistanceOfTimeout(): Unit = {
+    val timeoutMs = 1000 // 1 sec
+    val startTime = System.currentTimeMillis()
+    // terminate executor with a larger timeout such that we can distinguish a timeout from terminate taking quite long
+    terminate(10 * timeoutMs)
+    val terminateDurationMs = System.currentTimeMillis() - startTime
+    // check whether timeout has been exceeded and cause an assertion failure:
+    assert(terminateDurationMs < timeoutMs)
+  }
 }

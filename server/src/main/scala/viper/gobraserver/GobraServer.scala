@@ -12,14 +12,15 @@ import viper.gobra.reporting.VerifierResult
 import viper.gobra.util.{GobraExecutionContext, Violation}
 import viper.gobra.reporting.BackTranslator.BackTrackInfo
 import viper.silver.ast.Program
+
 import java.io._
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-
 import scala.io.Source
 import viper.server.core.ViperCoreServer
 import org.eclipse.lsp4j.{MessageParams, MessageType, Range}
 import viper.gobraserver.backend.ViperServerBackend
+import viper.server.ViperConfig
 
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
@@ -45,7 +46,8 @@ object GobraServer extends GobraFrontend {
   def init(options: List[String])(executor: GobraServerExecutionContext): Unit = {
     _options = options
     _executor = executor
-    _server = new ViperCoreServer(options.toArray)(executor)
+    val config = new ViperConfig(options)
+    _server = new ViperCoreServer(config)(executor)
     ViperServerBackend.setExecutor(_executor)
     ViperServerBackend.setServer(_server)
   }
