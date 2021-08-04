@@ -43,7 +43,7 @@
   "devDependencies": {
     "@types/glob": "^7.1.1",
     "@types/mocha": "^9.0.0",
-    "@types/tmp": "^0.2.0",
+    "@types/tmp": "^0.2.1",
     "@types/yargs": "^16.0.3",
     "glob": "^7.1.7",
     "mocha": "^8.1.3",
