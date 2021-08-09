@@ -5,6 +5,7 @@
 // Copyright (c) 2011-2020 ETH Zurich.
 
 import * as vscode from 'vscode';
+import { Utils } from 'vscode-uri';
 import * as fs from 'fs';
 
 import { State } from './ExtensionState';
@@ -37,7 +38,9 @@ export function activate(context: vscode.ExtensionContext): Thenable<any> {
 	// start of in a clean state by wiping Gobra Tools if this was requested via
 	// environment variables. In particular, this is used for the extension tests.
 	if (Helper.cleanInstall()) {
-		const gobraToolsPath = Helper.getGobraToolsPath(context);
+		const packageJson = context.extension.packageJSON;
+		const packageId = `${packageJson.publisher}.${packageJson.name}`;
+		const gobraToolsPath = Utils.joinPath(context.globalStorageUri, packageId).fsPath;
 		if (fs.existsSync(gobraToolsPath)) {
 			Helper.log(`cleanInstall has been requested and gobra tools already exist --> delete them`);
 			// wipe gobraToolsPath if it exists:

@@ -35,7 +35,7 @@
     "@types/node": "^15.6.1",
     "@types/vscode": "^1.58.1",
     "locate-java-home": "git+https://github.com/viperproject/locate-java-home.git",
-    "vs-verification-toolbox": "git+https://github.com/viperproject/vs-verification-toolbox.git",
+    "vs-verification-toolbox": "git+https://github.com/arquintl/vs-verification-toolbox.git#confirm-callback",
     "vscode-languageclient": "^6.1.3",
     "vscode-test": "^1.3.0",
     "vscode-uri": "^3.0.2"
@@ -290,11 +290,12 @@
           "scope": "window",
           "type": "string",
           "enum": [
-            "stable",
-            "nightly"
+            "Stable",
+            "Nightly",
+            "Local"
           ],
-          "default": "stable",
-          "description": "Select the build version of the Gobra Tools."
+          "default": "Stable",
+          "description": "Select the build version of the Gobra Tools. The path specified at 'gobraDependencies.gobraToolsPaths.gobraToolsBasePath' will be used for build version 'Local'"
         },
         "gobraSettings.timeout": {
           "scope": "window",
@@ -323,6 +324,11 @@
         "gobraDependencies.gobraToolsPaths": {
           "type": "object",
           "default": {
+            "gobraToolsBasePath": {
+              "windows": "%APPDATA%\\Gobra\\",
+              "linux": "$HOME/.config/Gobra",
+              "mac": "$HOME/Library/Application Support/Gobra"
+            },
             "z3Executable": {
               "windows": "$gobraTools$\\z3\\bin\\z3.exe",
               "linux": "$gobraTools$/z3/bin/z3",

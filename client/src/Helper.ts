@@ -5,7 +5,7 @@
 // Copyright (c) 2011-2020 ETH Zurich.
 
 import * as vscode from 'vscode';
-import { URI, Utils } from 'vscode-uri';
+import { URI } from 'vscode-uri';
 import { VerifierConfig, OverallVerificationResult, FileData, GobraSettings, PlatformDependendPath, GobraDependencies, PreviewData, HighlightingPosition } from "./MessagePayloads";
 import * as locate_java_home from 'locate-java-home';
 import * as child_process from 'child_process';
@@ -27,8 +27,14 @@ export class Helper {
     }
   }
 
-  public static isNightly(): boolean {
-    return vscode.workspace.getConfiguration("gobraSettings").get("buildVersion") == "nightly";
+  public static getBuildChannel(): BuildChannel {
+    const buildVersion = vscode.workspace.getConfiguration("gobraSettings").get("buildVersion");
+    if (buildVersion === "Nightly") {
+      return BuildChannel.Nightly;
+    } else if (buildVersion === "Local") {
+      return BuildChannel.Local
+    }
+    return BuildChannel.Stable;
   }
 
   public static isAutoVerify(): boolean {
@@ -257,11 +263,9 @@ export class Helper {
       (value == "1" || value.toUpperCase() == "TRUE");
   }
 
-  /**
-    * Get Location where Gobra Tools will be installed.
-    */
-  public static getGobraToolsPath(context: vscode.ExtensionContext): string {
-    return Utils.joinPath(context.globalStorageUri, "gobraTools").fsPath;
+  public static getLocalGobraToolsPath(): string {
+    const gobraToolsBasePath = Helper.getGobraDependencies().gobraToolsPaths.gobraToolsBasePath;
+    return Helper.getPlatformPath(gobraToolsBasePath);
   }
 
   public static getServerJarPath(location: Location): string {
@@ -441,4 +445,10 @@ export interface Output {
   stdout: string;
   stderr: string;
   code: number | null;
+}
+
+export enum BuildChannel {
+  Stable = "Stable",
+  Nightly = "Nightly",
+  Local = "Local"
 }
