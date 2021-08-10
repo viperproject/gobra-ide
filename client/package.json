@@ -35,7 +35,7 @@
     "@types/node": "^15.6.1",
     "@types/vscode": "^1.58.1",
     "locate-java-home": "git+https://github.com/viperproject/locate-java-home.git",
-    "vs-verification-toolbox": "git+https://github.com/arquintl/vs-verification-toolbox.git#confirm-callback",
+    "vs-verification-toolbox": "git+https://github.com/viperproject/vs-verification-toolbox.git",
     "vscode-languageclient": "^6.1.3",
     "vscode-test": "^1.3.0",
     "vscode-uri": "^3.0.2"

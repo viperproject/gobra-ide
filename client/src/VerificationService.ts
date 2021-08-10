@@ -12,7 +12,7 @@ import * as fs from 'fs';
 import { VerifierConfig, OverallVerificationResult, PreviewData } from "./MessagePayloads";
 import { IdeEvents } from "./IdeEvents";
 
-import { Dependency, withProgressInWindow, Location, DependencyInstaller, RemoteZipExtractor, GitHubZipExtractor, LocalReference } from 'vs-verification-toolbox';
+import { Dependency, withProgressInWindow, Location, DependencyInstaller, RemoteZipExtractor, GitHubZipExtractor, LocalReference, ConfirmResult, Success } from 'vs-verification-toolbox';
 
 export class Verifier {
   public static verifyItem: ProgressBar;
@@ -263,18 +263,20 @@ export class Verifier {
     * Update GobraTools by downloading them if necessary. 
     */
   public static async updateGobraTools(context: vscode.ExtensionContext, shouldUpdate: boolean, notificationText?: string): Promise<Location> {
-    async function confirm(): Promise<void> {
+    async function confirm(): Promise<ConfirmResult> {
       if (shouldUpdate || Helper.assumeYes()) {
         // do not ask user
-        return;
+        return ConfirmResult.Continue;
       } else {
         const confirmation = await vscode.window.showInformationMessage(
           Texts.installingGobraToolsConfirmationMessage,
           Texts.installingGobraToolsConfirmationYesButton,
           Texts.installingGobraToolsConfirmationNoButton);
-        if (confirmation != Texts.installingGobraToolsConfirmationYesButton) {
+        if (confirmation === Texts.installingGobraToolsConfirmationYesButton) {
+          return ConfirmResult.Continue;
+        } else {
           // user has dismissed message without confirming
-          return Promise.reject(Texts.gobraToolsInstallationDenied);
+          return ConfirmResult.Cancel;
         }
       }
     }
@@ -283,11 +285,16 @@ export class Verifier {
     const selectedChannel = Helper.getBuildChannel();
     const dependency = await this.getDependency(context);
     Helper.log(`Ensuring dependencies for build channel ${selectedChannel}`);
-    const { result: location, didReportProgress } = await withProgressInWindow(
+    const { result: installationResult, didReportProgress } = await withProgressInWindow(
       shouldUpdate ? Texts.updatingGobraTools : Texts.ensuringGobraTools,
       listener => dependency.install(selectedChannel, shouldUpdate, listener, confirm)
     ).catch(Helper.rethrow(`Downloading and unzipping the Gobra Tools has failed`));
 
+    if (!(installationResult instanceof Success)) {
+      throw new Error(Texts.gobraToolsInstallationDenied);
+    }
+
+    const location = installationResult.value;
     if (Helper.isLinux || Helper.isMac) {
       const z3Path = Helper.getZ3Path(location);
       const boogiePath = Helper.getBoogiePath(location);
