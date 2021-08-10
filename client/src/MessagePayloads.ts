@@ -70,6 +70,7 @@ export interface JavaSettings {
 }
 
 export interface PathSettings {
+  gobraToolsBasePath: PlatformDependendPath;
   z3Executable: PlatformDependendPath;
   boogieExecutable: PlatformDependendPath;
   serverJar: PlatformDependendPath;

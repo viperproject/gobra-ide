@@ -5,14 +5,14 @@
 // Copyright (c) 2011-2020 ETH Zurich.
 
 import { State } from "./ExtensionState";
-import { Helper, Commands, ContributionCommands, Texts, Color, PreviewUris } from "./Helper";
+import { Helper, Commands, ContributionCommands, Texts, Color, PreviewUris, BuildChannel } from "./Helper";
 import { ProgressBar } from "./ProgressBar";
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import { VerifierConfig, OverallVerificationResult, PreviewData } from "./MessagePayloads";
 import { IdeEvents } from "./IdeEvents";
 
-import { Dependency, withProgressInWindow, Location, DependencyInstaller, RemoteZipExtractor, GitHubZipExtractor } from 'vs-verification-toolbox';
+import { Dependency, withProgressInWindow, Location, DependencyInstaller, RemoteZipExtractor, GitHubZipExtractor, LocalReference, ConfirmResult, Success } from 'vs-verification-toolbox';
 
 export class Verifier {
   public static verifyItem: ProgressBar;
@@ -263,51 +263,38 @@ export class Verifier {
     * Update GobraTools by downloading them if necessary. 
     */
   public static async updateGobraTools(context: vscode.ExtensionContext, shouldUpdate: boolean, notificationText?: string): Promise<Location> {
-    State.updatingGobraTools = true;
-
-    const gobraToolsRawProviderUrl = Helper.getGobraToolsProvider(Helper.isNightly());
-    // note that `gobraToolsProvider` might be one of the "special" URLs as specified in the README (i.e. to a GitHub releases asset):
-    const gobraToolsProvider = Helper.parseGitHubAssetURL(gobraToolsRawProviderUrl);
-
-    const folderName = "GobraTools";
-    let dependencyInstaller: DependencyInstaller
-    if (gobraToolsProvider.isGitHubAsset) {
-      // provider is a GitHub release
-      const token = Helper.getGitHubToken();
-      dependencyInstaller = new GitHubZipExtractor(gobraToolsProvider.getUrl, folderName, token);
-    } else {
-      // provider is a regular resource on the Internet
-      const url = await gobraToolsProvider.getUrl();
-      dependencyInstaller = new RemoteZipExtractor(url, folderName);
-    }
-
-    const gobraToolsPath = Helper.getGobraToolsPath(context);
-    if (!fs.existsSync(gobraToolsPath)) {
-      // ask user for consent to install Gobra Tools on first launch:
-      if (!shouldUpdate && !Helper.assumeYes()) {
+    async function confirm(): Promise<ConfirmResult> {
+      if (shouldUpdate || Helper.assumeYes()) {
+        // do not ask user
+        return ConfirmResult.Continue;
+      } else {
         const confirmation = await vscode.window.showInformationMessage(
           Texts.installingGobraToolsConfirmationMessage,
           Texts.installingGobraToolsConfirmationYesButton,
           Texts.installingGobraToolsConfirmationNoButton);
-        if (confirmation != Texts.installingGobraToolsConfirmationYesButton) {
+        if (confirmation === Texts.installingGobraToolsConfirmationYesButton) {
+          return ConfirmResult.Continue;
+        } else {
           // user has dismissed message without confirming
-          return Promise.reject(Texts.gobraToolsInstallationDenied);
+          return ConfirmResult.Cancel;
         }
       }
-
-      fs.mkdirSync(gobraToolsPath, { recursive: true });
     }
-
-    const gobraTools = new Dependency<"Gobra">(
-      gobraToolsPath,
-      ["Gobra", dependencyInstaller]
-    );
-
-    const { result: location, didReportProgress } = await withProgressInWindow(
+    
+    State.updatingGobraTools = true;
+    const selectedChannel = Helper.getBuildChannel();
+    const dependency = await this.getDependency(context);
+    Helper.log(`Ensuring dependencies for build channel ${selectedChannel}`);
+    const { result: installationResult, didReportProgress } = await withProgressInWindow(
       shouldUpdate ? Texts.updatingGobraTools : Texts.ensuringGobraTools,
-      listener => gobraTools.install("Gobra", shouldUpdate, listener)
+      listener => dependency.install(selectedChannel, shouldUpdate, listener, confirm)
     ).catch(Helper.rethrow(`Downloading and unzipping the Gobra Tools has failed`));
 
+    if (!(installationResult instanceof Success)) {
+      throw new Error(Texts.gobraToolsInstallationDenied);
+    }
+
+    const location = installationResult.value;
     if (Helper.isLinux || Helper.isMac) {
       const z3Path = Helper.getZ3Path(location);
       const boogiePath = Helper.getBoogiePath(location);
@@ -333,6 +320,58 @@ export class Verifier {
 
     return location;
   }
+
+  private static async getDependency(context: vscode.ExtensionContext): Promise<Dependency<BuildChannel>> {
+    const buildChannelStrings = Object.keys(BuildChannel);
+    const buildChannels = buildChannelStrings.map(c =>
+      // Convert string to enum. See https://stackoverflow.com/a/17381004/2491528
+      BuildChannel[c as keyof typeof BuildChannel]);
+        
+    // note that `installDestination` is only used if tools actually have to be downloaded and installed there, i.e. it is 
+    // not used for build channel "Local":
+    const installDestination = context.globalStorageUri.fsPath;
+    const installers = await Promise.all(buildChannels
+      .map<Promise<[BuildChannel, DependencyInstaller]>>(async c => 
+        [c, await this.getDependencyInstaller(context, c)])
+      );
+    return new Dependency<BuildChannel>(
+      installDestination,
+      ...installers
+    );
+  }
+
+  private static getDependencyInstaller(context: vscode.ExtensionContext, buildChannel: BuildChannel): Promise<DependencyInstaller> {
+    if (buildChannel == BuildChannel.Local) {
+        return this.getLocalDependencyInstaller();
+    } else {
+        return this.getRemoteDependencyInstaller(context, buildChannel);
+    }
+  }
+
+  private static async getLocalDependencyInstaller(): Promise<DependencyInstaller> {
+    return new LocalReference(Helper.getLocalGobraToolsPath());
+  }
+
+  private static get buildChannelSubfolderName(): string {
+    return "GobraTools";
+  }
+
+  private static async getRemoteDependencyInstaller(context: vscode.ExtensionContext, buildChannel: BuildChannel): Promise<DependencyInstaller> {
+    const gobraToolsRawProviderUrl = Helper.getGobraToolsProvider(buildChannel === BuildChannel.Nightly);
+    // note that `gobraToolsProvider` might be one of the "special" URLs as specified in the README (i.e. to a GitHub releases asset):
+    const gobraToolsProvider = Helper.parseGitHubAssetURL(gobraToolsRawProviderUrl);
+    
+    const folderName = this.buildChannelSubfolderName; // folder name to which ZIP will be unzipped to
+    if (gobraToolsProvider.isGitHubAsset) {
+      // provider is a GitHub release
+      const token = Helper.getGitHubToken();
+      return new GitHubZipExtractor(gobraToolsProvider.getUrl, folderName, token);
+    } else {
+      // provider is a regular resource on the Internet
+      const url = await gobraToolsProvider.getUrl();
+      return new RemoteZipExtractor(url, folderName);
+    }
+}
 
 
   /**
