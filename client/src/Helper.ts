@@ -180,6 +180,18 @@ export class Helper {
     }
   }
 
+  public static async getJavaCwd(): Promise<string> {
+    const configuredCwd = Helper.getGobraDependencies().java.cwd;
+    if (configuredCwd == null || configuredCwd === "") {
+      const roots = vscode.workspace.workspaceFolders;
+      if (roots == null || roots.length !== 1) {
+        return Promise.reject(`no unique workspace folder was found, specify one in the settings as 'gobraDependencies.java.cwd'.`);
+      }
+      return roots[0].uri.fsPath;
+    }
+    return configuredCwd;
+  }
+
   public static getServerProcessArgs(serverBinary: string): string {
     const configuredArgString = Helper.getGobraDependencies().java.javaArguments
       .replace("$serverBinary$", `"${serverBinary}"`); // escape `serverBinary` in case it contains spaces

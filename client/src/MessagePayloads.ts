@@ -66,6 +66,7 @@ export interface GobraSettings {
 
 export interface JavaSettings {
   javaBinary: string;
+  cwd: string;
   javaArguments: string;
 }
 

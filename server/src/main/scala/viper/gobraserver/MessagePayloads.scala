@@ -23,7 +23,9 @@ case class GobraSettings (
   printInternal: Boolean,
   printViper: Boolean,
   parseOnly: Boolean,
-  logLevel: String
+  logLevel: String,
+  moduleName: String,
+  includeDirs: Array[String]
 )
 
 case class VerifierConfig (

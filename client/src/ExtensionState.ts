@@ -10,7 +10,6 @@ import * as fs from 'fs';
 import * as net from 'net';
 import * as child_process from "child_process";
 import * as readline from 'readline';
-import * as os from 'os';
 import { FileData, VerifierConfig } from "./MessagePayloads";
 import { Helper, FileSchemes } from "./Helper";
 import { IdeEvents } from "./IdeEvents";
@@ -134,6 +133,7 @@ export class State {
   // creates a server for the given server binary
   private static async startServerProcess(location: Location, serverBin: string): Promise<StreamInfo> {
     const javaPath = await State.checkDependenciesAndGetJavaPath(location);
+    const cwd = await Helper.getJavaCwd();
 
     // spawn Gobra Server and get port number on which it is reachable:
     const portNr = await new Promise((resolve:(port: number) => void, reject) => {
@@ -155,11 +155,10 @@ export class State {
 
       const processArgs = Helper.getServerProcessArgs(serverBin);
       const command = `"${javaPath}" ${processArgs}`; // processArgs is already escaped but escape javaPath as well.
-      const tmpDir = os.tmpdir();
-      Helper.log(`Gobra IDE: Running '${command}' (relative to '${tmpDir}')`);
+      Helper.log(`Gobra IDE: Running '${command}' (relative to '${cwd}')`);
       // enable shell mode such that arguments do not need to be passed as an array
       // see https://stackoverflow.com/a/45134890/1990080
-      const serverProcess = child_process.spawn(command, [], { shell: true, cwd: tmpDir });
+      const serverProcess = child_process.spawn(command, [], { shell: true, cwd: cwd });
       // redirect stdout to readline which nicely combines and splits lines
       const rl = readline.createInterface({ input: serverProcess.stdout });
       rl.on('line', stdOutLineHandler);

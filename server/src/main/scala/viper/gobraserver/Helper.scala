@@ -25,7 +25,7 @@ object Helper {
     config match {
       case VerifierConfig(
         FileData(path, fileUri),
-        GobraSettings(backendId, serverMode, debug, eraseGhost, goify, unparse, printInternal, printViper, parseOnly, logLevel),
+        GobraSettings(backendId, serverMode, debug, eraseGhost, goify, unparse, printInternal, printViper, parseOnly, logLevel, moduleName, includeDirs),
         z3Exe,
         boogieExe
       ) =>
@@ -96,8 +96,12 @@ object Helper {
             ViperVerifierConfig.EmptyConfig
           }
 
+        println(s"moduleName: $moduleName; includeDirs: ${includeDirs.mkString(", ")}")
+
         Config(
           inputFiles = Vector(Paths.get(path)),
+          moduleName = moduleName,
+          includeDirs = includeDirs.map(Paths.get(_)).toVector,
           reporter = reporter,
           backend = backend,
           backendConfig = verifierConfig,
