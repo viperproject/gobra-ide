@@ -8,7 +8,6 @@ import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { State } from '../ExtensionState';
-import { Verifier } from '../VerificationService';
 import { Commands, Helper } from '../Helper';
 import { TestHelper } from './TestHelper';
 
@@ -19,7 +18,7 @@ const ASSERT_FALSE = "assert_false.gobra";
 const FAILING_POST_GOBRA = "failing_post.gobra";
 const FAILING_POST_GO = "failing_post.go";
 
-const URL_CONVERSION_TIMEOUT_MS = 1000; // 1s
+const URL_CONVERSION_TIMEOUT_MS = 5000; // 5s
 const GOBRA_TOOL_UPDATE_TIMEOUT_MS = 4 * 60 * 1000; // 4min
 const GOBRA_VERIFICATION_TIMEOUT_MS = 1 * 60 * 1000; // 1min
 
