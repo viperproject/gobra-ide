@@ -57,6 +57,7 @@ async function main() {
 	const settings_list = fs.readdirSync(path.join(DATA_ROOT, "settings")).sort();
 	assert(settings_list.length > 0, "There are no settings to test");
 	
+	let firstIteration = true;
 	for (const settings_file of settings_list) {
 		const additionalSettings: Map<string, string>[] = [];
 		if (!argv.ignoreServerBackwardCompatibility) {
@@ -72,6 +73,14 @@ async function main() {
 		}
 		
 		for (const addSettings of additionalSettings) {
+			if (!firstIteration) {
+				// workaround for a weird "exit code 55" error that happens on
+				// macOS when starting a new vscode instance immediately after
+				// closing an old one. (by fpoli)
+				await new Promise(resolve => setTimeout(resolve, 5000));
+			}
+			firstIteration = false;
+
 			console.info(`Testing with settings '${settings_file}' and additional settings ${mapToString(addSettings)}...`);
 			const tmpWorkspace = tmp.dirSync({ unsafeCleanup: true });
 			try {
