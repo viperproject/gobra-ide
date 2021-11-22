@@ -48,11 +48,13 @@ jobs:
           repository: viperproject/gobra
           path: gobra
       - name: Get dependency versions
+        shell: bash
         run: |
-          source gobra/viper-toolchain-versions.sh
+          source viper-toolchain-versions.sh
           echo "SILVER_REF=$SILVER_REF" >> $GITHUB_ENV
           echo "CARBON_REF=$CARBON_REF" >> $GITHUB_ENV
           echo "SILICON_REF=$SILICON_REF" >> $GITHUB_ENV
+        working-directory: gobra
       - name: Checkout Silver
         uses: actions/checkout@v2
         with:
