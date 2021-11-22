@@ -9,7 +9,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { State } from '../ExtensionState';
 import { Verifier } from '../VerificationService';
-import { Commands, Helper } from '../Helper';
+import { Commands, ContributionCommands, Helper } from '../Helper';
 import { TestHelper } from './TestHelper';
 
 const PROJECT_ROOT = path.join(__dirname, "..", "..");
@@ -18,6 +18,7 @@ const ASSERT_TRUE = "assert_true.gobra";
 const ASSERT_FALSE = "assert_false.gobra";
 const FAILING_POST_GOBRA = "failing_post.gobra";
 const FAILING_POST_GO = "failing_post.go";
+const PKG_FILE_1 = "pkg/file1.gobra";
 
 const URL_CONVERSION_TIMEOUT_MS = 1000; // 1s
 const GOBRA_TOOL_UPDATE_TIMEOUT_MS = 4 * 60 * 1000; // 4min
@@ -42,14 +43,22 @@ async function openFile(fileName: string): Promise<vscode.TextDocument> {
     return TestHelper.openFile(filePath);
 }
 
-async function openAndVerify(fileName: string): Promise<vscode.TextDocument> {
+async function openAndVerify(fileName: string, command: string): Promise<vscode.TextDocument> {
     // open file, ...
     const document = await openFile(fileName);
     // ... send verification command to server...
-    await vscode.commands.executeCommand("gobra.verifyFile");
+    await vscode.commands.executeCommand(command);
     // ... and wait for result notification from server
     await new Promise((resolve) => State.client.onNotification(Commands.overallResult, resolve));
     return document;
+}
+
+function openAndVerifyFile(fileName: string): Promise<vscode.TextDocument> {
+    return openAndVerify(fileName, ContributionCommands.verifyFile);
+}
+
+async function openAndVerifyPackage(fileName: string): Promise<vscode.TextDocument> {
+    return openAndVerify(fileName, ContributionCommands.verifyPackage);
 }
 
 suite("Extension", () => {
@@ -114,14 +123,14 @@ suite("Extension", () => {
 
     test("Verify simple correct program", async function() {
         this.timeout(GOBRA_VERIFICATION_TIMEOUT_MS);
-        const document = await openAndVerify(ASSERT_TRUE);
+        const document = await openAndVerifyFile(ASSERT_TRUE);
         const diagnostics = vscode.languages.getDiagnostics(document.uri);
         assert.strictEqual(diagnostics.length, 0);
     });
 
     test("Verify simple incorrect program", async function() {
         this.timeout(GOBRA_VERIFICATION_TIMEOUT_MS);
-        const document = await openAndVerify(ASSERT_FALSE);
+        const document = await openAndVerifyFile(ASSERT_FALSE);
         const diagnostics = vscode.languages.getDiagnostics(document.uri);
         assert.strictEqual(diagnostics.length, 1);
         assert.strictEqual(diagnostics[0].severity, vscode.DiagnosticSeverity.Error);
@@ -129,7 +138,7 @@ suite("Extension", () => {
 
     test("Underline the 'false' in the failing postcondition", async function() {
         this.timeout(GOBRA_VERIFICATION_TIMEOUT_MS);
-        const document = await openAndVerify(FAILING_POST_GOBRA);
+        const document = await openAndVerifyFile(FAILING_POST_GOBRA);
         const diagnostics = vscode.languages.getDiagnostics(document.uri);
         assert.ok(
             diagnostics.some(
@@ -143,7 +152,7 @@ suite("Extension", () => {
     
     test("Underline the 'false' in the failing postcondition of a go program", async function() {
         this.timeout(GOBRA_VERIFICATION_TIMEOUT_MS);
-        const document = await openAndVerify(FAILING_POST_GO);
+        const document = await openAndVerifyFile(FAILING_POST_GO);
         const diagnostics = vscode.languages.getDiagnostics(document.uri);
         assert.ok(
             diagnostics.some(
@@ -153,6 +162,20 @@ suite("Extension", () => {
             ),
             "The 'false' expression in the postcondition of a go program was not reported."
         );
+    });
+
+    test("Verifying basic programs as a package fails because of differing package names", async function() {
+        this.timeout(GOBRA_VERIFICATION_TIMEOUT_MS);
+        const document = await openAndVerifyPackage(ASSERT_FALSE);
+        const diagnostics = vscode.languages.getDiagnostics(document.uri);
+        assert.ok(diagnostics.length >= 1 && diagnostics[0].severity === vscode.DiagnosticSeverity.Error);
+    });
+
+    test("Verifying a package consisting of two files succeeds", async function() {
+        this.timeout(GOBRA_VERIFICATION_TIMEOUT_MS);
+        const document = await openAndVerifyPackage(PKG_FILE_1);
+        const diagnostics = vscode.languages.getDiagnostics(document.uri);
+        assert.strictEqual(diagnostics.length, 0);
     });
     
     test("Update Gobra tools", async function() {

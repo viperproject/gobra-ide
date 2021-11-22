@@ -5,12 +5,12 @@
 // Copyright (c) 2011-2020 ETH Zurich.
 
 import * as vscode from 'vscode';
-import { Utils } from 'vscode-uri';
+import { URI, Utils } from 'vscode-uri';
 import * as fs from 'fs';
 
 import { State } from './ExtensionState';
 import { Verifier } from './VerificationService';
-import { VerifierConfig } from './MessagePayloads';
+import { FileData, VerifierConfig } from './MessagePayloads';
 import { Helper } from './Helper';
 import * as Notifier from './Notifier';
 import { Location } from 'vs-verification-toolbox';
@@ -20,7 +20,12 @@ let fileSystemWatcher: vscode.FileSystemWatcher;
 
 export function activate(context: vscode.ExtensionContext): Thenable<any> {
 	// Uri of the file which triggered the plugin activation.
-	const fileUri: string = Helper.getFileUri();
+	const fileUri = Helper.getCurrentlyOpenFileUri();
+	if (fileUri == null) {
+		const msg = `getting currently open file has failed`;
+		Helper.log(msg);
+		return Promise.reject(new Error(msg));
+	}
 
 	async function startServer(location: Location): Promise<Location> {
 		// create and start Gobra Server
@@ -29,10 +34,13 @@ export function activate(context: vscode.ExtensionContext): Thenable<any> {
 		return location;
 	}
 
-	function initVerifier(location: Location): void {
-		const verifierConfig = new VerifierConfig(location);
-		Verifier.initialize(context, verifierConfig, fileUri);
-		Notifier.notifyExtensionActivation();
+	function initVerifier(fileUri: URI): (location: Location) => void {
+		return location => {
+			const fileData = new FileData(fileUri);
+			const verifierConfig = new VerifierConfig(location, [fileData]);
+			Verifier.initialize(context, verifierConfig, fileUri);
+			Notifier.notifyExtensionActivation();
+		}
 	}
 
 	// start of in a clean state by wiping Gobra Tools if this was requested via
@@ -53,7 +61,7 @@ export function activate(context: vscode.ExtensionContext): Thenable<any> {
 	// install gobra tools
 	return Verifier.updateGobraTools(context, false)
 		.then(startServer)
-		.then(initVerifier);
+		.then(initVerifier(fileUri));
 }
 
 export async function deactivate(): Promise<void> {

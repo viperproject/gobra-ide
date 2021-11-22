@@ -115,8 +115,18 @@
         "category": "Gobra"
       },
       {
+        "command": "gobra.verify",
+        "title": "Verify currently opened file or package",
+        "category": "Gobra"
+      },
+      {
         "command": "gobra.verifyFile",
         "title": "Verify currently opened file",
+        "category": "Gobra"
+      },
+      {
+        "command": "gobra.verifyPackage",
+        "title": "Verify currently opened package",
         "category": "Gobra"
       },
       {
@@ -308,6 +318,12 @@
           "type": "boolean",
           "default": true,
           "description": "Enable Auto Verification of Gobra files."
+        },
+        "gobraSettings.verifyPackage": {
+          "scope": "window",
+          "type": "boolean",
+          "default": true,
+          "description": "Treat files in current directory as part of the same package and verify them together."
         },
         "gobraSettings.moduleName": {
           "scope": "window",

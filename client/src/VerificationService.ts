@@ -9,15 +9,17 @@ import { Helper, Commands, ContributionCommands, Texts, Color, PreviewUris, Buil
 import { ProgressBar } from "./ProgressBar";
 import * as vscode from 'vscode';
 import * as fs from 'fs';
-import { VerifierConfig, OverallVerificationResult, PreviewData } from "./MessagePayloads";
+import { VerifierConfig, OverallVerificationResult, PreviewData, FileData } from "./MessagePayloads";
 import { IdeEvents } from "./IdeEvents";
 
 import { Dependency, withProgressInWindow, Location, DependencyInstaller, RemoteZipExtractor, GitHubZipExtractor, LocalReference, ConfirmResult, Success } from 'vs-verification-toolbox';
+import { URI } from "vscode-uri";
+import path = require("path");
 
 export class Verifier {
   public static verifyItem: ProgressBar;
 
-  public static initialize(context: vscode.ExtensionContext, verifierConfig: VerifierConfig, fileUri: string): void {
+  public static initialize(context: vscode.ExtensionContext, verifierConfig: VerifierConfig, fileUri: URI): void {
     // add file data of current file to the state
     State.verifierConfig = verifierConfig;
     State.context = context;
@@ -31,7 +33,9 @@ export class Verifier {
     Helper.registerCommand(ContributionCommands.flushCache, Verifier.flushCache, context);
     Helper.registerCommand(ContributionCommands.goifyFile, Verifier.goifyFile, context);
     Helper.registerCommand(ContributionCommands.gobrafyFile, Verifier.gobrafyFile, context);
+    Helper.registerCommand(ContributionCommands.verify, Verifier.manualVerify, context);
     Helper.registerCommand(ContributionCommands.verifyFile, Verifier.manualVerifyFile, context);
+    Helper.registerCommand(ContributionCommands.verifyPackage, Verifier.manualVerifyPackage, context);
     Helper.registerCommand(ContributionCommands.updateGobraTools, () => Verifier.updateGobraTools(context, true), context);
     Helper.registerCommand(ContributionCommands.showViperCodePreview, Verifier.showViperCodePreview, context);
     Helper.registerCommand(ContributionCommands.showInternalCodePreview, Verifier.showInternalCodePreview, context);
@@ -64,11 +68,11 @@ export class Verifier {
     }));
     // open event
     State.context.subscriptions.push(vscode.workspace.onDidOpenTextDocument(document => {
-      if (Helper.isAutoVerify()) Verifier.verifyFile(document.uri.toString(), IdeEvents.Open);
+      if (Helper.isAutoVerify()) Verifier.verify(document.uri, IdeEvents.Open);
     }));
     // save event
     State.context.subscriptions.push(vscode.workspace.onDidSaveTextDocument(document => {
-      if (Helper.isAutoVerify()) Verifier.verifyFile(document.uri.toString(), IdeEvents.Save);
+      if (Helper.isAutoVerify()) Verifier.verify(document.uri, IdeEvents.Save);
     }));
     // filechange event
     State.context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(change => {
@@ -91,7 +95,7 @@ export class Verifier {
       if (State.verificationRequestTimeout) {
         State.refreshVerificationRequestTimeout();
       } else {
-        State.setVerificationRequestTimeout(change.document.uri.toString(), IdeEvents.FileChange);
+        State.setVerificationRequestTimeout(change.document.uri, IdeEvents.FileChange);
       }
     }));
 
@@ -103,7 +107,20 @@ export class Verifier {
 
 
     // verify file which triggered the activation of the plugin
-    if (Helper.isAutoVerify()) Verifier.verifyFile(fileUri.toString(), IdeEvents.Open);    
+    if (Helper.isAutoVerify()) Verifier.verify(fileUri, IdeEvents.Open);    
+  }
+
+  /**
+    * Verifies the currently opened file or package
+    */
+  public static manualVerify(): void {
+    State.updateConfiguration();
+    const fileUri = Helper.getCurrentlyOpenFileUri();
+    if (fileUri == null) {
+      Helper.log(`getting currently open file has failed`);
+      return;
+    }
+    Verifier.verify(fileUri, IdeEvents.Manual);
   }
 
   /**
@@ -111,14 +128,71 @@ export class Verifier {
     */
   public static manualVerifyFile(): void {
     State.updateConfiguration();
-    Verifier.verifyFile(State.verifierConfig.fileData.fileUri, IdeEvents.Manual);
+    const fileUri = Helper.getCurrentlyOpenFileUri();
+    if (fileUri == null) {
+      Helper.log(`getting currently open file has failed`);
+      return;
+    }
+    Verifier.verifyFiles([fileUri], IdeEvents.Manual);
   }
 
   /**
-    * Verifies the file with the given fileUri
+    * Verifies the currently opened package
     */
-  public static verifyFile(fileUri: string, event: IdeEvents): void {
-    State.verificationRequests.delete(fileUri);
+   public static manualVerifyPackage(): void {
+    State.updateConfiguration();
+    const fileUri = Helper.getCurrentlyOpenFileUri();
+    if (fileUri == null) {
+      Helper.log(`getting currently open file has failed`);
+      return;
+    }
+    const fileUris = Verifier.getFileUrisForPackage(fileUri);
+    Helper.log(`verifying the following files: ${fileUris}`);
+    Verifier.verifyFiles(fileUris, IdeEvents.Manual);
+  }
+
+  /**
+   * Verifies the file identified by `fileUri` or the package it belongs to depending on the current settings
+   */
+  public static verify(fileUri: URI, event: IdeEvents): void {
+    let fileUris: URI[]
+    if (Helper.verifyByDefaultPackage()) {
+      fileUris = Verifier.getFileUrisForPackage(fileUri);
+      if (fileUris.length === 0) {
+        Helper.log(`${fileUri.fsPath} was resolved to zero package files - skipping verification`);
+        return;
+      }
+    } else {
+      fileUris = [fileUri];
+    }
+    Verifier.verifyFiles(fileUris, event);
+  }
+
+  /**
+   * Returns all file URIs (including the given one) for files belonging to the same package
+   */
+  private static getFileUrisForPackage(fileUri: URI): URI[] {
+    // search for files in the current directory with `.go` or `.gobra` file ending
+    // this could be improved by also taking package clause into account
+    // sort result to make ordering deterministic which enables caching
+    const parentFolderPath = path.dirname(fileUri.fsPath);
+    const filePaths = fs.readdirSync(parentFolderPath, { withFileTypes: true })
+      .filter(file => file.isFile())
+      .map(file => path.join(parentFolderPath, file.name))
+      .filter(file => Verifier.isGoOrGobraPath(file))
+      .sort();
+    return filePaths.map(filePath => URI.file(filePath));
+  }
+
+  private static isGoOrGobraPath(path: String): Boolean {
+    return path.endsWith(".gobra") || path.endsWith(".go")
+  }
+
+  /**
+    * Verifies the files with the given fileUri as one verification task
+    */
+  public static verifyFiles(fileUris: URI[], event: IdeEvents): void {
+    State.removeVerificationRequests(fileUris);
 
 
     State.clearVerificationRequestTimeout();
@@ -130,43 +204,48 @@ export class Verifier {
     if (State.updatingGobraTools) return;
     
     // only verify if it is a gobra file or a go file where the verification was manually invoked.
-    if (!fileUri.endsWith(".gobra") && !(fileUri.endsWith(".go") && event == IdeEvents.Manual)) return;
+    const hasNonGobraAndNonGoFiles = fileUris.some(fileUri => !Verifier.isGoOrGobraPath(fileUri.fsPath));
+    const hasGoFiles = fileUris.some(fileUri => fileUri.fsPath.endsWith(".go"));
+    if (hasNonGobraAndNonGoFiles) {
+      return;
+    }
+    if (hasGoFiles && event != IdeEvents.Manual) {
+      return;
+    }
 
     State.updateConfiguration();
-    State.updateFileData(fileUri);
+    State.updateFileData(fileUris);
 
-    // return if file is currently getting gobrafied.
-    if (State.runningGobrafications.has(State.verifierConfig.fileData.filePath)) return
+    // return if one of the files is currently getting gobrafied.
+    if (fileUris.some(fileUri => State.containsRunningGobrafications(fileUri))) {
+      return;
+    }
     
-    if (!State.runningVerifications.has(fileUri)) {
+    if (!State.containsRunningVerification(fileUris)) {
       
-      State.runningVerifications.add(fileUri);
-      Verifier.verifyItem.progress(Helper.getFileName(fileUri), 0);
+      State.addRunningVerification(fileUris);
+      fileUris.forEach(fileUri => Verifier.verifyItem.progress(fileUri, 0));
 
       vscode.window.activeTextEditor.document.save().then((saved: boolean) => {
         Helper.log("sending verification request");
 
-        if (fileUri.endsWith(".gobra")) {
-          State.client.sendNotification(Commands.verifyGobraFile, Helper.configToJson(State.verifierConfig));
-        } else {
-          State.client.sendNotification(Commands.verifyGoFile, Helper.configToJson(State.verifierConfig));
-        }
+        State.client.sendNotification(Commands.verify, Helper.configToJson(State.verifierConfig));
       });
     } else {
-      if (!State.verificationRequests.has(fileUri) && event != IdeEvents.Save) {
-        State.verificationRequests.set(fileUri, event);
+      if (!State.containsVerificationRequests(fileUris) && event != IdeEvents.Save) {
+        State.addVerificationRequests(fileUris, event);
       }
     }
   }
 
   /**
-    * Verifies the File if it is in the verification requests queue.
+    * Verifies the files if it is in the verification requests queue.
     */
-  private static reverifyFile(fileUri: string): void {
-    const event = State.verificationRequests.get(fileUri)
+  private static reverifyFiles(fileUris: URI[]): void {
+    const event = State.getVerificationRequestsEvent(fileUris);
     if (event && Helper.isAutoVerify()) {
-      State.verificationRequests.delete(fileUri);
-      Verifier.verifyFile(fileUri, event);
+      State.removeVerificationRequests(fileUris);
+      Verifier.verifyFiles(fileUris, event);
     }
   }
 
@@ -176,32 +255,36 @@ export class Verifier {
     * Open the Goified file when the Goification has terminated and succeeded.
     */
   public static goifyFile(): void {
-    State.updateFileData();
+    const fileUri = Helper.getCurrentlyOpenFileUri();
+    if (fileUri == null) {
+      Helper.log(`getting currently open file has failed`);
+      return;
+    }
 
-    let fileUri = State.verifierConfig.fileData.fileUri;
-    let filePath = State.verifierConfig.fileData.filePath;
+    State.updateFileData([fileUri]);
+    const fileData = new FileData(fileUri);
 
     // only goify if it is a gobra file
-    if (!fileUri.endsWith(".gobra")) {
+    if (!fileUri.fsPath.endsWith(".gobra")) {
       vscode.window.showErrorMessage("Can only Goify Gobra files!");
       return;
     } 
     
 
-    if (!State.runningGoifications.has(fileUri)) {
-      State.runningGoifications.add(fileUri);
+    if (!State.containsRunningGoifications(fileUri)) {
+      State.addRunningGoifications(fileUri);
       
       const editor = vscode.window.activeTextEditor;
       if (editor) {
         editor.document.save().then((saved: boolean) => {
           Helper.log("sending goification request");
-          State.client.sendNotification(Commands.goifyFile, Helper.fileDataToJson(State.verifierConfig.fileData));
+          State.client.sendNotification(Commands.goifyFile, Helper.fileDataToJson(fileData));
         })
       } else {
         Helper.log("saving document for goifying was not possible");
       }
     } else {
-      vscode.window.showInformationMessage("There is already a Goification running for file " + filePath);
+      vscode.window.showInformationMessage("There is already a Goification running for file " + fileUri);
     }
   }
 
@@ -211,31 +294,35 @@ export class Verifier {
     * Open the Gobrafied file when the Gobrafication has terminated and succeeded.
     */
   public static gobrafyFile(): void {
-    State.updateFileData();
+    const fileUri = Helper.getCurrentlyOpenFileUri();
+    if (fileUri == null) {
+      Helper.log(`getting currently open file has failed`);
+      return;
+    }
 
-    let fileUri = State.verifierConfig.fileData.fileUri;
-    let filePath = State.verifierConfig.fileData.filePath;
+    State.updateFileData([fileUri]);
+    const fileData = new FileData(fileUri);
 
     // only gobrafy if it is a go file
-    if (!fileUri.endsWith(".go")) {
+    if (!fileUri.fsPath.endsWith(".go")) {
       vscode.window.showErrorMessage("Can only Gobrafy Go files!");
       return;
     }
     
-    if (!State.runningGobrafications.has(filePath)) {
-      State.runningGobrafications.add(filePath);
+    if (!State.containsRunningGobrafications(fileUri)) {
+      State.addRunningGobrafications(fileUri);
 
       const editor = vscode.window.activeTextEditor;
       if (editor) {
         editor.document.save().then((saved: boolean) => {
           Helper.log("sending gobrafication request");
-          State.client.sendNotification(Commands.gobrafyFile, Helper.fileDataToJson(State.verifierConfig.fileData));
+          State.client.sendNotification(Commands.gobrafyFile, Helper.fileDataToJson(fileData));
         })
       } else {
         Helper.log("saving document for gobrafying was not possible");
       }
     } else {
-      vscode.window.showInformationMessage("There is already a Gobrafication running for file " + filePath);
+      vscode.window.showInformationMessage("There is already a Gobrafication running for file " + fileUri.fsPath);
     }
   }
 
@@ -253,8 +340,15 @@ export class Verifier {
     */
    public static changeFile(): void {
     // setting filedata to currently open filedata
-    State.updateFileData();
-    State.client.sendNotification(Commands.changeFile, Helper.fileDataToJson(State.verifierConfig.fileData));
+    const fileUri = Helper.getCurrentlyOpenFileUri();
+    if (fileUri == null) {
+      Helper.log(`getting currently open file has failed`);
+      return;
+    }
+    
+    // State.updateFileData([fileUri]);
+    const fileData = new FileData(fileUri);
+    State.client.sendNotification(Commands.changeFile, Helper.fileDataToJson(fileData));
     State.clearVerificationRequestTimeout();
   }
 
@@ -380,7 +474,19 @@ export class Verifier {
   public static showViperCodePreview(): void {
     let selections = Helper.getSelections();
 
-    State.updateFileData();
+    let fileUris: URI[];
+    const fileUri = Helper.getCurrentlyOpenFileUri();
+    if (fileUri == null) {
+      Helper.log(`getting currently open file has failed`);
+      return;
+    }
+    if (Helper.verifyByDefaultPackage()) {
+      fileUris = Verifier.getFileUrisForPackage(fileUri);
+    } else {
+      fileUris = [fileUri];
+    }
+
+    State.updateFileData(fileUris);
     const editor = vscode.window.activeTextEditor;
     if (editor) {
       editor.document.save().then((saved: boolean) => {
@@ -397,7 +503,19 @@ export class Verifier {
   public static showInternalCodePreview(): void {
     let selections = Helper.getSelections();
 
-    State.updateFileData();
+    let fileUris: URI[];
+    const fileUri = Helper.getCurrentlyOpenFileUri();
+    if (fileUri == null) {
+      Helper.log(`getting currently open file has failed`);
+      return;
+    }
+    if (Helper.verifyByDefaultPackage()) {
+      fileUris = Verifier.getFileUrisForPackage(fileUri);
+    } else {
+      fileUris = [fileUri];
+    }
+
+    State.updateFileData(fileUris);
     const editor = vscode.window.activeTextEditor;
     if (editor) {
       editor.document.save().then((saved: boolean) => {
@@ -424,17 +542,22 @@ export class Verifier {
    private static handleNoVerificationInformationNotification(): void {
     Verifier.verifyItem.setProperties(Texts.helloGobra, Color.white);
 
-    let fileUri = Helper.getFileUri();
+    const fileUri = Helper.getCurrentlyOpenFileUri();
+    if (fileUri == null) {
+      Helper.log(`getting currently open file has failed`);
+      return;
+    }
 
-    if (!State.runningVerifications.has(fileUri) && Helper.isAutoVerify()) {
-      Verifier.verifyFile(fileUri, IdeEvents.Open);
+    if (!State.isFileInvolvedInRunningVerification(fileUri) && Helper.isAutoVerify()) {
+      Verifier.verify(fileUri, IdeEvents.Open);
     }
   }
 
   private static handleOverallResultNotification(jsonOverallResult: string): void {
     let overallResult: OverallVerificationResult = Helper.jsonToOverallResult(jsonOverallResult);
 
-    State.runningVerifications.delete(overallResult.fileUri);
+    const fileUris = overallResult.fileUris.map(uri => URI.parse(uri));
+    State.removeRunningVerification(fileUris);
 
     if (overallResult.success) {
       Verifier.verifyItem.setProperties(overallResult.message, Color.green);
@@ -442,41 +565,50 @@ export class Verifier {
       Verifier.verifyItem.setProperties(overallResult.message, Color.red);
     }
 
-    Verifier.reverifyFile(overallResult.fileUri);
+    Verifier.reverifyFiles(fileUris);
   }
 
-  private static handleVerificationProgressNotification(fileUri: string, progress: number): void {
-    Verifier.verifyItem.progress(Helper.getFileName(fileUri), progress);
+  private static handleVerificationProgressNotification(fileUriString: string, progress: number): void {
+    Helper.log(`progress ${fileUriString}: ${progress}`);
+    const fileUri = URI.parse(fileUriString);
+    Verifier.verifyItem.progress(fileUri, progress);
   }
 
 
-  private static handleVerificationExceptionNotification(fileUri: string): void {
-    State.runningVerifications.delete(fileUri);
+  private static handleVerificationExceptionNotification(encodedFileUris: string): void {
+    const fileUriStrings = JSON.parse(encodedFileUris) as string[];
+    Helper.log(`handleVerificationExceptionNotification: ${fileUriStrings}`);
+    const fileUris = fileUriStrings.map(uri => URI.parse(uri));
+    State.removeRunningVerification(fileUris);
 
     Verifier.verifyItem.setProperties(Texts.helloGobra, Color.white);
     
-    Verifier.reverifyFile(fileUri);
+    Verifier.reverifyFiles(fileUris);
   }
 
   
 
 
-  private static handleFinishedGoifyingNotification(fileUri: string, success: boolean): void {
-    State.runningGoifications.delete(fileUri);
+  private static handleFinishedGoifyingNotification(fileUriString: string, success: boolean): void {
+    const origFileUri = URI.parse(fileUriString);
+    State.removeRunningGoifications(origFileUri);
+    const goFileUri = URI.parse(fileUriString + ".go");
 
     if (success) {
-      vscode.window.showTextDocument(vscode.Uri.parse(fileUri + ".go"));
+      vscode.window.showTextDocument(goFileUri);
     } else {
-      vscode.window.showErrorMessage("An error occured during the Goification of " + vscode.Uri.parse(fileUri).fsPath);
+      vscode.window.showErrorMessage("An error occured during the Goification of " + goFileUri.fsPath);
     }
   }
 
   private static handleFinishedGobrafyingNotification(oldFilePath: string, newFilePath: string, success: boolean): void {
-    State.runningGobrafications.delete(oldFilePath);
+    const oldFileUri = vscode.Uri.file(oldFilePath);
+    const newFileUri = vscode.Uri.file(newFilePath);
+    State.removeRunningGobrafications(oldFileUri);
 
     if (success) {
-      vscode.window.showTextDocument(vscode.Uri.file(newFilePath)).then(editor => {
-        if (Helper.isAutoVerify()) Verifier.verifyFile(editor.document.uri.toString(), IdeEvents.Open);
+      vscode.window.showTextDocument(newFileUri).then(editor => {
+        if (Helper.isAutoVerify()) Verifier.verify(newFileUri, IdeEvents.Open);
       });
     } else {
       vscode.window.showErrorMessage("An error occured during the Gobrafication of " + oldFilePath);

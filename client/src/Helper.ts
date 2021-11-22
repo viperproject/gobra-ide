@@ -46,6 +46,15 @@ export class Helper {
     }
   }
 
+  public static verifyByDefaultPackage(): boolean {
+    const verifyPackage = vscode.workspace.getConfiguration("gobraSettings").get<boolean>("verifyPackage");
+    if (verifyPackage == null) {
+      return true;
+    } else {
+      return verifyPackage;
+    }
+  }
+
   public static getTimeout(): number {
     const timeout = vscode.workspace.getConfiguration("gobraSettings").get<number>("timeout");
     if (timeout == null) {
@@ -60,16 +69,8 @@ export class Helper {
     context.subscriptions.push(vscode.commands.registerCommand(commandId, command));
   }
 
-  public static getFilePath(): string {
-    if (vscode.window.activeTextEditor && vscode.window.activeTextEditor.document) {
-      return vscode.window.activeTextEditor.document.fileName;
-    } else {
-      return "";
-    }
-  }
-
-  public static getFileName(path: string): string {
-    const filename = path.split('/').pop();
+  public static getFileName(path: URI): string {
+    const filename = path.fsPath.split('/').pop();
     if (filename == null) {
       return "";
     } else {
@@ -77,8 +78,19 @@ export class Helper {
     }
   }
 
-  public static getFileUri(): string {
-    return URI.file(Helper.getFilePath()).toString();
+  public static getCurrentlyOpenFileUri(): URI | undefined {
+    if (vscode.window.activeTextEditor && vscode.window.activeTextEditor.document) {
+      return vscode.window.activeTextEditor.document.uri;
+    } else {
+      return undefined;
+    }
+  }
+
+  public static equal(uri1: URI, uri2: URI): Boolean {
+    // there does not seem to be an equality function on URIs and object equality does
+    // not work. Based on the specification of `.toString()` that guarantees that `URI.parse`
+    // will reconstruct the URI, this equality check is based on `.toString()`:
+    return uri1.toString() == uri2.toString();
   }
 
   public static getSelections(): vscode.Range[] {
@@ -162,7 +174,7 @@ export class Helper {
             }
           }
         });
-      } catch (err) {
+      } catch (err: any) {
         Helper.log(err.message);
         reject(err.message);
       }
@@ -370,8 +382,7 @@ export class Commands {
   /**
     * Commands handled by Gobra-Server
     */
-  public static verifyGobraFile = "gobraServer/verifyGobraFile";
-  public static verifyGoFile = "gobraServer/verifyGoFile";
+  public static verify = "gobraServer/verify";
   public static changeFile = "gobraServer/changeFile";
   public static flushCache = "gobraServer/flushCache";
   public static goifyFile = "gobraServer/goifyFile";
@@ -429,7 +440,10 @@ export class ContributionCommands {
   public static flushCache = "gobra.flushCache";
   public static goifyFile = "gobra.goifyFile";
   public static gobrafyFile = "gobra.gobrafyFile";
+  /** verifies file or package depending on settings */
+  public static verify = "gobra.verify";
   public static verifyFile = "gobra.verifyFile";
+  public static verifyPackage = "gobra.verifyPackage";
   public static updateGobraTools = "gobra.updateGobraTools";
   public static showViperCodePreview = "gobra.showViperCodePreview";
   public static showInternalCodePreview = "gobra.showInternalCodePreview";

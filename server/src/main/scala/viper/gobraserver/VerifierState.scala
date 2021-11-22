@@ -13,7 +13,7 @@ import viper.gobra.reporting.VerifierError
 import viper.gobra.util.GobraExecutionContext
 import viper.silver.ast.Program
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.collection.mutable
 import scala.math.max
 
@@ -48,18 +48,22 @@ object VerifierState {
   }
   
   /**
-    * The verification information of a given file.
+    * The verification information for a given file. This information is overwritten whenever a verification is performed that involves a given file.
     * When a verification is running this is an int representing the progress.
     * When no verification is running this is the verification result.
     */
   private val _verificationInformation = mutable.Map[String, Either[Int, OverallVerificationResult]]()
 
-  def updateVerificationInformation(fileUri: String, info: Either[Int, OverallVerificationResult]): Unit = {
-    _verificationInformation += (fileUri -> info)
-    if (fileUri == VerifierState.openFileUri) sendVerificationInformation(fileUri)
+  def updateVerificationInformation(fileUris: Vector[String], info: Either[Int, OverallVerificationResult]): Unit = {
+    fileUris.foreach(fileUri => {
+      _verificationInformation += (fileUri -> info)
+      sendVerificationInformation(fileUri)
+    })
   }
 
-  def removeVerificationInformation(fileUri: String): Unit = _verificationInformation.remove(fileUri)
+  def removeVerificationInformation(fileUris: Vector[String]): Unit = {
+    fileUris.foreach(fileUri => _verificationInformation.remove(fileUri))
+  }
 
   /**
     * Sends the verification progress if a verification is still running or the overall verification
