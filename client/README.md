@@ -31,15 +31,26 @@ Any Gobra program can be converted to a Go program and back by running the comma
 This extension caches verification results by default.
 The cache can be flushed by running the command `Gobra: Flush ViperServer cache` from the command palette.
 
+### Verification of Packages
+A package can be split across multiple `.go` or `.gobra` files.
+To verify them together, run the command `Gobra: Verify currently opened package` while having on of these files open.
+Alternatively, there is the `Gobra: Verify currently opened file or package` command that either verifies a single file or a package depending on your Gobra settings.
+
+Also relevant when working with larger projects is the option to specify directories in which Gobra tries to resolve imports and a module name.
+Include directories can be specified in the settings as `gobraSettings.includeDirs`.
+Gobra has partial support for modules meaning that the current module name can be specified in the settings as `gobraSettings.moduleName`.
+Importing a package in the current module amounts to an import path consisting of the module name and the relative path to the desired package.
+When resolving such an import, Gobra simply drops the module name prefix.
+However, there is currently no dedicated support for resolving packages in external modules.
+This means that Gobra tries to resolve such packages by searching for a sub-directory with the external module name in the specified list of include directories.
+
+Note that VSCode allows workspace-specific settings by creating the file `.vscode/settings.json` relative to the root of a workspace.
+These workspace-specific settings take precendence over the usual user settings.
+
 ### Show Intermediate Representations
 Right clicking on some selected code in a Gobra program reveals two actions, "Show internal representation preview" and "Show Viper code preview".
 Both actions result in a preview, on the right-hand side, of the internal representation used by Gobra and the resulting code in the Viper intermediate language, respectively.
 The translated parts of the selected code are marked in green.
-
-## Limitations
-Gobra IDE currently only supports verification of single files.
-Other files located in the same folder are ignored.
-Furthermore, it is at the moment not possible to configure Gobra IDE to consider other directories than specified in the `GOPATH` environment variable when importing packages.
 
 ## Requirements
 - [Java JDK, 64 bit, version 1.8 or later](https://www.java.com/en/download/)
