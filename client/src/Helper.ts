@@ -20,11 +20,7 @@ export class Helper {
 
   public static isServerMode(): boolean {
     const mode = vscode.workspace.getConfiguration("gobraSettings").get<boolean>("serverMode");
-    if (mode == null) {
-      return true;
-    } else {
-      return mode;
-    }
+    return (mode == null) || mode;
   }
 
   public static getBuildChannel(): BuildChannel {
@@ -39,20 +35,12 @@ export class Helper {
 
   public static isAutoVerify(): boolean {
     const autoVerify = vscode.workspace.getConfiguration("gobraSettings").get<boolean>("autoVerify");
-    if (autoVerify == null) {
-      return true;
-    } else {
-      return autoVerify;
-    }
+    return (autoVerify == null) || autoVerify;
   }
 
   public static verifyByDefaultPackage(): boolean {
     const verifyPackage = vscode.workspace.getConfiguration("gobraSettings").get<boolean>("verifyPackage");
-    if (verifyPackage == null) {
-      return true;
-    } else {
-      return verifyPackage;
-    }
+    return (verifyPackage == null) || verifyPackage;
   }
 
   public static getTimeout(): number {

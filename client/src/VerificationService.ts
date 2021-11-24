@@ -204,12 +204,16 @@ export class Verifier {
     if (State.updatingGobraTools) return;
     
     // only verify if it is a gobra file or a go file where the verification was manually invoked.
-    const hasNonGobraAndNonGoFiles = fileUris.some(fileUri => !Verifier.isGoOrGobraPath(fileUri.fsPath));
+    const nonGobraAndNonGoFiles = fileUris.filter(fileUri => !Verifier.isGoOrGobraPath(fileUri.fsPath));
     const hasGoFiles = fileUris.some(fileUri => fileUri.fsPath.endsWith(".go"));
-    if (hasNonGobraAndNonGoFiles) {
+    if (nonGobraAndNonGoFiles.length > 0) {
+      const msg = `Gobra can only verify files with '.gobra' and '.go' endings but got '${nonGobraAndNonGoFiles.map(f => f.fsPath).join("', '")}'`
+      Helper.log(msg);
+      vscode.window.showInformationMessage(msg);
       return;
     }
     if (hasGoFiles && event != IdeEvents.Manual) {
+      // Go files are not automatically verified and the user has to trigger this manually
       return;
     }
 
