@@ -13,7 +13,7 @@ import viper.gobra.reporting.VerifierError
 import viper.gobra.util.GobraExecutionContext
 import viper.silver.ast.Program
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.collection.mutable
 import scala.math.max
 
@@ -40,26 +40,34 @@ object VerifierState {
     _client = Some(client)
   }
 
-  def submitVerificationJob(program: Program, backtrack: BackTrackInfo, startTime: Long, verifierConfig: VerifierConfig)(implicit executor: GobraExecutionContext): Unit = {
+  def submitVerificationJob(program: Program, backtrack: BackTrackInfo, startTime: Long, completedProgress: Int, verifierConfig: VerifierConfig)(implicit executor: GobraExecutionContext): Unit = {
     // simply call verify here without explicitly waiting on the result (or waiting for it in a runnable submitted
     // to the thread pool - in this case an entire thread from the thread pool would be occupied waiting for it).
     // executor.execute(() => GobraServer.verify(verifierConfig, program, backtrack, startTime))
-    GobraServer.verify(verifierConfig, program, backtrack, startTime)
+    GobraServer.verify(verifierConfig, program, backtrack, startTime, completedProgress)
   }
   
   /**
-    * The verification information of a given file.
+    * The verification information for a given file. This information is overwritten whenever a verification is performed that involves a given file.
     * When a verification is running this is an int representing the progress.
     * When no verification is running this is the verification result.
     */
   private val _verificationInformation = mutable.Map[String, Either[Int, OverallVerificationResult]]()
 
-  def updateVerificationInformation(fileUri: String, info: Either[Int, OverallVerificationResult]): Unit = {
-    _verificationInformation += (fileUri -> info)
-    if (fileUri == VerifierState.openFileUri) sendVerificationInformation(fileUri)
+  def updateVerificationInformation(fileUris: Vector[String], info: Either[Int, OverallVerificationResult]): Unit = {
+    fileUris.foreach(fileUri => {
+      // only send out verification information if it changes
+      val isDifferent = !_verificationInformation.get(fileUri).contains(info)
+      if (isDifferent) {
+        _verificationInformation += (fileUri -> info)
+        sendVerificationInformation(fileUri)
+      }
+    })
   }
 
-  def removeVerificationInformation(fileUri: String): Unit = _verificationInformation.remove(fileUri)
+  def removeVerificationInformation(fileUris: Vector[String]): Unit = {
+    fileUris.foreach(fileUri => _verificationInformation.remove(fileUri))
+  }
 
   /**
     * Sends the verification progress if a verification is still running or the overall verification

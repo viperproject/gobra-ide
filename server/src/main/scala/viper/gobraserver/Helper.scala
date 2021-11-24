@@ -10,22 +10,25 @@ import viper.gobra.frontend.Config
 import viper.gobra.backend.{ViperBackends, ViperVerifierConfig}
 import viper.gobra.reporting.{FileWriterReporter, VerifierResult}
 import org.eclipse.lsp4j.Range
-import java.nio.file.{Files, Paths}
 
+import java.nio.file.{Files, Paths}
 import ch.qos.logback.classic.Level
+import org.bitbucket.inkytonik.kiama.util.Source
+import viper.gobra.frontend.Source.FromFileSource
 import viper.gobra.util.GobraExecutionContext
 import viper.gobraserver.backend.{ViperServerBackend, ViperServerConfig}
+import viper.silver.{ast => vpr}
 import viper.silver.logger.ViperLogger
 
 object Helper {
 
   val defaultVerificationFraction = 0.75
 
-  def verificationConfigFromTask(config: VerifierConfig, startTime: Long, verify: Boolean, progress: Int = 0, logger: ViperLogger)(executor: GobraExecutionContext): Config = {
+  def verificationConfigFromTask(config: VerifierConfig, startTime: Long, verify: Boolean, completedProgress: Int = 0, ast: Option[vpr.Program] = None, logger: ViperLogger)(executor: GobraExecutionContext): Config = {
     config match {
       case VerifierConfig(
-        FileData(path, fileUri),
-        GobraSettings(backendId, serverMode, debug, eraseGhost, goify, unparse, printInternal, printViper, parseOnly, logLevel),
+        fileData,
+        GobraSettings(backendId, serverMode, debug, eraseGhost, goify, unparse, printInternal, printViper, parseOnly, logLevel, moduleName, includeDirs),
         z3Exe,
         boogieExe
       ) =>
@@ -47,13 +50,17 @@ object Helper {
             }
           }
 
+        // ensure consistent ordering such that e.g. caching works as expected:
+        val sortedFileData = fileData.sortBy(_.fileUri).toVector
+        val filePaths = sortedFileData.map(_.filePath)
         val reporter = GobraIdeReporter(
           startTime = startTime,
           verifierConfig = config,
-          fileUri = fileUri,
+          fileData = sortedFileData,
           backend = backend,
           verificationFraction = defaultVerificationFraction,
-          progress = progress,
+          progress = completedProgress,
+          ast = ast,
           unparse = unparse,
           eraseGhost = eraseGhost,
           goify = goify,
@@ -97,7 +104,9 @@ object Helper {
           }
 
         Config(
-          inputFiles = Vector(Paths.get(path)),
+          inputs = filePaths.map(getSourceFromPath),
+          moduleName = moduleName,
+          includeDirs = includeDirs.map(Paths.get(_)).toVector,
           reporter = reporter,
           backend = backend,
           backendConfig = verifierConfig,
@@ -108,7 +117,8 @@ object Helper {
           shouldTypeCheck = shouldTypeCheck,
           shouldDesugar = shouldDesugar,
           shouldViperEncode = shouldViperEncode,
-          shouldVerify = shouldVerify
+          shouldVerify = shouldVerify,
+          cacheParser = true
         )
     }
   }
@@ -117,7 +127,7 @@ object Helper {
     val reporter = FileWriterReporter(goify = true)
 
     Config(
-      inputFiles = Vector(Paths.get(fileData.filePath)),
+      inputs = Vector(getSourceFromPath(fileData.filePath)),
       shouldDesugar = false,
       shouldViperEncode = false,
       shouldVerify = false,
@@ -125,7 +135,7 @@ object Helper {
     )
   }
 
-  def previewConfigFromTask(fileData: FileData, internalPreview: Boolean, viperPreview: Boolean, selections: List[Range]): Config = {
+  def previewConfigFromTask(fileData: Vector[FileData], internalPreview: Boolean, viperPreview: Boolean, selections: List[Range]): Config = {
     val reporter = PreviewReporter(
       internalPreview = internalPreview,
       viperPreview = viperPreview,
@@ -133,34 +143,37 @@ object Helper {
     )
 
     Config(
-      inputFiles = Vector(Paths.get(fileData.filePath)),
+      inputs = fileData.map(f => getSourceFromPath(f.filePath)),
       shouldVerify = false,
       shouldViperEncode = viperPreview,
       reporter = reporter
     )
   }
 
+  private def getSourceFromPath(path: String): Source = {
+    FromFileSource(Paths.get(path))
+  }
 
-  def getOverallVerificationResult(fileUri: String, result: VerifierResult, elapsedTime: Long): OverallVerificationResult = {
+  def getOverallVerificationResult(fileUris: Vector[String], result: VerifierResult, elapsedTime: Long): OverallVerificationResult = {
     result match {
       case VerifierResult.Success =>
         OverallVerificationResult(
-          fileUri = fileUri,
+          fileUris = fileUris.toArray,
           success = true,
           message = "Verification succeeded in " + (elapsedTime/1000) + "." + (elapsedTime%1000)/10 + "s"
         )
       case VerifierResult.Failure(errors) =>
         OverallVerificationResult(
-          fileUri = fileUri,
+          fileUris = fileUris.toArray,
           success = false,
           message = "Verification failed in " + (elapsedTime / 1000) + "." + (elapsedTime%1000)/10 + "s with: " + errors.head.id
         )
     }
   }
 
-  def getOverallVerificationResultFromException(fileUri: String, e: Throwable): OverallVerificationResult = {
+  def getOverallVerificationResultFromException(fileUris: Vector[String], e: Throwable): OverallVerificationResult = {
     OverallVerificationResult(
-      fileUri = fileUri,
+      fileUris = fileUris.toArray,
       success = false,
       message = e.getMessage
     )

@@ -23,24 +23,26 @@ case class GobraSettings (
   printInternal: Boolean,
   printViper: Boolean,
   parseOnly: Boolean,
-  logLevel: String
+  logLevel: String,
+  moduleName: String,
+  includeDirs: Array[String]
 )
 
 case class VerifierConfig (
-  fileData: FileData,
+  fileData: Array[FileData],
   gobraSettings: GobraSettings,
   z3Executable: String,
   boogieExecutable: String
 )
 
 case class OverallVerificationResult(
-  fileUri: String,
+  fileUris: Array[String],
   success: Boolean,
   message: String
 )
 
 case class PreviewData (
-  fileData: FileData,
+  fileData: Array[FileData],
   internalPreview: Boolean,
   viperPreview: Boolean,
   selections: Array[Array[Position]]

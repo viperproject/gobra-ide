@@ -10,13 +10,13 @@ import * as fs from 'fs';
 import * as net from 'net';
 import * as child_process from "child_process";
 import * as readline from 'readline';
-import * as os from 'os';
 import { FileData, VerifierConfig } from "./MessagePayloads";
 import { Helper, FileSchemes } from "./Helper";
 import { IdeEvents } from "./IdeEvents";
 import { Verifier } from "./VerificationService";
 import { CodePreviewProvider } from "./CodePreviewProvider";
 import { Location } from 'vs-verification-toolbox';
+import { URI } from 'vscode-uri';
 
 
 export class State {
@@ -27,21 +27,101 @@ export class State {
   public static viperPreviewProvider: CodePreviewProvider;
   public static internalPreviewProvider: CodePreviewProvider;
 
-  public static runningVerifications: Set<string>;
+  /** currently running verifications which are identified by the list of fileUris that are stringified*/
+  private static runningVerifications: Set<string>;
   // tracks the verification requests which were made when a verification was already running.
-  public static verificationRequests: Map<string, IdeEvents>;
+  private static verificationRequests: Map<string, IdeEvents>;
 
-  public static runningGoifications: Set<string>;
-  public static runningGobrafications: Set<string>;
+  private static runningGoifications: Set<string>;
+  private static runningGobrafications: Set<string>;
 
   public static verificationRequestTimeout: NodeJS.Timeout | null;
 
   public static verifierConfig: VerifierConfig;
 
-  public static updateFileData(fileUri?: string): void {
-    this.verifierConfig.fileData = new FileData();
+  public static isFileInvolvedInRunningVerification(fileUri: URI): Boolean {
+    for(let runningVerification of State.runningVerifications) {
+      const decodedFileUris = JSON.parse(runningVerification) as string[];
+      if (decodedFileUris.some(f => f == fileUri.toString())) {
+        return true;
+      }
+    }
+    return false;
+  }
 
-    if (fileUri) this.verifierConfig.fileData.fileUri = fileUri;
+  private static encodeUris(fileUris: URI[]): string {
+    return JSON.stringify(fileUris.map(uri => State.encodeUri(uri)));
+  }
+  private static encodeUri(fileUri: URI): string {
+    return fileUri.toString();
+  }
+
+  private static addUris(set: Set<string>, fileUris: URI[]) {
+    set.add(State.encodeUris(fileUris));
+  }
+  private static containsUris(set: Set<string>, fileUris: URI[]): Boolean {
+    return set.has(State.encodeUris(fileUris));
+  }
+  private static removeUris(set: Set<string>, fileUris: URI[]) {
+    set.delete(State.encodeUris(fileUris));
+  }
+
+  private static addUri(set: Set<string>, fileUri: URI) {
+    set.add(State.encodeUri(fileUri));
+  }
+  private static containsUri(set: Set<string>, fileUri: URI): Boolean {
+    return set.has(State.encodeUri(fileUri));
+  }
+  private static removeUri(set: Set<string>, fileUri: URI) {
+    set.delete(State.encodeUri(fileUri));
+  }
+
+  public static addRunningVerification(fileUris: URI[]) {
+    State.addUris(State.runningVerifications, fileUris);
+  }
+  public static containsRunningVerification(fileUris: URI[]): Boolean {
+    return State.containsUris(State.runningVerifications, fileUris);
+  }
+  public static removeRunningVerification(fileUris: URI[]) {
+    State.removeUris(State.runningVerifications, fileUris);
+  }
+
+  public static addRunningGoifications(fileUri: URI) {
+    State.addUri(State.runningGoifications, fileUri);
+  }
+  public static containsRunningGoifications(fileUri: URI): Boolean {
+    return State.containsUri(State.runningGoifications, fileUri);
+  }
+  public static removeRunningGoifications(fileUri: URI) {
+    State.removeUri(State.runningGoifications, fileUri);
+  }
+
+  public static addRunningGobrafications(fileUri: URI) {
+    State.addUri(State.runningGobrafications, fileUri);
+  }
+  public static containsRunningGobrafications(fileUri: URI): Boolean {
+    return State.containsUri(State.runningGobrafications, fileUri);
+  }
+  public static removeRunningGobrafications(fileUri: URI) {
+    State.removeUri(State.runningGobrafications, fileUri);
+  }
+
+  public static addVerificationRequests(fileUris: URI[], ev: IdeEvents) {
+    State.verificationRequests.set(State.encodeUris(fileUris), ev);
+  }
+  public static containsVerificationRequests(fileUris: URI[]): Boolean {
+    return State.verificationRequests.has(State.encodeUris(fileUris));
+  }
+  public static getVerificationRequestsEvent(fileUris: URI[]): IdeEvents | undefined {
+    return State.verificationRequests.get(State.encodeUris(fileUris));
+  }
+  public static removeVerificationRequests(fileUris: URI[]) {
+    State.verificationRequests.delete(State.encodeUris(fileUris));
+  }
+
+  public static updateFileData(fileUris: URI[]): void {
+    const fileData: FileData[] = fileUris.map(fileUri => new FileData(fileUri));
+    this.verifierConfig.fileData = fileData;
   }
 
   public static updateConfiguration(): void {
@@ -49,9 +129,9 @@ export class State {
     State.verifierConfig.gobraSettings = Helper.getGobraSettings();
   }
 
-  public static setVerificationRequestTimeout(fileUri: string, event: IdeEvents): void {
+  public static setVerificationRequestTimeout(fileUri: URI, event: IdeEvents): void {
     State.verificationRequestTimeout = setTimeout(() => {
-      Verifier.verifyFile(fileUri, event);
+      Verifier.verify(fileUri, event);
       State.clearVerificationRequestTimeout();
     }, Helper.getTimeout());
   }
@@ -134,6 +214,7 @@ export class State {
   // creates a server for the given server binary
   private static async startServerProcess(location: Location, serverBin: string): Promise<StreamInfo> {
     const javaPath = await State.checkDependenciesAndGetJavaPath(location);
+    const cwd = await Helper.getJavaCwd();
 
     // spawn Gobra Server and get port number on which it is reachable:
     const portNr = await new Promise((resolve:(port: number) => void, reject) => {
@@ -155,11 +236,10 @@ export class State {
 
       const processArgs = Helper.getServerProcessArgs(serverBin);
       const command = `"${javaPath}" ${processArgs}`; // processArgs is already escaped but escape javaPath as well.
-      const tmpDir = os.tmpdir();
-      Helper.log(`Gobra IDE: Running '${command}' (relative to '${tmpDir}')`);
+      Helper.log(`Gobra IDE: Running '${command}' (relative to '${cwd}')`);
       // enable shell mode such that arguments do not need to be passed as an array
       // see https://stackoverflow.com/a/45134890/1990080
-      const serverProcess = child_process.spawn(command, [], { shell: true, cwd: tmpDir });
+      const serverProcess = child_process.spawn(command, [], { shell: true, cwd: cwd });
       // redirect stdout to readline which nicely combines and splits lines
       const rl = readline.createInterface({ input: serverProcess.stdout });
       rl.on('line', stdOutLineHandler);

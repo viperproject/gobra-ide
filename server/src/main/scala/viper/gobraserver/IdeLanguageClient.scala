@@ -21,7 +21,8 @@ trait IdeLanguageClient extends LanguageClient {
   def verificationProgress(fileUri: String, progress: Int): Unit
 
   @JsonNotification("gobraServer/verificationException")
-  def verificationException(fileUri: String): Unit
+  /** note that `encodedFileUris` is a JSON array of strings each representing one file URI */
+  def verificationException(encodedFileUris: String): Unit
 
 
   @JsonNotification("gobraServer/finishedGoifying")

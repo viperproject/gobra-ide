@@ -5,7 +5,8 @@
 // Copyright (c) 2011-2020 ETH Zurich.
 
 import * as vscode from "vscode";
-import { Texts, Color } from "./Helper";
+import { URI } from "vscode-uri";
+import { Texts, Color, Helper } from "./Helper";
 
 
 export class ProgressBar {
@@ -25,14 +26,19 @@ export class ProgressBar {
     this.updateItem();
   }
 
-  public progress(fileName: string, progress: number) {
-    let clampedProgress = Math.min(100, Math.max(0, progress))
-    let completed = Math.floor(clampedProgress / 10);
-    let progressDisplay = " " + clampedProgress + "% " + "⚫".repeat(completed) + "⚪".repeat(10 - completed);
+  public progress(fileUri: URI, progress: number) {
+    // ignore progress if file is not currently open
+    if (vscode.window.activeTextEditor &&
+      vscode.window.activeTextEditor.document &&
+      Helper.equal(vscode.window.activeTextEditor.document.uri, fileUri)) {
+      let clampedProgress = Math.min(100, Math.max(0, progress))
+      let completed = Math.floor(clampedProgress / 10);
+      let progressDisplay = " " + clampedProgress + "% " + "⚫".repeat(completed) + "⚪".repeat(10 - completed);
 
-    this.item.text = Texts.runningVerification + fileName + progressDisplay;
-    this.item.color = Color.white;
-    this.updateItem();
+      this.item.text = Texts.runningVerification + Helper.getFileName(fileUri) + progressDisplay;
+      this.item.color = Color.white;
+      this.updateItem();
+    }
   }
 
   public updateItem() {

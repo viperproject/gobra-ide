@@ -5,7 +5,7 @@
 // Copyright (c) 2011-2020 ETH Zurich.
 
 import * as path from 'path';
-import { VerifierConfig, GobraSettings } from "../MessagePayloads";
+import { VerifierConfig, GobraSettings, FileData } from "../MessagePayloads";
 import { Commands } from "../Helper";
 import { Helper } from "../Helper";
 import { State } from "../ExtensionState";
@@ -39,8 +39,8 @@ export class EvaluationHelper {
     return files.map(f => path.resolve(DATA_ROOT, f));
   }
 
-  public static transformToFileUri(filePath: string): string {
-    return URI.file(filePath).toString();
+  public static transformToFileUri(filePath: string): URI {
+    return URI.file(filePath);
   }
 
   public static printFileNames(fileArray: string[], writeStream: fs.WriteStream): void {
@@ -51,17 +51,16 @@ export class EvaluationHelper {
     writeStream.write("\n");
   }
 
-  public static async verify(fileUri: string, filePath: string): Promise<void> {
-    const location = await Verifier.updateGobraTools(State.context, false)
-    let config = new VerifierConfig(location);
-    config.fileData.fileUri = fileUri;
-    config.fileData.filePath = filePath;
+  public static async verify(fileUri: URI, filePath: string): Promise<void> {
+    const location = await Verifier.updateGobraTools(State.context, false);
+    const fileData = new FileData(fileUri);
+    let config = new VerifierConfig(location, [fileData]);
 
     let settings = new EvaluationGobraSettings();
     config.gobraSettings = settings;
 
-    State.client.sendNotification(Commands.setOpenFileUri, fileUri);
-    State.client.sendNotification(Commands.verifyGobraFile, Helper.configToJson(config));
+    State.client.sendNotification(Commands.setOpenFileUri, fileUri.toString);
+    State.client.sendNotification(Commands.verify, Helper.configToJson(config));
 
     return new Promise(resolve => {
       State.client.onNotification(Commands.overallResult, () => {
@@ -72,13 +71,16 @@ export class EvaluationHelper {
 }
 
 class EvaluationGobraSettings implements GobraSettings {
+  backend: string = "SILICON";
   serverMode: boolean = true;
   debug: boolean = false;
   eraseGhost: boolean = false;
+  goify: boolean = false;
   unparse: boolean = false;
   printInternal: boolean = false;
   printViper: boolean = false;
   parseOnly: boolean = false;
   loglevel: string = "OFF";
-  backend: string = "SILICON";
+  moduleName: string = "";
+  includeDirs: string[] = [];
 }

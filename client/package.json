@@ -54,7 +54,7 @@
     "tmp": "^0.2.1",
     "ts-loader": "^9.2.6",
     "typescript": "^4.3.5",
-    "vsce": "^1.100.1",
+    "vsce": "^2.4.0",
     "webpack": "^5.61.0",
     "webpack-cli": "^4.7.2",
     "yargs": "^17.2.1"
@@ -115,8 +115,18 @@
         "category": "Gobra"
       },
       {
+        "command": "gobra.verify",
+        "title": "Verify currently opened file or package",
+        "category": "Gobra"
+      },
+      {
         "command": "gobra.verifyFile",
         "title": "Verify currently opened file",
+        "category": "Gobra"
+      },
+      {
+        "command": "gobra.verifyPackage",
+        "title": "Verify currently opened package",
         "category": "Gobra"
       },
       {
@@ -309,11 +319,35 @@
           "default": true,
           "description": "Enable Auto Verification of Gobra files."
         },
+        "gobraSettings.verifyPackage": {
+          "scope": "window",
+          "type": "boolean",
+          "default": true,
+          "description": "Treat files in current directory as part of the same package and verify them together."
+        },
+        "gobraSettings.moduleName": {
+          "scope": "window",
+          "type": "string",
+          "default": "",
+          "description": "Name of the module that is currently verified."
+        },
+        "gobraSettings.includeDirs": {
+          "scope": "window",
+          "type": "array",
+          "default": [],
+          "description": "List of paths that should be considered for resolving imports."
+        },
         "gobraDependencies.java.javaBinary": {
           "scope": "window",
           "type": "string",
           "default": "",
           "description": "Specify the path to a Java binary (i.e. ending in `bin/java` resp. `bin/java.exe`). It is recommended to use a 64-bit JDK version 1.8 or higher. An empty path results in Gobra searching and using a Java installation meeting the recommendations."
+        },
+        "gobraDependencies.java.cwd": {
+          "scope": "window",
+          "type": "string",
+          "default": "",
+          "description": "Specify the path relative to which the server will be executed. An empty path results in Gobra trying to use the current workspace."
         },
         "gobraDependencies.java.javaArguments": {
           "scope": "window",
