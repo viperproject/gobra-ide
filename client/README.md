@@ -33,7 +33,7 @@ The cache can be flushed by running the command `Gobra: Flush ViperServer cache`
 
 ### Verification of Packages
 A package can be split across multiple `.go` or `.gobra` files.
-To verify them together, run the command `Gobra: Verify currently opened package` while having on of these files open.
+To verify them together, run the command `Gobra: Verify currently opened package` while having one of these files open.
 Alternatively, there is the `Gobra: Verify currently opened file or package` command that either verifies a single file or a package depending on your Gobra settings.
 
 Also relevant when working with larger projects is the option to specify directories in which Gobra tries to resolve imports and a module name.
