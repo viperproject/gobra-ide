@@ -6,7 +6,7 @@
 
 package viper.gobraserver
 
-import viper.gobra.frontend.{Config, Source}
+import viper.gobra.frontend.Config
 import viper.gobra.backend.{ViperBackends, ViperVerifierConfig}
 import viper.gobra.reporting.{FileWriterReporter, VerifierResult}
 import org.eclipse.lsp4j.Range
@@ -14,15 +14,17 @@ import org.eclipse.lsp4j.Range
 import java.nio.file.{Files, Paths}
 import ch.qos.logback.classic.Level
 import org.bitbucket.inkytonik.kiama.util.Source
+import viper.gobra.frontend.Source.FromFileSource
 import viper.gobra.util.GobraExecutionContext
 import viper.gobraserver.backend.{ViperServerBackend, ViperServerConfig}
+import viper.silver.{ast => vpr}
 import viper.silver.logger.ViperLogger
 
 object Helper {
 
   val defaultVerificationFraction = 0.75
 
-  def verificationConfigFromTask(config: VerifierConfig, startTime: Long, verify: Boolean, progress: Int = 0, logger: ViperLogger)(executor: GobraExecutionContext): Config = {
+  def verificationConfigFromTask(config: VerifierConfig, startTime: Long, verify: Boolean, completedProgress: Int = 0, ast: Option[vpr.Program] = None, logger: ViperLogger)(executor: GobraExecutionContext): Config = {
     config match {
       case VerifierConfig(
         fileData,
@@ -50,7 +52,6 @@ object Helper {
 
         // ensure consistent ordering such that e.g. caching works as expected:
         val sortedFileData = fileData.sortBy(_.fileUri).toVector
-        val fileUris = sortedFileData.map(_.fileUri)
         val filePaths = sortedFileData.map(_.filePath)
         val reporter = GobraIdeReporter(
           startTime = startTime,
@@ -58,7 +59,8 @@ object Helper {
           fileData = sortedFileData,
           backend = backend,
           verificationFraction = defaultVerificationFraction,
-          progress = progress,
+          progress = completedProgress,
+          ast = ast,
           unparse = unparse,
           eraseGhost = eraseGhost,
           goify = goify,
@@ -149,7 +151,7 @@ object Helper {
   }
 
   private def getSourceFromPath(path: String): Source = {
-    Source.getSource(Paths.get(path))
+    FromFileSource(Paths.get(path))
   }
 
   def getOverallVerificationResult(fileUris: Vector[String], result: VerifierResult, elapsedTime: Long): OverallVerificationResult = {

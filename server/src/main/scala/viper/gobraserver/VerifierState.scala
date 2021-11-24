@@ -40,11 +40,11 @@ object VerifierState {
     _client = Some(client)
   }
 
-  def submitVerificationJob(program: Program, backtrack: BackTrackInfo, startTime: Long, verifierConfig: VerifierConfig)(implicit executor: GobraExecutionContext): Unit = {
+  def submitVerificationJob(program: Program, backtrack: BackTrackInfo, startTime: Long, completedProgress: Int, verifierConfig: VerifierConfig)(implicit executor: GobraExecutionContext): Unit = {
     // simply call verify here without explicitly waiting on the result (or waiting for it in a runnable submitted
     // to the thread pool - in this case an entire thread from the thread pool would be occupied waiting for it).
     // executor.execute(() => GobraServer.verify(verifierConfig, program, backtrack, startTime))
-    GobraServer.verify(verifierConfig, program, backtrack, startTime)
+    GobraServer.verify(verifierConfig, program, backtrack, startTime, completedProgress)
   }
   
   /**
@@ -56,8 +56,12 @@ object VerifierState {
 
   def updateVerificationInformation(fileUris: Vector[String], info: Either[Int, OverallVerificationResult]): Unit = {
     fileUris.foreach(fileUri => {
-      _verificationInformation += (fileUri -> info)
-      sendVerificationInformation(fileUri)
+      // only send out verification information if it changes
+      val isDifferent = !_verificationInformation.get(fileUri).contains(info)
+      if (isDifferent) {
+        _verificationInformation += (fileUri -> info)
+        sendVerificationInformation(fileUri)
+      }
     })
   }
 

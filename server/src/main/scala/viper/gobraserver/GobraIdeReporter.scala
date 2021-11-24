@@ -14,14 +14,18 @@ import viper.gobra.backend.ViperBackend
 import viper.gobra.reporting._
 import viper.gobra.util.{GobraExecutionContext, OutputUtil, Violation}
 import viper.gobraserver.backend.ViperServerBackend
+import viper.silver.{ast => vpr}
 import viper.silver.logger.ViperLogger
-import viper.silver.reporter.StatisticsReport
 
 import scala.collection.mutable
 
 /**
   * There is a GobraIdeReporter per verification unit, i.e. a set of files that are verified together. This can be
   * the files belonging to the same package.
+  * Note that there are two different reporters involved for a verification: one during parsing, type-checking,
+  * desugaring, and encoding and a separate one for the actual verification of the Viper program. As a consequence,
+  * `progress` and `ast` are used to pass information to the second reporter such that it can continue where the other
+  * left off. `progress` is a value between 0 and 100.
   */
 case class GobraIdeReporter(name: String = "gobraide_reporter",
                             startTime: Long,
@@ -29,7 +33,8 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
                             fileData: Vector[FileData],
                             backend: ViperBackend,
                             verificationFraction: Double,
-                            var progress: Int,
+                            var progress: Double,
+                            ast: Option[vpr.Program],
                             unparse: Boolean = false,
                             eraseGhost: Boolean = false,
                             goify: Boolean = false,
@@ -38,23 +43,46 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
                             printVpr: Boolean = false,
                             logger: ViperLogger)(executor: GobraExecutionContext) extends GobraReporter {
 
+  require(fileData.nonEmpty)
+
   private lazy val fileUris: Vector[String] = fileData.map(_.fileUri)
+  private lazy val filePaths: Vector[String] = fileData.map(_.filePath)
 
   /**
     * State and Helper functions used for tracking the progress of the Verification.
     */
-  private def nonVerificationEntityProgress: Int = ((1 - verificationFraction) * 25).round.toInt
-  private def preprocessEntityProgress: Int = (0.5 * nonVerificationEntityProgress).round.toInt
+  private lazy val nonVerificationFraction: Double = 1 - verificationFraction
+  // we assume the following non-verification steps (with weights)
+  // - preprocess (0.125)
+  // - parse (0.125)
+  // - typecheck (0.25)
+  // - desugar (0.25)
+  // - encode (0.25)
+  // note however that preprocess and parse happens per source object
+  // also, all steps are invoked for imported files for which no progress should be reported
+  private lazy val preprocessEntityProgress: Double = 0.125 * nonVerificationFraction / fileData.length * 100
+  private lazy val parseEntityProgress: Double = preprocessEntityProgress
+  private lazy val typeCheckEntityProgress: Double = 0.25 * nonVerificationFraction * 100
+  private lazy val desugarEntityProgress: Double = typeCheckEntityProgress
+  private lazy val encodeEntityProgress: Double = typeCheckEntityProgress
 
-  private var totalEntities: Int = 0
+  /** Viper members that should be considered for reporting progress */
+  private val relevantVprMembers: Option[Set[vpr.Member]] = ast.map(_.members.filter {
+    case _: vpr.Method | _: vpr.Function | _: vpr.Predicate => true
+    case _ => false
+  }.toSet)
 
-  private def verificationEntityProgress: Int =
-    ((100 * verificationFraction) * (if (totalEntities == 0) 1 else 1.0 / totalEntities)).round.toInt
+  private lazy val verificationEntityProgress: Double =
+    (100 * verificationFraction) * (if (relevantVprMembers.forall(_.isEmpty)) 1 else 1.0 / relevantVprMembers.get.size)
+
+  private def isRelevantVprMember(m: vpr.Member): Boolean = relevantVprMembers.exists(_.contains(m))
 
   
-  private def updateProgress(update: Int): Unit = {
+  private def updateProgress(update: Double): Unit = {
     progress += update
-    VerifierState.updateVerificationInformation(fileUris, Left(progress))
+    var sanitizedProgress = progress.round.toInt
+    sanitizedProgress = if (sanitizedProgress < 0) 0 else if (sanitizedProgress > 100) 100 else sanitizedProgress
+    VerifierState.updateVerificationInformation(fileUris, Left(sanitizedProgress))
   }
 
   private def write(inputs: Vector[String], fileExt: String, content: String): Unit = {
@@ -106,7 +134,7 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
       fileData.foreach(file => updateDiagnosticsPerFile(file, newErrors))
   }
 
-  private def updateDiagnosticsPerFile(file: FileData, newErrors: Vector[VerifierError]) = {
+  private def updateDiagnosticsPerFile(file: FileData, newErrors: Vector[VerifierError]): Unit = {
     val errorsInFile = newErrors.filter(err => err.position.exists(pos => pos.file.toString == file.filePath))
     val cachedErrors = errorsInFile.filter(_.cached).toList
     val nonCachedErrors = errorsInFile.filterNot(_.cached).toList
@@ -151,10 +179,10 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
     msg match {
       case CopyrightReport(text) => println(text)
 
-      case PreprocessedInputMessage(_, _) => updateProgress(preprocessEntityProgress)
+      case PreprocessedInputMessage(input, _) => if (filePaths.contains(input)) updateProgress(preprocessEntityProgress)
 
       case ParsedInputMessage(input, program) =>
-        updateProgress(preprocessEntityProgress)
+        if (filePaths.contains(input)) updateProgress(parseEntityProgress)
         if (unparse) write(input, "unparsed", program().formatted)
 
       case ParserErrorMessage(_, result) =>
@@ -162,7 +190,7 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
         finishedVerification()
 
       case TypeCheckSuccessMessage(inputs, _, erasedGhostCode, goifiedGhostCode) =>
-        updateProgress(nonVerificationEntityProgress)
+        if (filePaths == inputs) updateProgress(typeCheckEntityProgress)
         if (eraseGhost) write(inputs, "ghostLess", erasedGhostCode())
         if (goify) write(inputs, "go", goifiedGhostCode())
 
@@ -173,16 +201,14 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
       case TypeCheckDebugMessage(inputs, _, debugTypeInfo) if debug => write(inputs, "debugType", debugTypeInfo())
 
       case DesugaredMessage(inputs, internal) =>
-        updateProgress(nonVerificationEntityProgress)
+        if (filePaths == inputs) updateProgress(desugarEntityProgress)
         if (printInternal) write(inputs, "internal", internal().formatted)
 
       case m@GeneratedViperMessage(inputs, ast, backtrack) =>
-        updateProgress(nonVerificationEntityProgress)
-        if (printVpr){
-          write(inputs, "vpr", m.vprAstFormatted)
-        }
+        if (filePaths == inputs) updateProgress(encodeEntityProgress)
+        if (printVpr) write(inputs, "vpr", m.vprAstFormatted)
         // submit the Viper AST's verification to the thread pool:
-        VerifierState.submitVerificationJob(ast(), backtrack(), startTime, verifierConfig)(executor)
+        VerifierState.submitVerificationJob(ast(), backtrack(), startTime, progress.round.toInt, verifierConfig)(executor)
 
       case GobraOverallSuccessMessage(_) =>
         fileUris.foreach(fileUri => {
@@ -195,18 +221,12 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
         updateDiagnostics(result)
         finishedVerification()
 
-      case GobraEntitySuccessMessage(_, _) => updateProgress(verificationEntityProgress)
+      case GobraEntitySuccessMessage(_, member, _) =>
+        if (isRelevantVprMember(member)) updateProgress(verificationEntityProgress)
 
-      case GobraEntityFailureMessage(_, _, result) =>
-        updateProgress(verificationEntityProgress)
+      case GobraEntityFailureMessage(_, member, _, result) =>
+        if (isRelevantVprMember(member)) updateProgress(verificationEntityProgress)
         updateDiagnostics(result)
-
-      case RawMessage(m) => m match {
-        case StatisticsReport(nOfMethods, nOfFunctions, nOfPredicates, _, _) =>
-          totalEntities = nOfMethods + nOfFunctions + nOfPredicates
-
-        case _ => // ignore
-      }
 
       case _ => // ignore
     }
