@@ -32,7 +32,7 @@
   ],
   "main": "./dist/extension",
   "dependencies": {
-    "@types/node": "^16.11.6",
+    "@types/node": "^16.11.11",
     "@types/vscode": "^1.61.0",
     "locate-java-home": "git+https://github.com/viperproject/locate-java-home.git",
     "vs-verification-toolbox": "git+https://github.com/viperproject/vs-verification-toolbox.git",
