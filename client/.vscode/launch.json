@@ -5,9 +5,9 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Launch Client",
       "type": "extensionHost",
       "request": "launch",
-      "name": "Launch Client",
       "runtimeExecutable": "${execPath}",
       "args": [
         "--disable-extensions",
@@ -19,6 +19,22 @@
       "preLaunchTask": {
         "type": "npm",
         "script": "compile"
+      }
+    },
+    {
+      "name": "Launch Web Extension",
+      "type": "pwa-extensionHost",
+      "debugWebWorkerHost": true,
+      "request": "launch",
+      "args": [
+        "--disable-extensions",
+        "--extensionDevelopmentPath=${workspaceFolder}",
+        "--extensionDevelopmentKind=web"
+      ],
+      "outFiles": ["${workspaceFolder}/dist/web/**/*.js"],
+      "preLaunchTask": {
+        "type": "npm",
+        "script": "webpack-web-development-watch"
       }
     },
     {

@@ -3,8 +3,23 @@
 	"tasks": [
 		{
 			"type": "npm",
-			"script": "watch",
-			"problemMatcher": "$tsc-watch",
+			"script": "webpack-development-watch",
+			// requires the following extension:
+			// https://marketplace.visualstudio.com/items?itemName=amodio.tsl-problem-matcher
+			"problemMatcher": ["$ts-webpack-watch"],
+			"isBackground": true,
+			"presentation": {
+				"reveal": "never"
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+		},
+		{
+			"type": "npm",
+			"script": "webpack-web-development-watch",
+			"problemMatcher": ["$ts-webpack-watch"],
 			"isBackground": true,
 			"presentation": {
 				"reveal": "never"

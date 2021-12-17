@@ -26,16 +26,16 @@ const path = require('path');
 const { merge } = require("webpack-merge");
 const common = require('./webpack.common.js');
 
-// webpack config used for building the regular extension (i.e. not the web extension)
+// webpack config used for building the web extension
 
 /**@type {import('webpack').Configuration}*/
 const config = merge(common, {
-    target: 'node', // vscode extensions run in a Node.js-context -> https://webpack.js.org/configuration/node/
-    entry: './src/extension.ts', // the entry point of this extension -> https://webpack.js.org/configuration/entry-context/
+    target: 'webworker',
+    entry: './src/web-extension.ts', // the entry point of this extension -> https://webpack.js.org/configuration/entry-context/
     output: {
         // the bundle is stored in the 'dist' folder (check package.json) -> https://webpack.js.org/configuration/output/
         path: path.resolve(__dirname, 'dist'),
-        filename: 'extension.js',
+        filename: 'web-extension.js',
         libraryTarget: 'commonjs2',
         devtoolModuleFilenameTemplate: '../[resource-path]'
     }

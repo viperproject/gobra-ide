@@ -23,21 +23,31 @@
 'use strict';
 
 const path = require('path');
-const { merge } = require("webpack-merge");
-const common = require('./webpack.common.js');
 
-// webpack config used for building the regular extension (i.e. not the web extension)
+// target, entry, and output should be specified by users of this common config
 
 /**@type {import('webpack').Configuration}*/
-const config = merge(common, {
-    target: 'node', // vscode extensions run in a Node.js-context -> https://webpack.js.org/configuration/node/
-    entry: './src/extension.ts', // the entry point of this extension -> https://webpack.js.org/configuration/entry-context/
-    output: {
-        // the bundle is stored in the 'dist' folder (check package.json) -> https://webpack.js.org/configuration/output/
-        path: path.resolve(__dirname, 'dist'),
-        filename: 'extension.js',
-        libraryTarget: 'commonjs2',
-        devtoolModuleFilenameTemplate: '../[resource-path]'
+const config = {
+    devtool: 'source-map',
+    externals: {
+        vscode: 'commonjs vscode' // the vscode-module is created on-the-fly and must be excluded. Add other modules that cannot be webpack'edv-> https://webpack.js.org/configuration/externals/
+    },
+    resolve: {
+        // support reading TypeScript and JavaScript files -> https://github.com/TypeStrong/ts-loader
+        extensions: ['.ts', '.js']
+    },
+    module: {
+        rules: [
+            {
+                test: /\.ts$/,
+                exclude: /node_modules/,
+                use: [
+                    {
+                        loader: 'ts-loader'
+                    }
+                ]
+            }
+        ]
     }
-});
+};
 module.exports = config;
