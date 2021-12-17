@@ -7,10 +7,10 @@
 import * as vscode from 'vscode';
 import { URI } from 'vscode-uri';
 import { VerifierConfig, OverallVerificationResult, FileData, GobraSettings, PlatformDependendPath, GobraDependencies, PreviewData, HighlightingPosition } from "./MessagePayloads";
-import * as locate_java_home from 'locate-java-home';
+import * as locate_java_home from '@viperproject/locate-java-home';
+import { IJavaHomeInfo } from '@viperproject/locate-java-home/js/es5/lib/interfaces';
 import * as child_process from 'child_process';
 import { GitHubReleaseAsset, Location } from 'vs-verification-toolbox';
-import { IJavaHomeInfo } from 'locate-java-home/js/es5/lib/interfaces';
 
 
 export class Helper {
