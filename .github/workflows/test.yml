@@ -33,8 +33,6 @@ jobs:
     if: (github.event_name == 'schedule' && github.repository == 'viperproject/gobra-ide') || (github.event_name != 'schedule')
     runs-on: ubuntu-latest
     container: gobraverifier/gobra-base:v5_z3_4.8.7
-    env:
-      VIPERSERVER_REF: "v.21.07-release"
     steps:
       - name: Checkout Gobra-IDE
         uses: actions/checkout@v2
@@ -54,6 +52,7 @@ jobs:
           echo "SILVER_REF=$SILVER_REF" >> $GITHUB_ENV
           echo "CARBON_REF=$CARBON_REF" >> $GITHUB_ENV
           echo "SILICON_REF=$SILICON_REF" >> $GITHUB_ENV
+          echo "VIPERSERVER_REF=$VIPERSERVER_REF" >> $GITHUB_ENV
         working-directory: gobra
       - name: Checkout Silver
         uses: actions/checkout@v2
@@ -111,7 +110,7 @@ jobs:
         run: ln --symbolic ../silver; ln --symbolic ../silicon; ln --symbolic ../carbon
         working-directory: viperserver
       - name: Create Gobra's sym links
-        run: ln --symbolic ../silver; ln --symbolic ../silicon; ln --symbolic ../carbon
+        run: ln --symbolic ../silver; ln --symbolic ../silicon; ln --symbolic ../carbon; ln --symbolic ../../viperserver
         working-directory: gobra
       - name: Create Gobra IDE's sym links
         run: ln --symbolic ../../gobra; ln --symbolic ../../viperserver
