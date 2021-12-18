@@ -110,7 +110,7 @@ jobs:
         run: ln --symbolic ../silver; ln --symbolic ../silicon; ln --symbolic ../carbon
         working-directory: viperserver
       - name: Create Gobra's sym links
-        run: ln --symbolic ../silver; ln --symbolic ../silicon; ln --symbolic ../carbon; ln --symbolic ../../viperserver
+        run: ln --symbolic ../silver; ln --symbolic ../silicon; ln --symbolic ../carbon; ln --symbolic ../viperserver
         working-directory: gobra
       - name: Create Gobra IDE's sym links
         run: ln --symbolic ../../gobra; ln --symbolic ../../viperserver
