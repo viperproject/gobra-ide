@@ -9,15 +9,16 @@ package viper.gobraserver
 import java.util.concurrent.ExecutorService
 
 import viper.gobra.util.GobraExecutionContext
-import viper.server.core.{DefaultVerificationExecutionContext, VerificationExecutionContext}
+import viper.server.core.DefaultVerificationExecutionContext
 
-trait GobraServerExecutionContext extends VerificationExecutionContext with GobraExecutionContext {
+trait GobraServerExecutionContext extends GobraExecutionContext {
   def service: ExecutorService
 }
 
-class DefaultGobraServerExecutionContext(val threadPoolSize: Int = DefaultVerificationExecutionContext.minNumberOfThreads) extends DefaultVerificationExecutionContext with GobraServerExecutionContext {
-  override lazy val nThreads: Int = threadPoolSize
+class DefaultGobraServerExecutionContext(threadPoolSize: Option[Int] = None) extends DefaultVerificationExecutionContext(threadPoolSize = threadPoolSize) with GobraServerExecutionContext {
   lazy val service: ExecutorService = executorService
+  /** expose `nThreads`: */
+  val numberOfThreads: Int = nThreads
 
   /**
     * In contrast to `terminate`, this function terminates the context but also checks whether it was successfully

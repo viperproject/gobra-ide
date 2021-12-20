@@ -16,7 +16,6 @@ import viper.silver.ast.Program
 import viper.server.core.ViperCoreServer
 import org.eclipse.lsp4j.{MessageParams, MessageType, Range}
 import viper.gobra.frontend.{Gobrafier, Parser}
-import viper.gobraserver.backend.ViperServerBackend
 import viper.server.ViperConfig
 
 import java.io.{BufferedWriter, File, FileWriter}
@@ -48,8 +47,6 @@ object GobraServer extends GobraFrontend {
     _executor = executor
     val config = new ViperConfig(options)
     _server = new ViperCoreServer(config)(executor)
-    ViperServerBackend.setExecutor(_executor)
-    ViperServerBackend.setServer(_server)
   }
 
   def start(): Unit = {
@@ -128,7 +125,7 @@ object GobraServer extends GobraFrontend {
 
     val startTime = System.currentTimeMillis()
 
-    val config = Helper.verificationConfigFromTask(verifierConfig, startTime, verify = false, logger = _server.logger)(executor)
+    val config = Helper.verificationConfigFromTask(_server, verifierConfig, startTime, verify = false)(executor)
     val preprocessFuture = verifier.verify(config)(executor)
 
     serverExceptionHandling(verifierConfig.fileData.toVector, preprocessFuture)
@@ -138,7 +135,7 @@ object GobraServer extends GobraFrontend {
     * Verify Viper AST.
     */
   def verify(verifierConfig: VerifierConfig, ast: Program, backtrack: BackTrackInfo, startTime: Long, completedProgress: Int)(implicit executor: GobraExecutionContext): Future[VerifierResult] = {
-    val config = Helper.verificationConfigFromTask(verifierConfig, startTime, verify = true, completedProgress = completedProgress, ast = Some(ast), logger = _server.logger)(executor)
+    val config = Helper.verificationConfigFromTask(_server, verifierConfig, startTime, verify = true, completedProgress = completedProgress, ast = Some(ast))(executor)
 
     val resultFuture = verifier.verifyAst(config, ast, backtrack)(executor)
 
@@ -236,8 +233,6 @@ object GobraServer extends GobraFrontend {
   }
 
   def delete(): Unit = {
-    ViperServerBackend.resetServer()
-    ViperServerBackend.resetExecutor()
     _server = null
   } 
 }
