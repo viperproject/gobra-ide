@@ -68,15 +68,18 @@ export class Verifier {
     }));
     // open event
     State.context.subscriptions.push(vscode.workspace.onDidOpenTextDocument(document => {
+      if (!Verifier.isGoOrGobraPath(document.uri.fsPath)) return;
       if (Helper.isAutoVerify()) Verifier.verify(document.uri, IdeEvents.Open);
     }));
     // save event
     State.context.subscriptions.push(vscode.workspace.onDidSaveTextDocument(document => {
+      if (!Verifier.isGoOrGobraPath(document.uri.fsPath)) return;
       if (Helper.isAutoVerify()) Verifier.verify(document.uri, IdeEvents.Save);
     }));
     // filechange event
     State.context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(change => {
-      
+      if (!Verifier.isGoOrGobraPath(change.document.uri.fsPath)) return;
+
       if (change.document.uri.toString() === PreviewUris.viper.toString() || change.document.uri.toString() === PreviewUris.internal.toString()) {
         vscode.window.showTextDocument(change.document.uri, { preview: false, preserveFocus: false }).then(() => {
           vscode.commands.executeCommand('workbench.action.closeActiveEditor').then(() => {
