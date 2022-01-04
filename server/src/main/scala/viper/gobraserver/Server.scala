@@ -27,9 +27,9 @@ object Server {
   }
 
   def main(args: Array[String]): Unit = {
-    val config = new ServerConfig(args)
-    val executor: DefaultGobraServerExecutionContext = new DefaultGobraServerExecutionContext(config.nThreads)
-    println(s"Gobra server is using ${executor.nThreads} threads (excl. threads used by backends)")
+    val config = new ServerConfig(args.toSeq)
+    val executor: DefaultGobraServerExecutionContext = new DefaultGobraServerExecutionContext(Some(config.nThreads))
+    println(s"Gobra server is using ${executor.numberOfThreads} threads (excl. threads used by backends)")
     runServer(config)(executor)
     sys.exit(0)
   }

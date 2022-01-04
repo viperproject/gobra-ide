@@ -11,9 +11,9 @@ import java.nio.file.Paths
 import org.apache.commons.io.FileUtils
 import org.eclipse.lsp4j.{Diagnostic, DiagnosticSeverity, Position, Range}
 import viper.gobra.backend.ViperBackend
+import viper.gobra.backend.ViperBackends.ViperServerBackend
 import viper.gobra.reporting._
 import viper.gobra.util.{GobraExecutionContext, OutputUtil, Violation}
-import viper.gobraserver.backend.ViperServerBackend
 import viper.silver.{ast => vpr}
 import viper.silver.logger.ViperLogger
 
@@ -156,7 +156,10 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
 
     VerifierState.publishDiagnostics(file.fileUri)
 
-    if (backend == ViperServerBackend) VerifierState.addDiagnosticsCache(file.fileUri, sortedErrors, diagnostics)
+    backend match {
+      case _: ViperServerBackend => VerifierState.addDiagnosticsCache(file.fileUri, sortedErrors, diagnostics)
+      case _ =>
+    }
   }
 
   private def finishedVerification() : Unit = {

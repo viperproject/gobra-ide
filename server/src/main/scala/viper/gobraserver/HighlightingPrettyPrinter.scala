@@ -518,7 +518,7 @@ object HighlightingPrettyPrinter extends HighlightingPrettyPrinterBase with Brac
           })
       case d: Domain =>
         showDomain(d)
-      case t:ExtensionMember => nil
+      case _: ExtensionMember => nil
     }
 
     showComment(m) <@> memberDoc
