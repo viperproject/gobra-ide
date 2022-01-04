@@ -4,6 +4,7 @@
 //
 // Copyright (c) 2011-2020 ETH Zurich.
 
+import * as os from 'os';
 import * as vscode from 'vscode';
 import { URI } from 'vscode-uri';
 import { VerifierConfig, OverallVerificationResult, FileData, GobraSettings, PlatformDependendPath, GobraDependencies, PreviewData, HighlightingPosition } from "./MessagePayloads";
@@ -185,7 +186,12 @@ export class Helper {
     if (configuredCwd == null || configuredCwd === "") {
       const roots = vscode.workspace.workspaceFolders;
       if (roots == null || roots.length !== 1) {
-        return Promise.reject(`no unique workspace folder was found, specify one in the settings as 'gobraDependencies.java.cwd'.`);
+        // if no workspace is available, simply use the OS' temp folder:
+        Helper.log(`no unique workspace folder was found, the operating system's temp ` + 
+          `folder will be used as Gobra Server's current working directory. ` +
+          `This behavior can be changed by explicitly specifying a working directory in ` +
+          `the settings as 'gobraDependencies.java.cwd'.`);
+        return os.tmpdir();
       }
       return roots[0].uri.fsPath;
     }
