@@ -7,24 +7,23 @@
 package viper.gobraserver
 
 import viper.gobra.frontend.Config
-import viper.gobra.backend.{ViperBackends, ViperVerifierConfig}
+import viper.gobra.backend.ViperBackends
 import viper.gobra.reporting.{FileWriterReporter, VerifierResult}
 import org.eclipse.lsp4j.Range
 
-import java.nio.file.{Files, Paths}
+import java.nio.file.Paths
 import ch.qos.logback.classic.Level
 import org.bitbucket.inkytonik.kiama.util.Source
 import viper.gobra.frontend.Source.FromFileSource
 import viper.gobra.util.GobraExecutionContext
-import viper.gobraserver.backend.{ViperServerBackend, ViperServerConfig}
+import viper.server.core.ViperCoreServer
 import viper.silver.{ast => vpr}
-import viper.silver.logger.ViperLogger
 
 object Helper {
 
   val defaultVerificationFraction = 0.75
 
-  def verificationConfigFromTask(config: VerifierConfig, startTime: Long, verify: Boolean, completedProgress: Int = 0, ast: Option[vpr.Program] = None, logger: ViperLogger)(executor: GobraExecutionContext): Config = {
+  def verificationConfigFromTask(server: ViperCoreServer, config: VerifierConfig, startTime: Long, verify: Boolean, completedProgress: Int = 0, ast: Option[vpr.Program] = None)(executor: GobraExecutionContext): Config = {
     config match {
       case VerifierConfig(
         fileData,
@@ -39,16 +38,13 @@ object Helper {
         val shouldViperEncode = shouldDesugar
         val shouldVerify = shouldViperEncode && verify
 
-        val backend =
-          if (serverMode) {
-            ViperServerBackend
-          } else {
-            backendId match {
-              case "SILICON" => ViperBackends.SiliconBackend
-              case "CARBON" => ViperBackends.CarbonBackend
-              case _ => ViperBackends.SiliconBackend
-            }
-          }
+        val backend = backendId match {
+          case "SILICON" if serverMode => ViperBackends.ViperServerWithSilicon(Some(server))
+          case "SILICON" => ViperBackends.SiliconBackend
+          case "CARBON" if serverMode => ViperBackends.ViperServerWithCarbon(Some(server))
+          case "CARBON" => ViperBackends.CarbonBackend
+          case _ => ViperBackends.SiliconBackend
+        }
 
         // ensure consistent ordering such that e.g. caching works as expected:
         val sortedFileData = fileData.sortBy(_.fileUri).toVector
@@ -67,41 +63,8 @@ object Helper {
           debug = debug,
           printInternal = printInternal,
           printVpr = printViper,
-          logger = logger
+          logger = server.logger
         )(executor)
-
-        val verifierConfig =
-          if (serverMode) {
-            var options: Vector[String] = Vector.empty
-
-            if (z3Exe != null && Files.exists(Paths.get(z3Exe)))
-              options ++= Vector("--z3Exe", z3Exe)
-
-            backendId match {
-              case "SILICON" =>
-                //var options: List[String] = List()
-                options ++= Vector("--logLevel", "ERROR")
-                options ++= Vector("--disableCatchingExceptions")
-                options ++= Vector("--enableMoreCompleteExhale")
-
-                ViperServerConfig.ConfigWithSilicon(options.toList)
-
-              case "CARBON" =>
-                //var options: List[String] = List()
-                if (boogieExe != null && Files.exists(Paths.get(boogieExe)))
-                  options ++= Vector("--boogieExe", boogieExe)
-
-                ViperServerConfig.ConfigWithCarbon(options.toList)
-
-              case _ =>
-                println("unknown backend option received - falling back to Silicon")
-                ViperServerConfig.EmptyConfigWithSilicon
-            }
-          } else {
-            // this won't be used as ViperServer will not be involved.
-            // nevertheless, we need to provide a config
-            ViperVerifierConfig.EmptyConfig
-          }
 
         Config(
           inputs = filePaths.map(getSourceFromPath),
@@ -109,7 +72,6 @@ object Helper {
           includeDirs = includeDirs.map(Paths.get(_)).toVector,
           reporter = reporter,
           backend = backend,
-          backendConfig = verifierConfig,
           z3Exe = Some(z3Exe),
           boogieExe = Some(boogieExe),
           logLevel = Level.toLevel(logLevel),

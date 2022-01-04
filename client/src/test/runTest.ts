@@ -29,7 +29,7 @@ const PROJECT_ROOT = path.join(__dirname, "..", "..");
 const DATA_ROOT = path.join(PROJECT_ROOT, "src", "test", "data");
 
 async function main() {
-	const argv = yargs
+	const argv = await yargs
 		.option('server', {
 			description: 'Path to the Gobra Server JAR file that should be used instead of the one specified in the settings',
             type: 'string',
