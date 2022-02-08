@@ -45,7 +45,7 @@ However, there is currently no dedicated support for resolving packages in exter
 This means that Gobra tries to resolve such packages by searching for a sub-directory with the external module name in the specified list of include directories.
 
 Note that VSCode allows workspace-specific settings by creating the file `.vscode/settings.json` relative to the root of a workspace.
-These workspace-specific settings take precendence over the usual user settings.
+These workspace-specific settings take precedence over the usual user settings.
 
 ### Show Intermediate Representations
 Right clicking on some selected code in a Gobra program reveals two actions, "Show internal representation preview" and "Show Viper code preview".
