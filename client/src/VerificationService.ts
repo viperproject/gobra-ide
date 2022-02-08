@@ -382,6 +382,13 @@ export class Verifier {
         }
       }
     }
+
+    /** confirms the update and shuts down Gobra Server if it is running */
+    async function confirmAndStopServer(): Promise<ConfirmResult> {
+      const confirmResult = await confirm();
+      await State.disposeServer();
+      return confirmResult;
+    }
     
     State.updatingGobraTools = true;
     const selectedChannel = Helper.getBuildChannel();
@@ -389,7 +396,7 @@ export class Verifier {
     Helper.log(`Ensuring dependencies for build channel ${selectedChannel}`);
     const { result: installationResult, didReportProgress } = await withProgressInWindow(
       shouldUpdate ? Texts.updatingGobraTools : Texts.ensuringGobraTools,
-      listener => dependency.install(selectedChannel, shouldUpdate, listener, confirm)
+      listener => dependency.install(selectedChannel, shouldUpdate, listener, confirmAndStopServer)
     ).catch(Helper.rethrow(`Downloading and unzipping the Gobra Tools has failed`));
 
     if (!(installationResult instanceof Success)) {
