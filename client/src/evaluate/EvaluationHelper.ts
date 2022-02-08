@@ -55,13 +55,13 @@ export class EvaluationHelper {
     const location = await Verifier.updateGobraTools(State.context, false);
     const fileData = new FileData(fileUri);
     const z3Path = Helper.getZ3Path(location);
-			const boogiePath = Helper.getBoogiePath(location);
-			if (z3Path.error != null) {
-				return Promise.reject(z3Path.error);
-			}
-			if (boogiePath.error != null) {
-				return Promise.reject(boogiePath.error);
-			}
+    const boogiePath = Helper.getBoogiePath(location);
+    if (z3Path.error != null) {
+      return Promise.reject(z3Path.error);
+    }
+    if (boogiePath.error != null) {
+      return Promise.reject(boogiePath.error);
+    }
     let config = new VerifierConfig([fileData], z3Path.path, boogiePath.path);
 
     let settings = new EvaluationGobraSettings();
