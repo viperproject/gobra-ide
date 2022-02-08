@@ -217,8 +217,8 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
         fileUris.foreach(fileUri => {
           VerifierState.removeDiagnostics(fileUri)
           VerifierState.publishDiagnostics(fileUri)
-          finishedVerification()
         })
+        finishedVerification()
 
       case GobraOverallFailureMessage(_, result) =>
         updateDiagnostics(result)
