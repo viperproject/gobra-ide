@@ -9,12 +9,12 @@ import { Helper, Commands, ContributionCommands, Texts, Color, PreviewUris, Buil
 import { ProgressBar } from "./ProgressBar";
 import * as vscode from 'vscode';
 import * as fs from 'fs';
+import * as path from 'path';
 import { VerifierConfig, OverallVerificationResult, PreviewData, FileData } from "./MessagePayloads";
 import { IdeEvents } from "./IdeEvents";
 
 import { Dependency, withProgressInWindow, Location, DependencyInstaller, RemoteZipExtractor, GitHubZipExtractor, LocalReference, ConfirmResult, Success } from 'vs-verification-toolbox';
 import { URI } from "vscode-uri";
-import path = require("path");
 
 export class Verifier {
   public static verifyItem: ProgressBar;
@@ -104,8 +104,9 @@ export class Verifier {
 
     // change of build version
     State.context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(e => {
-      if (e.affectsConfiguration("gobraSettings.buildVersion"))
-        Verifier.updateGobraTools(context, true, Texts.changedBuildVersion);
+      if (e.affectsConfiguration("gobraSettings.buildVersion")) {
+        vscode.window.showInformationMessage(Texts.changedBuildVersion)
+      }
     }))
 
 
@@ -399,14 +400,14 @@ export class Verifier {
     if (Helper.isLinux || Helper.isMac) {
       const z3Path = Helper.getZ3Path(location);
       const boogiePath = Helper.getBoogiePath(location);
-      const boogieExePath = `${boogiePath}.exe`;
-      fs.chmodSync(z3Path, '755');
-      if (fs.existsSync(boogiePath)) {
-        fs.chmodSync(boogiePath, '755');
+      if (z3Path.error != null) {
+        throw new Error(z3Path.error);
       }
-      if (fs.existsSync(boogieExePath)) {
-        fs.chmodSync(boogieExePath, '755');
+      if (boogiePath.error != null) {
+        throw new Error(boogiePath.error);
       }
+      fs.chmodSync(z3Path.path, '755');
+      fs.chmodSync(boogiePath.path, '755');
     }
 
     if (didReportProgress) {
@@ -450,7 +451,9 @@ export class Verifier {
   }
 
   private static async getLocalDependencyInstaller(): Promise<DependencyInstaller> {
-    return new LocalReference(Helper.getLocalGobraToolsPath());
+    const toolsPath = Helper.getLocalGobraToolsPath();
+    // do not here whether path actually exist because maybe this build version is not even used
+    return new LocalReference(toolsPath.path);
   }
 
   private static get buildChannelSubfolderName(): string {

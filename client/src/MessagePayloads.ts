@@ -25,12 +25,11 @@ export class VerifierConfig {
   z3Executable: string;
   boogieExecutable: string;
 
-  constructor(location: Location, files: FileData[]) {
+  constructor(files: FileData[], z3Executable: string, boogieExecutable: string) {
     this.fileData = files;
     this.gobraSettings = Helper.getGobraSettings();
-
-    this.z3Executable = Helper.getZ3Path(location);
-    this.boogieExecutable = Helper.getBoogiePath(location);
+    this.z3Executable = z3Executable;
+    this.boogieExecutable = boogieExecutable;
   }
 }
 

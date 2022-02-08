@@ -4,14 +4,16 @@
 //
 // Copyright (c) 2011-2020 ETH Zurich.
 
+import * as child_process from 'child_process';
+import * as fs from 'fs';
 import * as os from 'os';
+import * as path from 'path';
 import * as vscode from 'vscode';
 import { URI } from 'vscode-uri';
-import { VerifierConfig, OverallVerificationResult, FileData, GobraSettings, PlatformDependendPath, GobraDependencies, PreviewData, HighlightingPosition } from "./MessagePayloads";
+import { GitHubReleaseAsset, Location } from 'vs-verification-toolbox';
 import * as locate_java_home from '@viperproject/locate-java-home';
 import { IJavaHomeInfo } from '@viperproject/locate-java-home/js/es5/lib/interfaces';
-import * as child_process from 'child_process';
-import { GitHubReleaseAsset, Location } from 'vs-verification-toolbox';
+import { VerifierConfig, OverallVerificationResult, FileData, GobraSettings, PlatformDependendPath, GobraDependencies, PreviewData, HighlightingPosition } from "./MessagePayloads";
 
 
 export class Helper {
@@ -29,7 +31,7 @@ export class Helper {
     if (buildVersion === "Nightly") {
       return BuildChannel.Nightly;
     } else if (buildVersion === "Local") {
-      return BuildChannel.Local
+      return BuildChannel.Local;
     }
     return BuildChannel.Stable;
   }
@@ -281,24 +283,85 @@ export class Helper {
       (value == "1" || value.toUpperCase() == "TRUE");
   }
 
-  public static getLocalGobraToolsPath(): string {
+  public static getLocalGobraToolsPath(): ResolvedPath {
     const gobraToolsBasePath = Helper.getGobraDependencies().gobraToolsPaths.gobraToolsBasePath;
-    return Helper.getPlatformPath(gobraToolsBasePath);
+    return Helper.extractEnvVars(Helper.getPlatformPath(gobraToolsBasePath));
   }
 
-  public static getServerJarPath(location: Location): string {
-    let serverJarPaths = Helper.getGobraDependencies().gobraToolsPaths.serverJar;
-    return Helper.getPlatformPath(serverJarPaths).replace("$gobraTools$", location.basePath);
+  public static getServerJarPath(location: Location): ResolvedPath {
+    if (Helper.getBuildChannel() == BuildChannel.Local) {
+      const serverJarPaths = Helper.getGobraDependencies().gobraToolsPaths.serverJar;
+      return Helper.extractEnvVars(Helper.getPlatformPath(serverJarPaths).replace("$gobraTools$", location.basePath));
+    } else {
+      // ignore `gobraToolsPaths`:
+      return Helper.extractEnvVars(path.join(location.basePath, "server", "server.jar"));
+    }
   }
 
-  public static getBoogiePath(location: Location): string {
-    let boogiePaths = Helper.getGobraDependencies().gobraToolsPaths.boogieExecutable;
-    return Helper.getPlatformPath(boogiePaths).replace("$gobraTools$", location.basePath);
+  public static getBoogiePath(location: Location): ResolvedPath {
+    if (Helper.getBuildChannel() == BuildChannel.Local) {
+      const boogiePaths = Helper.getGobraDependencies().gobraToolsPaths.boogieExecutable;
+      return Helper.extractEnvVars(Helper.getPlatformPath(boogiePaths).replace("$gobraTools$", location.basePath));
+    } else {
+      // ignore `gobraToolsPaths`:
+      const binaryName = Helper.isWin ? "Boogie.exe" : "Boogie";
+      return Helper.extractEnvVars(path.join(location.basePath, "boogie", "Binaries", binaryName));
+    }
   }
 
-  public static getZ3Path(location: Location): string {
-    let z3Paths = Helper.getGobraDependencies().gobraToolsPaths.z3Executable;
-    return Helper.getPlatformPath(z3Paths).replace("$gobraTools$", location.basePath);
+  public static getZ3Path(location: Location): ResolvedPath {
+    if (Helper.getBuildChannel() == BuildChannel.Local) {
+      const z3Paths = Helper.getGobraDependencies().gobraToolsPaths.z3Executable;
+      return Helper.extractEnvVars(Helper.getPlatformPath(z3Paths).replace("$gobraTools$", location.basePath));
+    } else {
+      // ignore `gobraToolsPaths`:
+      const binaryName = Helper.isWin ? "z3.exe" : "z3";
+      return Helper.extractEnvVars(path.join(location.basePath, "z3", "bin", binaryName));
+    }
+  }
+
+  // taken from Viper-IDE:
+  private static extractEnvVars(path: string): ResolvedPath {
+    if (path && path.length > 2) {
+      while (Helper.isWin && path.indexOf("%") >= 0) {
+        const start = path.indexOf("%")
+        const end = path.indexOf("%", start + 1);
+        if (end < 0) {
+          return { path: path, error: "unbalanced % in path: " + path };
+        }
+        const envName = path.substring(start + 1, end);
+        const envValue = process.env[envName];
+        if (!envValue) {
+          return { path: path, error: "environment variable " + envName + " used in path " + path + " is not set" };
+        }
+        if (envValue.indexOf("%") >= 0) {
+          return { path: path, error: "environment variable: " + envName + " must not contain '%': " + envValue };
+        }
+        path = path.substring(0, start) + envValue + path.substring(end + 1, path.length);
+      }
+      while (!Helper.isWin && path.indexOf("$") >= 0) {
+        const index_of_dollar = path.indexOf("$")
+        let index_of_closing_slash = path.indexOf("/", index_of_dollar + 1)
+        if (index_of_closing_slash < 0) {
+          index_of_closing_slash = path.length
+        }
+        const envName = path.substring(index_of_dollar + 1, index_of_closing_slash)
+        const envValue = process.env[envName]
+        if (!envValue) {
+          return { path: path, error: "environment variable " + envName + " used in path " + path + " is not set" }
+        }
+        if (envValue.indexOf("$") >= 0) {
+          return { path: path, error: "environment variable: " + envName + " must not contain '$': " + envValue };
+        }
+        path = path.substring(0, index_of_dollar) + envValue + path.substring(index_of_closing_slash, path.length)
+      }
+    }
+    // Viper-IDE did not check whether path exists
+    if (fs.existsSync(path)) {
+      return { path: path };
+    } else {
+      return { path: path, error: `Expected path ${path} does not exist` };
+    }
   }
 
 
@@ -471,4 +534,9 @@ export enum BuildChannel {
   Stable = "Stable",
   Nightly = "Nightly",
   Local = "Local"
+}
+
+export interface ResolvedPath {
+  path: string,
+  error?: string
 }
