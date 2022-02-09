@@ -170,11 +170,15 @@ export class State {
     vscode.workspace.registerTextDocumentContentProvider(FileSchemes.internal, this.internalPreviewProvider);
 
     const serverBin = Helper.getServerJarPath(location);
+    if (serverBin.error != null) {
+      vscode.window.showErrorMessage(serverBin.error);
+      return Promise.reject(serverBin.error);
+    }
     // use the following serverBin when you want to directly use the compiled server jar:
     // const prefix = __dirname.split("client")[0];
     // const serverBin = path.join(prefix, 'server', 'target', 'scala-2.12', 'server.jar')
 
-    const serverOptions: ServerOptions = () => State.startServerProcess(location, serverBin);
+    const serverOptions: ServerOptions = () => State.startServerProcess(location, serverBin.path);
     // use the following lines to connect to a server instance instead of starting a new one (e.g. for debugging purposes)
     /*
     const connectionInfo = {
@@ -183,13 +187,6 @@ export class State {
     }
     const serverOptions: ServerOptions = () => State.connectToServer(location, connectionInfo);
     */
-
-    // server binary was not found
-    if (!fs.existsSync(serverBin)) {
-      const msg = `The server binary ${serverBin} does not exist. Please update Gobra Tools.`;
-      vscode.window.showErrorMessage(msg);
-      return Promise.reject(msg);
-    }
 
     let clientOptions: LanguageClientOptions = {
       // register server for gobra files
@@ -289,7 +286,11 @@ export class State {
     await Helper.spawn(javaPath, ["-version"]);
     Helper.log("Checking Z3...");
     const z3Path = Helper.getZ3Path(location);
-    await Helper.spawn(z3Path, ["--version"]);
+    if (z3Path.error != null) {
+      vscode.window.showErrorMessage(z3Path.error);
+      return Promise.reject(z3Path.error);
+    }
+    await Helper.spawn(z3Path.path, ["--version"]);
     return javaPath;
   }
 

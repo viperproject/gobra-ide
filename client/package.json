@@ -304,7 +304,7 @@
             "Local"
           ],
           "default": "Stable",
-          "description": "Select the build version of the Gobra Tools. The path specified at 'gobraDependencies.gobraToolsPaths.gobraToolsBasePath' will be used for build version 'Local'"
+          "description": "Select the build version of the Gobra Tools. The paths specified at 'gobraDependencies.gobraToolsPaths' will be used for build version 'Local' and ignored otherwise."
         },
         "gobraSettings.timeout": {
           "scope": "window",
@@ -358,9 +358,9 @@
           "type": "object",
           "default": {
             "gobraToolsBasePath": {
-              "windows": "%APPDATA%\\Gobra\\",
-              "linux": "$HOME/.config/Gobra",
-              "mac": "$HOME/Library/Application Support/Gobra"
+              "windows": "%APPDATA%\\Roaming\\Code\\User\\globalStorage\\viper-admin.gobra-ide\\Local\\GobraTools",
+              "linux": "$HOME/.config/Code/User/globalStorage/viper-admin.gobra-ide/Local/GobraTools",
+              "mac": "$HOME/Library/Application Support/Code/User/globalStorage/viper-admin.gobra-ide/Local/GobraTools"
             },
             "z3Executable": {
               "windows": "$gobraTools$\\z3\\bin\\z3.exe",
@@ -378,7 +378,7 @@
               "mac": "$gobraTools$/server/server.jar"
             }
           },
-          "description": "Paths to the dependencies."
+          "description": "Paths to the dependencies. They are only considered when the build version is set to 'Local'."
         },
         "gobraDependencies.gobraToolsProvider": {
           "type": "object",

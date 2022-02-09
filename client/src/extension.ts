@@ -37,7 +37,17 @@ export function activate(context: vscode.ExtensionContext): Thenable<any> {
 	function initVerifier(fileUri: URI): (location: Location) => void {
 		return location => {
 			const fileData = new FileData(fileUri);
-			const verifierConfig = new VerifierConfig(location, [fileData]);
+			const z3Path = Helper.getZ3Path(location);
+			const boogiePath = Helper.getBoogiePath(location);
+			if (z3Path.error != null) {
+				vscode.window.showErrorMessage(z3Path.error);
+				throw new Error(z3Path.error);
+			}
+			if (boogiePath.error != null) {
+				vscode.window.showErrorMessage(boogiePath.error);
+				throw new Error(boogiePath.error);
+			}
+			const verifierConfig = new VerifierConfig([fileData], z3Path.path, boogiePath.path);
 			Verifier.initialize(context, verifierConfig, fileUri);
 			Notifier.notifyExtensionActivation();
 		}

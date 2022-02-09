@@ -150,12 +150,6 @@ jobs:
 
 
   create-gobra-tools:
-    # run this command under the following circumstances:
-    # - created a new release
-    # - 'workflow_dispatch': manually triggered using the following POST request:
-    #   `curl -X POST -u <username>:<token> -H "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/viperproject/gobra-ide/actions/workflows/test.yml/dispatches" -d '{"ref":"<branch name>"}`
-    # - as part of our nightly build job (but only in the main repo)
-    if: (github.event_name == 'release' && github.event.action == 'created') || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
     needs: build-and-test-server
     runs-on: ubuntu-latest
     steps:
@@ -217,20 +211,37 @@ jobs:
         run: zip -r ../deploy/GobraToolsMac.zip ./*
         working-directory: GobraToolsMac
 
-      - name: Upload Gobra tools artifact
+      - name: Upload Gobra Tools for Windows
         uses: actions/upload-artifact@v2
         with:
-          name: GobraTools
-          path: deploy
+          name: GobraToolsWin.zip
+          path: deploy/GobraToolsWin.zip
+      - name: Upload Gobra Tools for Linux
+        uses: actions/upload-artifact@v2
+        with:
+          name: GobraToolsLinux.zip
+          path: deploy/GobraToolsLinux.zip
+      - name: Upload Gobra Tools for macOS
+        uses: actions/upload-artifact@v2
+        with:
+          name: GobraToolsMac.zip
+          path: deploy/GobraToolsMac.zip
 
 
   build-and-test-client:
-    needs: build-and-test-server
+    needs: create-gobra-tools
     strategy:
       # tests should not be stopped when they fail on one of the OSes:
       fail-fast: false
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
+        include:
+          - os: macos-latest
+            gobra-tools-zip-file: "GobraToolsMac.zip"
+          - os: ubuntu-latest
+            gobra-tools-zip-file: "GobraToolsLinux.zip"
+          - os: windows-latest
+            gobra-tools-zip-file: "GobraToolsWin.zip"
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout Gobra-IDE
@@ -238,14 +249,17 @@ jobs:
         with:
           path: gobra-ide
 
-      - name: Download Gobra server artifact
+      - name: Download Gobra tools
         uses: actions/download-artifact@v2
-        id: server-download
+        id: tools-download
         with:
-          name: server
-          # place artifact at the same location as the build has produced it:
-          path: gobra-ide/server/target/scala-2.13
-          # note that download-path is the parent folder (not server.jar)
+          name: ${{matrix.gobra-tools-zip-file}}
+          path: local
+          # note that download-path is the parent folder, i.e. `local` and not the download zip file
+
+      - name: Unzip Gobra tools
+        run: 7z x ${{matrix.gobra-tools-zip-file}} -oGobraTools
+        working-directory: local
 
       - name: Install Node.js
         uses: actions/setup-node@v1
@@ -280,7 +294,7 @@ jobs:
         if: "!startsWith(matrix.os, 'windows')"
         uses: GabrielBB/xvfb-action@v1
         with:
-          run: npm test --full-trace -- --server "${{steps.server-download.outputs.download-path}}/server.jar" --ignoreServerBackwardCompatibility
+          run: npm test --full-trace -- --gobraTools "${{steps.tools-download.outputs.download-path}}/GobraTools"
           working-directory: gobra-ide/client
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -289,7 +303,7 @@ jobs:
         if: startsWith(matrix.os, 'windows')
         uses: GabrielBB/xvfb-action@v1
         with:
-          run: npm test --full-trace -- --server "${{steps.server-download.outputs.download-path}}\server.jar" --ignoreServerBackwardCompatibility
+          run: npm test --full-trace -- --gobraTools "${{steps.tools-download.outputs.download-path}}/GobraTools"
           working-directory: gobra-ide/client
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -340,14 +354,24 @@ jobs:
   create-nightly-release:
     # this job creates a new nightly pre-release, set Gobra tools as artifacts, and deletes old releases
     if: (github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'nightly') || github.event_name == 'schedule'
-    needs: [create-gobra-tools, build-and-test-client]
+    needs: build-and-test-client
     runs-on: ubuntu-latest
     steps:
-      - name: Download Gobra tools artifact
+      - name: Download Gobra Tools for Windows
         uses: actions/download-artifact@v2
         with:
-          name: GobraTools
-          path: deploy
+          name: GobraToolsWin.zip
+          path: deploy/GobraToolsWin.zip
+      - name: Download Gobra Tools for Linux
+        uses: actions/download-artifact@v2
+        with:
+          name: GobraToolsLinux.zip
+          path: deploy/GobraToolsLinux.zip
+      - name: Download Gobra Tools for macOS
+        uses: actions/download-artifact@v2
+        with:
+          name: GobraToolsMac.zip
+          path: deploy/GobraToolsMac.zip
 
       - name: Download packaged Gobra IDE
         uses: actions/download-artifact@v2
@@ -419,7 +443,7 @@ jobs:
   create-stable-release:
     # this job creates a stable draft-release and set Gobra tools as artifacts
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'stable'
-    needs: [create-gobra-tools, build-and-test-client]
+    needs: build-and-test-client
     runs-on: ubuntu-latest
     steps:
       # we have to checkout the repo to read client/package.json later on:
@@ -428,11 +452,21 @@ jobs:
         with:
           path: gobra-ide
 
-      - name: Download Gobra tools artifact
+      - name: Download Gobra Tools for Windows
         uses: actions/download-artifact@v2
         with:
-          name: GobraTools
-          path: deploy
+          name: GobraToolsWin.zip
+          path: deploy/GobraToolsWin.zip
+      - name: Download Gobra Tools for Linux
+        uses: actions/download-artifact@v2
+        with:
+          name: GobraToolsLinux.zip
+          path: deploy/GobraToolsLinux.zip
+      - name: Download Gobra Tools for macOS
+        uses: actions/download-artifact@v2
+        with:
+          name: GobraToolsMac.zip
+          path: deploy/GobraToolsMac.zip
 
       - name: Download packaged Gobra IDE
         uses: actions/download-artifact@v2

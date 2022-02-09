@@ -30,13 +30,9 @@ const DATA_ROOT = path.join(PROJECT_ROOT, "src", "test", "data");
 
 async function main() {
 	const argv = await yargs
-		.option('server', {
-			description: 'Path to the Gobra Server JAR file that should be used instead of the one specified in the settings',
+		.option('gobraTools', {
+			description: 'Path to the Gobra Tools that should be used as gobraToolsBasePath instead of the one specified in the settings (only for build version "Local")',
             type: 'string',
-		})
-		.option('ignoreServerBackwardCompatibility', {
-			description: 'If set, skips the test cases that use the Gobra Server JAR from the latest nightly or stable release',
-			type: 'boolean',
 		})
         .help() // show help if `--help` is used
         .argv;
@@ -60,16 +56,13 @@ async function main() {
 	let firstIteration = true;
 	for (const settings_file of settings_list) {
 		const additionalSettings: Map<string, string>[] = [];
-		if (!argv.ignoreServerBackwardCompatibility) {
-			additionalSettings.push(new Map());
-		}
-		if (argv.server) {
-			const serverSettings = new Map([
-				["gobraDependencies.gobraToolsPaths.serverJar.windows", argv.server],
-				["gobraDependencies.gobraToolsPaths.serverJar.linux", argv.server],
-				["gobraDependencies.gobraToolsPaths.serverJar.mac", argv.server]]
+		if (argv.gobraTools) {
+			const gobraToolsSettings = new Map([
+				["gobraDependencies.gobraToolsPaths.gobraToolsBasePath.windows", argv.gobraTools],
+				["gobraDependencies.gobraToolsPaths.gobraToolsBasePath.linux", argv.gobraTools],
+				["gobraDependencies.gobraToolsPaths.gobraToolsBasePath.mac", argv.gobraTools]]
 			);
-			additionalSettings.push(serverSettings);
+			additionalSettings.push(gobraToolsSettings);
 		}
 		
 		for (const addSettings of additionalSettings) {
