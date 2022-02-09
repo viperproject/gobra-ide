@@ -378,7 +378,7 @@
               "mac": "$gobraTools$/server/server.jar"
             }
           },
-          "description": "Paths to the dependencies. Only considered for build version 'Local'."
+          "description": "Paths to the dependencies. They are only considered when the build version is set to 'Local'."
         },
         "gobraDependencies.gobraToolsProvider": {
           "type": "object",

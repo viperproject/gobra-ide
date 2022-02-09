@@ -459,7 +459,7 @@ export class Verifier {
 
   private static async getLocalDependencyInstaller(): Promise<DependencyInstaller> {
     const toolsPath = Helper.getLocalGobraToolsPath();
-    // do not here whether path actually exist because maybe this build version is not even used
+    // do not check here whether path actually exist because this build version might not even be used
     return new LocalReference(toolsPath.path);
   }
 
