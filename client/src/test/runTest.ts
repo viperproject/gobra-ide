@@ -30,7 +30,7 @@ const DATA_ROOT = path.join(PROJECT_ROOT, "src", "test", "data");
 
 async function main() {
 	const argv = await yargs
-		.option('gobra-tools', {
+		.option('gobraTools', {
 			description: 'Path to the Gobra Tools that should be used as gobraToolsBasePath instead of the one specified in the settings (only for build version "Local")',
             type: 'string',
 		})
