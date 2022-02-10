@@ -141,7 +141,7 @@ jobs:
       - name: Upload Gobra server artifact
         uses: actions/upload-artifact@v2
         with:
-          name: server
+          name: server.jar
           path: gobra-ide/server/target/scala-2.13/server.jar
 
       - name: Test Gobra server
@@ -159,7 +159,7 @@ jobs:
       - name: Download Gobra server artifact
         uses: actions/download-artifact@v2
         with:
-          name: server
+          name: server.jar
 
       - name: Download Viper Tools for Windows
         run: curl --fail --silent --show-error http://viper.ethz.ch/downloads/ViperToolsWin.zip --output ViperToolsWin.zip
@@ -361,17 +361,17 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: GobraToolsWin.zip
-          path: deploy/GobraToolsWin.zip
+          path: deploy
       - name: Download Gobra Tools for Linux
         uses: actions/download-artifact@v2
         with:
           name: GobraToolsLinux.zip
-          path: deploy/GobraToolsLinux.zip
+          path: deploy
       - name: Download Gobra Tools for macOS
         uses: actions/download-artifact@v2
         with:
           name: GobraToolsMac.zip
-          path: deploy/GobraToolsMac.zip
+          path: deploy
 
       - name: Download packaged Gobra IDE
         uses: actions/download-artifact@v2
@@ -456,17 +456,17 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: GobraToolsWin.zip
-          path: deploy/GobraToolsWin.zip
+          path: deploy
       - name: Download Gobra Tools for Linux
         uses: actions/download-artifact@v2
         with:
           name: GobraToolsLinux.zip
-          path: deploy/GobraToolsLinux.zip
+          path: deploy
       - name: Download Gobra Tools for macOS
         uses: actions/download-artifact@v2
         with:
           name: GobraToolsMac.zip
-          path: deploy/GobraToolsMac.zip
+          path: deploy
 
       - name: Download packaged Gobra IDE
         uses: actions/download-artifact@v2
