@@ -85,6 +85,8 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
     VerifierState.updateVerificationInformation(fileUris, Left(sanitizedProgress))
   }
 
+  private var (cachedMethods, uncachedMethods) = (Set[vpr.Method](), Set[vpr.Method]())
+
   private def write(inputs: Vector[String], fileExt: String, content: String): Unit = {
     // this message belongs to multiple inputs. We simply pick the first one for the resulting file's name
     Violation.violation(inputs.nonEmpty, s"expected at least one file path for which the following message was reported: '$content''")
@@ -170,6 +172,10 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
     val result = if (reportedErrors.isEmpty) VerifierResult.Success else VerifierResult.Failure(reportedErrors.toVector)
 
     val endTime = System.currentTimeMillis()
+    println(s"Verification took ${endTime - startTime}ms " +
+      s"(${cachedMethods.size} out of ${cachedMethods.size + uncachedMethods.size} methods were retrieved from the cache)\n" +
+      s"(${cachedMethods.count(_.body.isDefined)} out of ${cachedMethods.count(_.body.isDefined) + uncachedMethods.count(_.body.isDefined)} non-abstract methods were retrieved from the cache)\n" +
+      s"verified files: $filePaths")
     val overallResult = Helper.getOverallVerificationResult(fileUris, result, endTime - startTime)
     VerifierState.updateVerificationInformation(fileUris, Right(overallResult))
   }
@@ -224,11 +230,19 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
         updateDiagnostics(result)
         finishedVerification()
 
-      case GobraEntitySuccessMessage(_, member, _) =>
+      case GobraEntitySuccessMessage(_, member, _, cached) =>
         if (isRelevantVprMember(member)) updateProgress(verificationEntityProgress)
+        member match {
+          case m: vpr.Method => if (cached) cachedMethods += m else uncachedMethods += m
+          case _ =>
+        }
 
-      case GobraEntityFailureMessage(_, member, _, result) =>
+      case GobraEntityFailureMessage(_, member, _, result, cached) =>
         if (isRelevantVprMember(member)) updateProgress(verificationEntityProgress)
+        member match {
+          case m: vpr.Method => if (cached) cachedMethods += m else uncachedMethods += m
+          case _ =>
+        }
         updateDiagnostics(result)
 
       case _ => // ignore
