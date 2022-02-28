@@ -480,8 +480,16 @@
           "name": "keyword.verification.contracts.requires.gobra"
         },
         {
+          "match": "\\bpreserves\\b",
+          "name": "keyword.verification.contracts.preserves.gobra"
+        },
+        {
           "match": "\\bensures\\b",
           "name": "keyword.verification.contracts.ensures.gobra"
+        },
+        {
+            "match": "\\bdecreases\\b",
+            "name": "keyword.verification.contracts.decreases.gobra"
         },
         {
           "match": "\\binvariant\\b",
