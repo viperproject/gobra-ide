@@ -85,8 +85,6 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
     VerifierState.updateVerificationInformation(fileUris, Left(sanitizedProgress))
   }
 
-  private var (cachedMethods, uncachedMethods) = (Set[vpr.Method](), Set[vpr.Method]())
-
   private def write(inputs: Vector[String], fileExt: String, content: String): Unit = {
     // this message belongs to multiple inputs. We simply pick the first one for the resulting file's name
     Violation.violation(inputs.nonEmpty, s"expected at least one file path for which the following message was reported: '$content''")
@@ -143,7 +141,10 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
 
     val diagnosticsCache = VerifierState.getDiagnosticsCache(file.fileUri)
     val cachedDiagnostics = cachedErrors.map(err =>
-      diagnosticsCache.getOrElse(err, throw GobraServerCacheInconsistentException()))
+      diagnosticsCache.getOrElse(err, {
+        logger.get.debug(s"diagnostics cache does not contain cached error '$err'. Diagnostics cache: $diagnosticsCache")
+        throw GobraServerCacheInconsistentException()
+      }))
 
     val nonCachedDiagnostics = nonCachedErrors.map(err => errorToDiagnostic(err))
 
@@ -172,10 +173,6 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
     val result = if (reportedErrors.isEmpty) VerifierResult.Success else VerifierResult.Failure(reportedErrors.toVector)
 
     val endTime = System.currentTimeMillis()
-    println(s"Verification took ${endTime - startTime}ms " +
-      s"(${cachedMethods.size} out of ${cachedMethods.size + uncachedMethods.size} methods were retrieved from the cache)\n" +
-      s"(${cachedMethods.count(_.body.isDefined)} out of ${cachedMethods.count(_.body.isDefined) + uncachedMethods.count(_.body.isDefined)} non-abstract methods were retrieved from the cache)\n" +
-      s"verified files: $filePaths")
     val overallResult = Helper.getOverallVerificationResult(fileUris, result, endTime - startTime)
     VerifierState.updateVerificationInformation(fileUris, Right(overallResult))
   }
@@ -198,7 +195,7 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
         updateDiagnostics(VerifierResult.Failure(result))
         finishedVerification()
 
-      case TypeCheckSuccessMessage(inputs, _, erasedGhostCode, goifiedGhostCode) =>
+      case TypeCheckSuccessMessage(inputs, _, _, _, erasedGhostCode, goifiedGhostCode) =>
         if (filePaths == inputs) updateProgress(typeCheckEntityProgress)
         if (eraseGhost) write(inputs, "ghostLess", erasedGhostCode())
         if (goify) write(inputs, "go", goifiedGhostCode())
@@ -213,7 +210,7 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
         if (filePaths == inputs) updateProgress(desugarEntityProgress)
         if (printInternal) write(inputs, "internal", internal().formatted)
 
-      case m@GeneratedViperMessage(inputs, ast, backtrack) =>
+      case m@GeneratedViperMessage(_, inputs, ast, backtrack) =>
         if (filePaths == inputs) updateProgress(encodeEntityProgress)
         if (printVpr) write(inputs, "vpr", m.vprAstFormatted)
         // submit the Viper AST's verification to the thread pool:
@@ -230,19 +227,11 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
         updateDiagnostics(result)
         finishedVerification()
 
-      case GobraEntitySuccessMessage(_, member, _, cached) =>
+      case GobraEntitySuccessMessage(_, _, member, _, _, _) =>
         if (isRelevantVprMember(member)) updateProgress(verificationEntityProgress)
-        member match {
-          case m: vpr.Method => if (cached) cachedMethods += m else uncachedMethods += m
-          case _ =>
-        }
 
-      case GobraEntityFailureMessage(_, member, _, result, cached) =>
+      case GobraEntityFailureMessage(_, _, member, _, result, _, _) =>
         if (isRelevantVprMember(member)) updateProgress(verificationEntityProgress)
-        member match {
-          case m: vpr.Method => if (cached) cachedMethods += m else uncachedMethods += m
-          case _ =>
-        }
         updateDiagnostics(result)
 
       case _ => // ignore
