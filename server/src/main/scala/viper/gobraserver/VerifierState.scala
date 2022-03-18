@@ -44,7 +44,7 @@ object VerifierState {
     // simply call verify here without explicitly waiting on the result (or waiting for it in a runnable submitted
     // to the thread pool - in this case an entire thread from the thread pool would be occupied waiting for it).
     // executor.execute(() => GobraServer.verify(verifierConfig, program, backtrack, startTime))
-    GobraServer.verify(verifierConfig, program, backtrack, startTime, completedProgress)
+    GobraServer.verifyAst(verifierConfig, program, backtrack, startTime, completedProgress)
   }
   
   /**

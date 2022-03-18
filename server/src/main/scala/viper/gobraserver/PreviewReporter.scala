@@ -66,7 +66,7 @@ case class PreviewReporter(name: String = "preview_reporter",
       }
 
 
-    case GeneratedViperMessage(_, ast, _) if viperPreview =>
+    case GeneratedViperMessage(_, _, ast, _) if viperPreview =>
       val vprAstFormatted = HighlightingPrettyPrinter.pretty(ast())
       val positionStore = HighlightingPrettyPrinter.positionStore
 

@@ -6,12 +6,12 @@
 
 package viper.gobraserver
 
-import viper.gobra.frontend.Config
+import viper.gobra.frontend.{Config, PackageInfo, Source}
 import viper.gobra.backend.ViperBackends
 import viper.gobra.reporting.{FileWriterReporter, VerifierResult}
 import org.eclipse.lsp4j.Range
 
-import java.nio.file.Paths
+import java.nio.file.{Path, Paths}
 import ch.qos.logback.classic.Level
 import org.bitbucket.inkytonik.kiama.util.Source
 import viper.gobra.frontend.Source.FromFileSource
@@ -22,6 +22,13 @@ import viper.silver.{ast => vpr}
 object Helper {
 
   val defaultVerificationFraction = 0.75
+
+  private def getPackageInfoInputMap(fileData: Vector[FileData]): Map[PackageInfo, Vector[Source]] = {
+    // sort data (again) if it isn't already
+    val sortedFileData = fileData.sortBy(_.fileUri)
+    val sources = sortedFileData.map(_.filePath).map(path => FromFileSource(Paths.get(path)))
+    sources.groupBy(Source.getPackageInfo(_, Path.of("")))
+  }
 
   def verificationConfigFromTask(server: ViperCoreServer, config: VerifierConfig, startTime: Long, verify: Boolean, completedProgress: Int = 0, ast: Option[vpr.Program] = None)(executor: GobraExecutionContext): Config = {
     config match {
@@ -48,7 +55,6 @@ object Helper {
 
         // ensure consistent ordering such that e.g. caching works as expected:
         val sortedFileData = fileData.sortBy(_.fileUri).toVector
-        val filePaths = sortedFileData.map(_.filePath)
         val reporter = GobraIdeReporter(
           startTime = startTime,
           verifierConfig = config,
@@ -67,7 +73,7 @@ object Helper {
         )(executor)
 
         Config(
-          inputs = filePaths.map(getSourceFromPath),
+          packageInfoInputMap = getPackageInfoInputMap(sortedFileData),
           moduleName = moduleName,
           includeDirs = includeDirs.map(Paths.get(_)).toVector,
           reporter = reporter,
@@ -89,7 +95,7 @@ object Helper {
     val reporter = FileWriterReporter(goify = true)
 
     Config(
-      inputs = Vector(getSourceFromPath(fileData.filePath)),
+      packageInfoInputMap = getPackageInfoInputMap(Vector(fileData)),
       shouldDesugar = false,
       shouldViperEncode = false,
       shouldVerify = false,
@@ -105,15 +111,11 @@ object Helper {
     )
 
     Config(
-      inputs = fileData.map(f => getSourceFromPath(f.filePath)),
+      packageInfoInputMap = getPackageInfoInputMap(fileData),
       shouldVerify = false,
       shouldViperEncode = viperPreview,
       reporter = reporter
     )
-  }
-
-  private def getSourceFromPath(path: String): Source = {
-    FromFileSource(Paths.get(path))
   }
 
   def getOverallVerificationResult(fileUris: Vector[String], result: VerifierResult, elapsedTime: Long): OverallVerificationResult = {
