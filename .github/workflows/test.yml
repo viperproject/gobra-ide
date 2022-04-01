@@ -49,29 +49,24 @@ jobs:
         shell: bash
         run: |
           source viper-toolchain-versions.sh
-          echo "SILVER_REF=$SILVER_REF" >> $GITHUB_ENV
-          echo "CARBON_REF=$CARBON_REF" >> $GITHUB_ENV
           echo "SILICON_REF=$SILICON_REF" >> $GITHUB_ENV
+          echo "CARBON_REF=$CARBON_REF" >> $GITHUB_ENV
           echo "VIPERSERVER_REF=$VIPERSERVER_REF" >> $GITHUB_ENV
         working-directory: gobra
-      - name: Checkout Silver
-        uses: actions/checkout@v2
-        with:
-          repository: viperproject/silver
-          ref: ${{ env.SILVER_REF }}
-          path: silver
       - name: Checkout Silicon
         uses: actions/checkout@v2
         with:
           repository: viperproject/silicon
           ref: ${{ env.SILICON_REF }}
           path: silicon
+          submodules: true
       - name: Checkout Carbon
         uses: actions/checkout@v2
         with:
           repository: viperproject/carbon
           ref: ${{ env.CARBON_REF }}
           path: carbon
+          submodules: true
       - name: Checkout ViperServer
         uses: actions/checkout@v2
         with:
@@ -84,6 +79,29 @@ jobs:
       - name: Z3 Version
         run: z3 -version
 
+      # create symlinks between and to Viper dependencies:
+      - name: Create ViperServers's sym links
+        run: ln --symbolic ../silicon; ln --symbolic ../carbon
+        working-directory: viperserver
+      - name: Create Gobra's sym links
+        run: ln --symbolic ../silicon; ln --symbolic ../carbon; ln --symbolic ../viperserver
+        working-directory: gobra
+      - name: Create Gobra IDE's sym links
+        run: ln --symbolic ../../gobra; ln --symbolic ../../viperserver
+        working-directory: gobra-ide/server
+
+      - name: Get Silver commits referenced by Silicon and Carbon
+        run: |
+          echo "SILICON_SILVER_REF=$(git -C viperserver/silicon/silver rev-parse HEAD)" >> $GITHUB_ENV
+          echo "CARBON_SILVER_REF=$(git -C viperserver/carbon/silver rev-parse HEAD)" >> $GITHUB_ENV
+
+      - name: Silicon and Carbon reference different Silver commits
+        if: env.SILICON_SILVER_REF != env.CARBON_SILVER_REF
+        run: |
+          echo "::error file=.github/workflows/scala.yml::Silicon and Carbon reference different Silver commits (${{ env.SILICON_SILVER_REF }} and ${{ env.CARBON_SILVER_REF }})"
+          # terminate this job:
+          exit 1
+
       - name: Create version file
         run: |
           echo "Gobra-IDE: commit $(git -C gobra-ide rev-parse HEAD)" > versions.txt
@@ -91,30 +109,13 @@ jobs:
           echo "ViperServer: commit $(git -C viperserver rev-parse HEAD)" >> versions.txt
           echo "Silicon: commit $(git -C silicon rev-parse HEAD)" >> versions.txt
           echo "Carbon: commit $(git -C carbon rev-parse HEAD)" >> versions.txt
-          echo "Silver: commit $(git -C silver rev-parse HEAD)" >> versions.txt
+          echo "Silver: commit ${{ env.SILICON_SILVER_REF }}" >> versions.txt
         # first line overwrites versions.txt in case it already exists, all other append to the file
       - name: Upload version file
         uses: actions/upload-artifact@v2
         with:
           name: versions.txt
           path: versions.txt
-
-      # create symlinks between and to Viper dependencies:
-      - name: Create Silicon's sym links
-        run: ln --symbolic ../silver
-        working-directory: silicon
-      - name: Create Carbon's sym links
-        run: ln --symbolic ../silver
-        working-directory: carbon
-      - name: Create ViperServers's sym links
-        run: ln --symbolic ../silver; ln --symbolic ../silicon; ln --symbolic ../carbon
-        working-directory: viperserver
-      - name: Create Gobra's sym links
-        run: ln --symbolic ../silver; ln --symbolic ../silicon; ln --symbolic ../carbon; ln --symbolic ../viperserver
-        working-directory: gobra
-      - name: Create Gobra IDE's sym links
-        run: ln --symbolic ../../gobra; ln --symbolic ../../viperserver
-        working-directory: gobra-ide/server
 
       - name: Set sbt cache variables
         run: echo "SBT_OPTS=-Dsbt.global.base=sbt-cache/.sbtboot -Dsbt.boot.directory=sbt-cache/.boot -Dsbt.ivy.home=sbt-cache/.ivy" >> $GITHUB_ENV
