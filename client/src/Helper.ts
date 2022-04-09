@@ -142,7 +142,7 @@ export class Helper {
     return new Promise((resolve, reject) => {
       try {
         const options = {
-          version: ">=1.8",
+          version: ">=11",
           mustBe64Bit: true,
           mustBeJDK: true // we currently disallow JREs
         };
