@@ -351,7 +351,7 @@
         "gobraDependencies.java.javaArguments": {
           "scope": "window",
           "type": "string",
-          "default": "-Xss128m -jar $serverBinary$",
+          "default": "-Xss128m -jar $serverBinary$ --logLevel $logLevel$",
           "description": "Specify arguments that will be passed to the Java binary and Gobra server."
         },
         "gobraDependencies.gobraToolsPaths": {
@@ -394,6 +394,17 @@
               "mac": "github.com/viperproject/gobra-ide/releases/latest?asset-name=GobraToolsMac.zip&include-prereleases"
             }
           }
+        },
+        "gobraServer.trace.server": {
+          "scope": "window",
+          "type": "string",
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
+          "default": "off",
+          "description": "Traces the communication between VS Code and the Gobra language server."
         }
       }
     }

@@ -54,7 +54,7 @@ object Server {
       println(s"client got connected")
       // TODO add support for multiple clients connecting to this server
 
-      val server: GobraServerService = new GobraServerService()(executor)
+      val server: GobraServerService = new GobraServerService(config)(executor)
       val launcher = createLauncher(server, socket)(executor)
       server.connect(launcher.getRemoteProxy)
       // start listening on input stream in a new thread:

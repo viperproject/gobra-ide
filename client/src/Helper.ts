@@ -36,6 +36,15 @@ export class Helper {
     return BuildChannel.Stable;
   }
 
+  public static getLogLevel(): string {
+    const logLevel = vscode.workspace.getConfiguration("gobraSettings").get<string>("loglevel");
+    if (logLevel == null) {
+      return "INFO";
+    } else {
+      return logLevel;
+    }
+  }
+
   public static isAutoVerify(): boolean {
     const autoVerify = vscode.workspace.getConfiguration("gobraSettings").get<boolean>("autoVerify");
     return (autoVerify == null) || autoVerify;
@@ -202,7 +211,8 @@ export class Helper {
 
   public static getServerProcessArgs(serverBinary: string): string {
     const configuredArgString = Helper.getGobraDependencies().java.javaArguments
-      .replace("$serverBinary$", `"${serverBinary}"`); // escape `serverBinary` in case it contains spaces
+      .replace("$serverBinary$", `"${serverBinary}"`) // escape `serverBinary` in case it contains spaces
+      .replace("$logLevel$", Helper.getLogLevel());
     return configuredArgString;
   }
   

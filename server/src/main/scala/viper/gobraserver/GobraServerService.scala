@@ -14,7 +14,7 @@ import org.eclipse.lsp4j.{DidChangeTextDocumentParams, DidChangeWatchedFilesPara
 import scala.jdk.CollectionConverters._
 import scala.annotation.unused
 
-class GobraServerService()(implicit executor: GobraServerExecutionContext) extends IdeLanguageClientAware {
+class GobraServerService(config: ServerConfig)(implicit executor: GobraServerExecutionContext) extends IdeLanguageClientAware {
   private val gson: Gson = new Gson()
 
 
@@ -24,7 +24,7 @@ class GobraServerService()(implicit executor: GobraServerExecutionContext) exten
     // always send full text document for each notification:
     capabilities.setTextDocumentSync(TextDocumentSyncKind.Incremental)
 
-    val options: List[String] = List()
+    val options: List[String] = List("--logLevel", config.logLevel.levelStr)
     GobraServer.init(options)(executor)
     GobraServer.start()
 
