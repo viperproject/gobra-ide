@@ -351,7 +351,7 @@
         "gobraDependencies.java.javaArguments": {
           "scope": "window",
           "type": "string",
-          "default": "-Xss128m -jar $serverBinary$ --logLevel $logLevel$",
+          "default": "-Xss128m -jar $serverBinary$",
           "description": "Specify arguments that will be passed to the Java binary and Gobra server."
         },
         "gobraDependencies.gobraToolsPaths": {
