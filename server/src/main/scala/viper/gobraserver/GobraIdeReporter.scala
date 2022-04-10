@@ -141,10 +141,7 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
 
     val diagnosticsCache = VerifierState.getDiagnosticsCache(file.fileUri)
     val cachedDiagnostics = cachedErrors.map(err =>
-      diagnosticsCache.getOrElse(err, {
-        logger.get.debug(s"diagnostics cache does not contain cached error '$err'. Diagnostics cache: $diagnosticsCache")
-        throw GobraServerCacheInconsistentException()
-      }))
+      diagnosticsCache.getOrElse(err, errorToDiagnostic(err)))
 
     val nonCachedDiagnostics = nonCachedErrors.map(err => errorToDiagnostic(err))
 

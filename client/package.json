@@ -394,6 +394,17 @@
               "mac": "github.com/viperproject/gobra-ide/releases/latest?asset-name=GobraToolsMac.zip&include-prereleases"
             }
           }
+        },
+        "gobraServer.trace.server": {
+          "scope": "window",
+          "type": "string",
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
+          "default": "off",
+          "description": "Traces the communication between VS Code and the Gobra language server."
         }
       }
     }

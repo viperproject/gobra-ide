@@ -6,7 +6,9 @@
 
 package viper.gobraserver
 
+import ch.qos.logback.classic.Level
 import org.rogach.scallop.{ScallopConf, ScallopOption, intConverter, numberHandler, singleArgConverter}
+import viper.gobra.frontend.LoggerDefaults
 import viper.server.core.DefaultVerificationExecutionContext
 
 class ServerConfig(arguments: Seq[String])
@@ -60,6 +62,14 @@ class ServerConfig(arguments: Seq[String])
     }
   }, numberHandler("Int")))
 
+  val logLevelOpt: ScallopOption[Level] = opt[Level](
+    name = "logLevel",
+    descr =
+      "One of the log levels ALL, TRACE, DEBUG, INFO, WARN, ERROR, OFF (default: OFF)",
+    default = Some(LoggerDefaults.DefaultLevel),
+    noshort = true
+  )(singleArgConverter(arg => Level.toLevel(arg.toUpperCase)))
+
   /**
     * Exception handling
     */
@@ -71,4 +81,5 @@ class ServerConfig(arguments: Seq[String])
 
   val port: Int = portOpt()
   val nThreads: Int = nThreadsOpt()
+  val logLevel: Level = logLevelOpt()
 }

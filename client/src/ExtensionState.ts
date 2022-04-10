@@ -196,7 +196,9 @@ export class State {
       }
     }
 
-    this.client = new LanguageClient('gobraServer', 'Gobra Server', serverOptions, clientOptions);
+    // the id (i.e. `gobraServer`) has to match the first part of the settings item on tracing the communication between
+    // client and server
+    this.client = new LanguageClient('gobraServer', 'Gobra IDE - Server Communication', serverOptions, clientOptions);
 
     // Start the client together with the server.
     const disposable = this.client.start();

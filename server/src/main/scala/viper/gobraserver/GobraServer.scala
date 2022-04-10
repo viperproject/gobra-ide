@@ -25,13 +25,6 @@ import scala.io.Source
 import scala.util.{Failure, Success}
 
 
-class GobraServerException extends Exception
-
-case class GobraServerCacheInconsistentException() extends GobraServerException {
-  override def toString: String = s"The diagnostics Cache is not consistent with Viper Server Cache."
-}
-
-
 object GobraServer extends GobraFrontend {
 
 
