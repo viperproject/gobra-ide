@@ -47,7 +47,7 @@
     "performance-now": "^2.1.0",
     "rimraf": "^3.0.2",
     "tmp": "^0.2.1",
-    "ts-loader": "^9.2.6",
+    "ts-loader": "^9.2.8",
     "typescript": "^4.6.2",
     "vs-verification-toolbox": "git+https://github.com/viperproject/vs-verification-toolbox.git",
     "vsce": "^2.6.7",
