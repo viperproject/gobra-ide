@@ -50,7 +50,7 @@
     "ts-loader": "^9.2.8",
     "typescript": "^4.6.4",
     "vs-verification-toolbox": "git+https://github.com/viperproject/vs-verification-toolbox.git",
-    "vsce": "^2.7.0",
+    "vsce": "^2.9.1",
     "vscode-languageclient": "^6.1.3",
     "vscode-test": "^1.6.1",
     "vscode-uri": "^3.0.2",
