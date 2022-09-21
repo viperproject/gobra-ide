@@ -6,7 +6,7 @@
 
 package viper.gobraserver
 
-import viper.gobra.frontend.{Config, PackageInfo, Source}
+import viper.gobra.frontend.{BaseConfig, Config, FileModeConfig, PackageInfo, Source}
 import viper.gobra.backend.ViperBackends
 import viper.gobra.reporting.{FileWriterReporter, VerifierResult}
 import org.eclipse.lsp4j.Range
@@ -19,32 +19,32 @@ import viper.gobra.util.GobraExecutionContext
 import viper.server.core.ViperCoreServer
 import viper.silver.{ast => vpr}
 
+import java.net.URI
+
 object Helper {
 
   val defaultVerificationFraction = 0.75
 
+  def uri2Path(uri: String): Path = {
+    Paths.get(new URI(uri))
+  }
+
   private def getPackageInfoInputMap(fileData: Vector[FileData]): Map[PackageInfo, Vector[Source]] = {
     // sort data (again) if it isn't already
     val sortedFileData = fileData.sortBy(_.fileUri)
-    val sources = sortedFileData.map(_.filePath).map(path => FromFileSource(Paths.get(path)))
+    val sources = sortedFileData.map(fileDatum => FromFileSource(uri2Path(fileDatum.fileUri)))
     sources.groupBy(Source.getPackageInfo(_, Path.of("")))
   }
 
-  def verificationConfigFromTask(server: ViperCoreServer, config: VerifierConfig, startTime: Long, verify: Boolean, completedProgress: Int = 0, ast: Option[vpr.Program] = None)(executor: GobraExecutionContext): Config = {
+  def getFileModeConfig(server: ViperCoreServer, config: VerifierConfig, startTime: Long, stopAfterEncoding: Boolean, completedProgress: Int = 0, ast: Option[vpr.Program] = None)(executor: GobraExecutionContext): FileModeConfig = {
     config match {
       case VerifierConfig(
         fileData,
+        isolate,
         GobraSettings(backendId, serverMode, debug, eraseGhost, goify, unparse, printInternal, printViper, parseOnly, logLevel, moduleName, includeDirs),
         z3Exe,
         boogieExe
       ) =>
-
-        val shouldParse = true
-        val shouldTypeCheck = !parseOnly
-        val shouldDesugar = shouldTypeCheck
-        val shouldViperEncode = shouldDesugar
-        val shouldVerify = shouldViperEncode && verify
-
         val backend = backendId match {
           case "SILICON" if serverMode => ViperBackends.ViperServerWithSilicon(Some(server))
           case "SILICON" => ViperBackends.SiliconBackend
@@ -72,22 +72,23 @@ object Helper {
           logger = server.globalLogger
         )(executor)
 
-        Config(
-          packageInfoInputMap = getPackageInfoInputMap(sortedFileData),
+        val convertedIsolationData = isolate.map(isolationDatum => (uri2Path(isolationDatum.fileUri), isolationDatum.lineNrs.toList)).toList
+
+        val inputFiles = sortedFileData.map(fileDatum => uri2Path(fileDatum.fileUri))
+        val baseConfig = BaseConfig(
           moduleName = moduleName,
           includeDirs = includeDirs.map(Paths.get(_)).toVector,
           reporter = reporter,
           backend = backend,
+          isolate = convertedIsolationData,
           z3Exe = Some(z3Exe),
           boogieExe = Some(boogieExe),
           logLevel = Level.toLevel(logLevel),
-          shouldParse = shouldParse,
-          shouldTypeCheck = shouldTypeCheck,
-          shouldDesugar = shouldDesugar,
-          shouldViperEncode = shouldViperEncode,
-          shouldVerify = shouldVerify,
-          cacheParser = true
+          shouldParseOnly = parseOnly,
+          stopAfterEncoding = stopAfterEncoding,
+          cacheParser = true,
         )
+        FileModeConfig(inputFiles = inputFiles, baseConfig = baseConfig)
     }
   }
 

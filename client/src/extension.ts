@@ -47,7 +47,7 @@ export function activate(context: vscode.ExtensionContext): Thenable<any> {
 				vscode.window.showErrorMessage(boogiePath.error);
 				throw new Error(boogiePath.error);
 			}
-			const verifierConfig = new VerifierConfig([fileData], z3Path.path, boogiePath.path);
+			const verifierConfig = new VerifierConfig([fileData], [], z3Path.path, boogiePath.path);
 			Verifier.initialize(context, verifierConfig, fileUri);
 			Notifier.notifyExtensionActivation();
 		}

@@ -7,26 +7,35 @@
 import { Helper } from "./Helper";
 import * as vscode from 'vscode';
 import { URI } from 'vscode-uri';
-import { Location } from "vs-verification-toolbox";
 
 export class FileData {
-  filePath: string;
   fileUri: string;
 
   constructor(fileUri: URI) {
-    this.filePath = fileUri.fsPath;
     this.fileUri = fileUri.toString();
+  }
+}
+
+export class IsolationData {
+  fileUri: string;
+  lineNrs: number[];
+
+  constructor(fileUri: URI, lineNrs: number[]) {
+    this.fileUri = fileUri.toString();
+    this.lineNrs = lineNrs;
   }
 }
 
 export class VerifierConfig {
   fileData: FileData[];
+  isolate: IsolationData[];
   gobraSettings: GobraSettings;
   z3Executable: string;
   boogieExecutable: string;
 
-  constructor(files: FileData[], z3Executable: string, boogieExecutable: string) {
+  constructor(files: FileData[], isolate: IsolationData[], z3Executable: string, boogieExecutable: string) {
     this.fileData = files;
+    this.isolate = isolate
     this.gobraSettings = Helper.getGobraSettings();
     this.z3Executable = z3Executable;
     this.boogieExecutable = boogieExecutable;

@@ -10,7 +10,7 @@ import { ProgressBar } from "./ProgressBar";
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { VerifierConfig, OverallVerificationResult, PreviewData, FileData } from "./MessagePayloads";
+import { VerifierConfig, OverallVerificationResult, PreviewData, FileData, IsolationData } from "./MessagePayloads";
 import { IdeEvents } from "./IdeEvents";
 
 import { Dependency, withProgressInWindow, Location, DependencyInstaller, RemoteZipExtractor, GitHubZipExtractor, LocalReference, ConfirmResult, Success } from 'vs-verification-toolbox';
@@ -36,6 +36,7 @@ export class Verifier {
     Helper.registerCommand(ContributionCommands.verify, Verifier.manualVerify, context);
     Helper.registerCommand(ContributionCommands.verifyFile, Verifier.manualVerifyFile, context);
     Helper.registerCommand(ContributionCommands.verifyPackage, Verifier.manualVerifyPackage, context);
+    Helper.registerCommand(ContributionCommands.verifyMember, Verifier.manualVerifyMember, context);
     Helper.registerCommand(ContributionCommands.updateGobraTools, () => Verifier.updateGobraTools(context, true), context);
     Helper.registerCommand(ContributionCommands.showViperCodePreview, Verifier.showViperCodePreview, context);
     Helper.registerCommand(ContributionCommands.showInternalCodePreview, Verifier.showInternalCodePreview, context);
@@ -155,10 +156,25 @@ export class Verifier {
     Verifier.verifyFiles(fileUris, IdeEvents.Manual);
   }
 
+  /** 
+   * Verifies the member at the current cursor position
+   */
+  public static manualVerifyMember(): void {
+    State.updateConfiguration();
+    const fileUri = Helper.getCurrentlyOpenFileUri();
+    const lineNr = Helper.getCurrentlySelectedLineNr();
+    if (fileUri == null || lineNr == null) {
+      Helper.log(`getting currently open file or selected line number has failed`);
+      return;
+    }
+    const isolationData = new IsolationData(fileUri, [lineNr]);
+    Verifier.verify(fileUri, IdeEvents.Manual, [isolationData]);
+  }
+
   /**
    * Verifies the file identified by `fileUri` or the package it belongs to depending on the current settings
    */
-  public static verify(fileUri: URI, event: IdeEvents): void {
+  public static verify(fileUri: URI, event: IdeEvents, isolationData: IsolationData[] = []): void {
     let fileUris: URI[]
     if (Helper.verifyByDefaultPackage()) {
       fileUris = Verifier.getFileUrisForPackage(fileUri);
@@ -169,7 +185,7 @@ export class Verifier {
     } else {
       fileUris = [fileUri];
     }
-    Verifier.verifyFiles(fileUris, event);
+    Verifier.verifyFiles(fileUris, event, isolationData);
   }
 
   /**
@@ -195,7 +211,7 @@ export class Verifier {
   /**
     * Verifies the files with the given fileUri as one verification task
     */
-  public static verifyFiles(fileUris: URI[], event: IdeEvents): void {
+  public static verifyFiles(fileUris: URI[], event: IdeEvents, isolationData: IsolationData[] = []): void {
     State.removeVerificationRequests(fileUris);
 
 
@@ -222,7 +238,7 @@ export class Verifier {
     }
 
     State.updateConfiguration();
-    State.updateFileData(fileUris);
+    State.updateFileData(fileUris, isolationData);
 
     // return if one of the files is currently getting gobrafied.
     if (fileUris.some(fileUri => State.containsRunningGobrafications(fileUri))) {
@@ -269,7 +285,7 @@ export class Verifier {
       return;
     }
 
-    State.updateFileData([fileUri]);
+    State.updateFileData([fileUri], []);
     const fileData = new FileData(fileUri);
 
     // only goify if it is a gobra file
@@ -308,7 +324,7 @@ export class Verifier {
       return;
     }
 
-    State.updateFileData([fileUri]);
+    State.updateFileData([fileUri], []);
     const fileData = new FileData(fileUri);
 
     // only gobrafy if it is a go file
@@ -503,7 +519,7 @@ export class Verifier {
       fileUris = [fileUri];
     }
 
-    State.updateFileData(fileUris);
+    State.updateFileData(fileUris, []);
     const editor = vscode.window.activeTextEditor;
     if (editor) {
       editor.document.save().then((saved: boolean) => {
@@ -532,7 +548,7 @@ export class Verifier {
       fileUris = [fileUri];
     }
 
-    State.updateFileData(fileUris);
+    State.updateFileData(fileUris, []);
     const editor = vscode.window.activeTextEditor;
     if (editor) {
       editor.document.save().then((saved: boolean) => {

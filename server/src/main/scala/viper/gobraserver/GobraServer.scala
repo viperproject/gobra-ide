@@ -9,13 +9,14 @@ package viper.gobraserver
 import com.google.gson.Gson
 import viper.gobra.Gobra
 import viper.gobra.GobraFrontend
-import viper.gobra.reporting.{NotFoundError, VerifierResult}
+import viper.gobra.reporting.{ConfigError, NotFoundError, VerifierResult}
 import viper.gobra.util.{GobraExecutionContext, Violation}
 import viper.gobra.reporting.BackTranslator.BackTrackInfo
 import viper.silver.ast.Program
 import viper.server.core.ViperCoreServer
 import org.eclipse.lsp4j.{MessageParams, MessageType, Range}
-import viper.gobra.frontend.{Config, Gobrafier, Parser}
+import viper.gobra.frontend.{Config, Desugar, Gobrafier, Parser, RawConfig}
+import viper.gobra.frontend.info.Info
 import viper.server.ViperConfig
 
 import java.io.{BufferedWriter, File, FileWriter}
@@ -119,8 +120,15 @@ object GobraServer extends GobraFrontend {
 
     val startTime = System.currentTimeMillis()
 
-    val config = Helper.verificationConfigFromTask(_server, verifierConfig, startTime, verify = false)(executor)
-    verify(verifierConfig.fileData.toVector, config)
+    val fileModeConfig = Helper.getFileModeConfig(_server, verifierConfig, startTime, stopAfterEncoding = true)(executor)
+    verify(verifierConfig.fileData.toVector, fileModeConfig)
+  }
+
+  def verify(fileData: Vector[FileData], rawConfig: RawConfig)(implicit executor: GobraExecutionContext): Future[VerifierResult] = {
+    rawConfig.config match {
+      case Right(config) => verify(fileData, config)
+      case Left(errMsg) => successful(VerifierResult.Failure(Vector(ConfigError(errMsg))))
+    }
   }
 
   /**
@@ -132,6 +140,7 @@ object GobraServer extends GobraFrontend {
       successful(VerifierResult.Failure(Vector(NotFoundError("no or too many packages specified."))))
     } else {
       val pkgInfo = config.packageInfoInputMap.keys.head
+      println(s"verify: $config")
       val preprocessFuture = verifier.verify(pkgInfo, config)(executor)
       serverExceptionHandling(fileData, preprocessFuture)
     }
@@ -142,14 +151,18 @@ object GobraServer extends GobraFrontend {
     * verification failure.
     */
   def verifyAst(verifierConfig: VerifierConfig, ast: Program, backtrack: BackTrackInfo, startTime: Long, completedProgress: Int)(implicit executor: GobraExecutionContext): Future[VerifierResult] = {
-    val config = Helper.verificationConfigFromTask(_server, verifierConfig, startTime, verify = true, completedProgress = completedProgress, ast = Some(ast))(executor)
-
-    if (config.packageInfoInputMap.keys.size != 1) {
-      successful(VerifierResult.Failure(Vector(NotFoundError("no or too many packages specified."))))
-    } else {
-      val pkgInfo = config.packageInfoInputMap.keys.head
-      val resultFuture = verifier.verifyAst(config, pkgInfo, ast, backtrack)(executor)
-      serverExceptionHandling(verifierConfig.fileData.toVector, resultFuture)
+    val fileModeConfig = Helper.getFileModeConfig(_server, verifierConfig, startTime, stopAfterEncoding = false, completedProgress = completedProgress, ast = Some(ast))(executor)
+    fileModeConfig.config match {
+      case Right(config) =>
+        if (config.packageInfoInputMap.keys.size != 1) {
+          successful(VerifierResult.Failure(Vector(NotFoundError("no or too many packages specified."))))
+        } else {
+          val pkgInfo = config.packageInfoInputMap.keys.head
+          println(s"verifyAST: $config")
+          val resultFuture = verifier.verifyAst(config, pkgInfo, ast, backtrack)(executor)
+          serverExceptionHandling(verifierConfig.fileData.toVector, resultFuture)
+        }
+      case Left(errMsg) => successful(VerifierResult.Failure(Vector(ConfigError(errMsg))))
     }
   }
 
@@ -188,8 +201,7 @@ object GobraServer extends GobraFrontend {
   def gobrafy(fileData: FileData): Unit = {
     var success = false
 
-    val filePath = fileData.filePath
-    //val fileUri = fileData.fileUri
+    val filePath = Helper.uri2Path(fileData.fileUri).toString
 
     val newFilePath = Helper.gobraFileExtension(filePath)
     val newFileUri = Helper.gobraFileExtension(fileData.fileUri)
@@ -238,6 +250,8 @@ object GobraServer extends GobraFrontend {
   def flushCache(): Unit = {
     // flush Gobra's parser cache:
     Parser.flushCache()
+    Info.flushCache()
+    Desugar.flushCache()
     _server.flushCache()
     VerifierState.flushCachedDiagnostics()
     VerifierState.changes = List()

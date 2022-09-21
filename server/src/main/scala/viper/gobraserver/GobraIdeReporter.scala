@@ -47,7 +47,7 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
   require(fileData.nonEmpty)
 
   private lazy val fileUris: Vector[String] = fileData.map(_.fileUri)
-  private lazy val filePaths: Vector[String] = fileData.map(_.filePath)
+  private lazy val filePaths: Vector[String] = fileUris.map(Helper.uri2Path(_).toString)
 
   /**
     * State and Helper functions used for tracking the progress of the Verification.
@@ -136,7 +136,7 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
   }
 
   private def updateDiagnosticsPerFile(file: FileData, newErrors: Vector[VerifierError]): Unit = {
-    val errorsInFile = newErrors.filter(err => err.position.exists(pos => pos.file.toString == file.filePath))
+    val errorsInFile = newErrors.filter(err => err.position.exists(pos => pos.file == Helper.uri2Path(file.fileUri)))
     val cachedErrors = errorsInFile.filter(_.cached).toList
     val nonCachedErrors = errorsInFile.filterNot(_.cached).toList
 

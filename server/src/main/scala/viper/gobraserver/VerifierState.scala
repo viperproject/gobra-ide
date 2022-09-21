@@ -132,6 +132,7 @@ object VerifierState {
   def publishDiagnostics(fileUri: String): Unit =
     client match {
       case Some(c) =>
+        println(s"fileUri: ${fileUri}")
         val params = new PublishDiagnosticsParams(fileUri, getDiagnostics(fileUri).asJava)
         c.publishDiagnostics(params)
       case None =>

@@ -129,6 +129,11 @@
         "category": "Gobra"
       },
       {
+        "command": "gobra.verifyMember",
+        "title": "Verify only the member at the current cursor position",
+        "category": "Gobra"
+      },
+      {
         "command": "gobra.updateGobraTools",
         "title": "Update Gobra Tools",
         "category": "Gobra"

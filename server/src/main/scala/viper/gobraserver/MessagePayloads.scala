@@ -9,8 +9,13 @@ package viper.gobraserver
 import org.eclipse.lsp4j.Position
 
 case class FileData (
-  filePath: String,
+  // filePath: String,
   fileUri: String
+)
+
+case class IsolationData (
+  fileUri: String,
+  lineNrs: Array[Int]
 )
 
 case class GobraSettings (
@@ -30,6 +35,7 @@ case class GobraSettings (
 
 case class VerifierConfig (
   fileData: Array[FileData],
+  isolate: Array[IsolationData],
   gobraSettings: GobraSettings,
   z3Executable: String,
   boogieExecutable: String
