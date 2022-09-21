@@ -39,6 +39,12 @@ lazy val gobraServer = (project in file("."))
     assembly / assemblyJarName := "server.jar",
     assembly / mainClass := Some("viper.gobraserver.Server"),
 	  assembly / javaOptions += "-Xss128m",
+    assembly / assemblyMergeStrategy := {
+      case LogbackConfigurationFilePattern() => MergeStrategy.first
+      case x =>
+        val fallbackStrategy = (assembly / assemblyMergeStrategy).value
+        fallbackStrategy(x)
+    }
   )
   .enablePlugins(BuildInfoPlugin)
   .settings(
@@ -55,3 +61,5 @@ lazy val gobraServer = (project in file("."))
     ),
     buildInfoPackage := "viper.gobraserver"
   )
+
+lazy val LogbackConfigurationFilePattern = """logback.*?\.xml""".r
