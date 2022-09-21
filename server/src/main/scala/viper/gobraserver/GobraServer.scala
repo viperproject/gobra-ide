@@ -70,7 +70,7 @@ object GobraServer extends GobraFrontend {
     // do some post processing if verification has failed
     resultFuture.transformWith {
       case Success(res) =>
-        _server.logger.get.trace(s"GobraServer: Gobra handled request successfully: $res")
+        _server.globalLogger.trace(s"GobraServer: Gobra handled request successfully: $res")
         Future.successful(res)
       case Failure(exception) =>
         // restart Gobra Server and then update client state

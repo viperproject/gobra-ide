@@ -23,7 +23,8 @@
     },
     {
         "include": [
-            "**/*.yml"
+            "**/*.yml",
+            "**/*.toml"
         ],
         "license": "./.github/license-check/headers/MPLv2-ETH-hashtags.txt"
     },

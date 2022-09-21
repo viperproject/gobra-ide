@@ -6,6 +6,8 @@
 
 package viper.gobraserver
 
+import ch.qos.logback.classic.Logger
+
 import java.nio.charset.StandardCharsets.UTF_8
 import java.nio.file.Paths
 import org.apache.commons.io.FileUtils
@@ -15,7 +17,6 @@ import viper.gobra.backend.ViperBackends.ViperServerBackend
 import viper.gobra.reporting._
 import viper.gobra.util.{GobraExecutionContext, OutputUtil, Violation}
 import viper.silver.{ast => vpr}
-import viper.silver.logger.ViperLogger
 
 import scala.collection.mutable
 
@@ -41,7 +42,7 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
                             debug: Boolean = false,
                             printInternal: Boolean = false,
                             printVpr: Boolean = false,
-                            logger: ViperLogger)(executor: GobraExecutionContext) extends GobraReporter {
+                            logger: Logger)(executor: GobraExecutionContext) extends GobraReporter {
 
   require(fileData.nonEmpty)
 
@@ -178,7 +179,7 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
     * Function handling the reports arriving from the verification.
     */
   override def report(msg: GobraMessage): Unit = {
-    logger.get.trace(s"GobraIdeReport has received message $msg")
+    logger.trace(s"GobraIdeReport has received message $msg")
     msg match {
       case CopyrightReport(text) => println(text)
 

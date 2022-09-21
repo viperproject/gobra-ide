@@ -69,7 +69,7 @@ object Helper {
           debug = debug,
           printInternal = printInternal,
           printVpr = printViper,
-          logger = server.logger
+          logger = server.globalLogger
         )(executor)
 
         Config(
