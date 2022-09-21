@@ -8,12 +8,10 @@ import scala.sys.process.Process
 import scala.util.Try
 
 // Import general settings from Gobra and ViperServer
-lazy val gobra = (project in file("gobra"))
-lazy val server = (project in file("viperserver"))
+lazy val gobra = project in file("gobra")
 
 lazy val gobraServer = (project in file("."))
   .dependsOn(gobra % "compile->compile;test->test")
-  .dependsOn(server % "compile->compile;test->test")
   .settings(
     name := "gobra-ide",
     description := "Server implementation for Gobra IDE",

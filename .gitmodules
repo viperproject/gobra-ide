@@ -1,0 +1,3 @@
+[submodule "server/gobra"]
+	path = server/gobra
+	url = https://github.com/viperproject/gobra.git
