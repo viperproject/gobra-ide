@@ -20,7 +20,7 @@
 
 import * as path from 'path';
 
-import { runTests } from 'vscode-test';
+import { runTests } from '@vscode/test-electron';
 
 const PROJECT_ROOT = path.join(__dirname, "..", "..");
 
