@@ -185,6 +185,7 @@ jobs:
 
 
   build-and-test-client:
+    name: build-and-test-client - ${{ matrix.os }}
     needs: create-gobra-tools
     strategy:
       # tests should not be stopped when they fail on one of the OSes:
