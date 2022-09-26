@@ -49,12 +49,6 @@ jobs:
             automated pr
           body: |
             * Updates Gobra from `${{ env.PREV_GOBRA_REF }}` to `${{ env.CUR_GOBRA_REF }}`.
-            
-      - name: Approve Pull Request
-        uses: juliangruber/approve-pull-request-action@v1.1.1
-        with:
-          github-token: ${{ secrets.VIPER_ADMIN_TOKEN }}
-          number: ${{ steps.pr.outputs.pull-request-number }}
 
       - name: Enable auto-merge of PR
         uses: peter-evans/create-or-update-comment@v2
