@@ -7,10 +7,9 @@
 import { Helper } from "./Helper";
 import * as vscode from 'vscode';
 import { URI } from 'vscode-uri';
-import { Location } from "vs-verification-toolbox";
 
 export class FileData {
-  filePath: string;
+  filePath: string; // deprecated
   fileUri: string;
 
   constructor(fileUri: URI) {
@@ -19,14 +18,26 @@ export class FileData {
   }
 }
 
+export class IsolationData {
+  fileUri: string;
+  lineNrs: number[];
+
+  constructor(fileUri: URI, lineNrs: number[]) {
+    this.fileUri = fileUri.toString();
+    this.lineNrs = lineNrs;
+  }
+}
+
 export class VerifierConfig {
   fileData: FileData[];
+  isolate: IsolationData[];
   gobraSettings: GobraSettings;
   z3Executable: string;
   boogieExecutable: string;
 
-  constructor(files: FileData[], z3Executable: string, boogieExecutable: string) {
+  constructor(files: FileData[], isolate: IsolationData[], z3Executable: string, boogieExecutable: string) {
     this.fileData = files;
+    this.isolate = isolate
     this.gobraSettings = Helper.getGobraSettings();
     this.z3Executable = z3Executable;
     this.boogieExecutable = boogieExecutable;
@@ -101,11 +112,26 @@ export class OverallVerificationResult {
   fileUris: string[];
   success: boolean;
   message: string;
+  members: MemberInformation[];
 
-  constructor(fileUris: string[], success: boolean, message: string) {
+  constructor(fileUris: string[], success: boolean, message: string, members: MemberInformation[]) {
     this.fileUris = fileUris;
     this.success = success;
     this.message = message;
+    this.members = members;
   }
-    
+}
+
+export class MemberInformation {
+  isUnknown: boolean;
+  fileUri: string;
+  success: boolean;
+  range: vscode.Range;
+
+  constructor(isUnknown: boolean, fileUri: string, success: boolean, range: vscode.Range) {
+    this.isUnknown = isUnknown;
+    this.fileUri = fileUri;
+    this.success = success;
+    this.range = range;
+  }
 }

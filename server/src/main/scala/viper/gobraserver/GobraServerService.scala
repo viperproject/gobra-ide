@@ -87,7 +87,13 @@ class GobraServerService(config: ServerConfig)(implicit executor: GobraServerExe
 
   @JsonNotification("gobraServer/verify")
   def verify(configJson: String): Unit = {
-    val config: VerifierConfig = gson.fromJson(configJson, classOf[VerifierConfig])
+    var config: VerifierConfig = gson.fromJson(configJson, classOf[VerifierConfig])
+    // isolate is a newly introduced field. To be backwards compatible, we allow it to not exist in the string
+    // in this case, gson will simply set the corresponding field to null which is unexpected and thus get's replaced
+    // by a sensible default value:
+    if (config.isolate == null) {
+      config = config.copy(isolate = Array.empty)
+    }
     val fileUris = config.fileData.map(_.fileUri).toVector
     VerifierState.updateVerificationInformation(fileUris, Left(0))
     GobraServer.preprocess(config)
@@ -129,7 +135,7 @@ class GobraServerService(config: ServerConfig)(implicit executor: GobraServerExe
   def codePreview(previewDataJson: String): Unit = {
     val previewData: PreviewData = gson.fromJson(previewDataJson, classOf[PreviewData])
     val selections = previewData.selections.map(selection => new Range(selection(0), selection(1))).toList
-    GobraServer.codePreview(previewData.fileData.toVector, previewData.internalPreview, previewData.viperPreview, selections)(executor)
+    GobraServer.codePreview(previewData.fileData, previewData.internalPreview, previewData.viperPreview, selections)(executor)
   }
 
 

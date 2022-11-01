@@ -86,6 +86,17 @@ export class Helper {
     }
   }
 
+  /**
+   * Returns the cursor's line number (non-zero based)
+   */
+  public static getCurrentlySelectedLineNr(): number | undefined {
+    if (vscode.window.activeTextEditor && vscode.window.activeTextEditor.document) {
+      return vscode.window.activeTextEditor.selection.active.line + 1; // convert from 0-based to "natural" line number
+    } else {
+      return undefined;
+    }
+  }
+
   public static equal(uri1: URI, uri2: URI): Boolean {
     // there does not seem to be an equality function on URIs and object equality does
     // not work. Based on the specification of `.toString()` that guarantees that `URI.parse`
@@ -511,6 +522,7 @@ export class ContributionCommands {
   public static verify = "gobra.verify";
   public static verifyFile = "gobra.verifyFile";
   public static verifyPackage = "gobra.verifyPackage";
+  public static verifyMember = "gobra.verifyMember";
   public static updateGobraTools = "gobra.updateGobraTools";
   public static showViperCodePreview = "gobra.showViperCodePreview";
   public static showInternalCodePreview = "gobra.showInternalCodePreview";

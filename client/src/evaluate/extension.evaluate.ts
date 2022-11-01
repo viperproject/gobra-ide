@@ -39,7 +39,7 @@ suite('Evaluation Suite', () => {
         let filePath = filePaths[i];
   
         let startTime = now();
-        await EvaluationHelper.verify(EvaluationHelper.transformToFileUri(filePath), filePath);
+        await EvaluationHelper.verify(EvaluationHelper.transformToFileUri(filePath));
         let endTime = now();
   
         let elapsedTime = (endTime - startTime) / 1000.0;

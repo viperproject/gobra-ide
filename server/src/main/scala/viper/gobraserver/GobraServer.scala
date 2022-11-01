@@ -9,13 +9,13 @@ package viper.gobraserver
 import com.google.gson.Gson
 import viper.gobra.Gobra
 import viper.gobra.GobraFrontend
-import viper.gobra.reporting.{NotFoundError, VerifierResult}
+import viper.gobra.reporting.{ConfigError, NotFoundError, VerifierResult}
 import viper.gobra.util.{GobraExecutionContext, Violation}
 import viper.gobra.reporting.BackTranslator.BackTrackInfo
 import viper.silver.ast.Program
 import viper.server.core.ViperCoreServer
 import org.eclipse.lsp4j.{MessageParams, MessageType, Range}
-import viper.gobra.frontend.{Config, Gobrafier, Parser}
+import viper.gobra.frontend.{Config, Gobrafier, Parser, RawConfig}
 import viper.server.ViperConfig
 
 import java.io.{BufferedWriter, File, FileWriter}
@@ -63,7 +63,7 @@ object GobraServer extends GobraFrontend {
       })(_executor)
   }
 
-  private def serverExceptionHandling(fileData: Vector[FileData], resultFuture: Future[VerifierResult])(implicit executor: GobraExecutionContext): Future[VerifierResult] = {
+  private def serverExceptionHandling(fileData: Array[FileData], isolate: Array[IsolationData], ast: Option[Program], resultFuture: Future[VerifierResult])(implicit executor: GobraExecutionContext): Future[VerifierResult] = {
 
     val fileUris = fileData.map(_.fileUri)
 
@@ -79,9 +79,9 @@ object GobraServer extends GobraFrontend {
           exception match {
             case e: Violation.LogicException =>
               fileUris.foreach(VerifierState.removeDiagnostics)
-              val overallResult = Helper.getOverallVerificationResultFromException(fileUris, e)
+              val overallResult = Helper.getOverallVerificationResultFromException(fileUris, isolate, ast, e)
 
-              VerifierState.updateVerificationInformation(fileUris, Right(overallResult))
+              VerifierState.updateVerificationInformation(fileUris.toVector, Right(overallResult))
 
               fileUris.foreach(VerifierState.publishDiagnostics)
 
@@ -92,12 +92,12 @@ object GobraServer extends GobraFrontend {
               // remove verification information about this file
               // otherwise, reopening this file in the client will result in sending the last progress although no
               // verification is running
-              VerifierState.removeVerificationInformation(fileUris)
+              VerifierState.removeVerificationInformation(fileUris.toVector)
 
               VerifierState.client match {
                 case Some(c) =>
                   c.showMessage(new MessageParams(MessageType.Error, "An exception occurred during execution of Gobra: " + e))
-                  val encodedFileUris = gson.toJson(fileUris.toArray)
+                  val encodedFileUris = gson.toJson(fileUris)
                   c.verificationException(encodedFileUris)
                 case None =>
               }
@@ -119,21 +119,28 @@ object GobraServer extends GobraFrontend {
 
     val startTime = System.currentTimeMillis()
 
-    val config = Helper.verificationConfigFromTask(_server, verifierConfig, startTime, verify = false)(executor)
-    verify(verifierConfig.fileData.toVector, config)
+    val fileModeConfig = Helper.getFileModeConfig(_server, verifierConfig, startTime, stopAfterEncoding = true)(executor)
+    verify(verifierConfig.fileData, verifierConfig.isolate, fileModeConfig)
+  }
+
+  def verify(fileData: Array[FileData], isolate: Array[IsolationData], rawConfig: RawConfig)(implicit executor: GobraExecutionContext): Future[VerifierResult] = {
+    rawConfig.config match {
+      case Right(config) => verify(fileData, isolate, config)
+      case Left(errMsg) => successful(VerifierResult.Failure(Vector(ConfigError(errMsg))))
+    }
   }
 
   /**
     * Wrapper around invoking Gobra with a particular config. Assumes that the config only holds a single package to be
     * verified, otherwise returns a verification failure.
     */
-  def verify(fileData: Vector[FileData], config: Config)(implicit executor: GobraExecutionContext): Future[VerifierResult] = {
+  def verify(fileData: Array[FileData], isolate: Array[IsolationData], config: Config)(implicit executor: GobraExecutionContext): Future[VerifierResult] = {
     if (config.packageInfoInputMap.keys.size != 1) {
       successful(VerifierResult.Failure(Vector(NotFoundError("no or too many packages specified."))))
     } else {
       val pkgInfo = config.packageInfoInputMap.keys.head
       val preprocessFuture = verifier.verify(pkgInfo, config)(executor)
-      serverExceptionHandling(fileData, preprocessFuture)
+      serverExceptionHandling(fileData, isolate, None, preprocessFuture)
     }
   }
 
@@ -142,14 +149,17 @@ object GobraServer extends GobraFrontend {
     * verification failure.
     */
   def verifyAst(verifierConfig: VerifierConfig, ast: Program, backtrack: BackTrackInfo, startTime: Long, completedProgress: Int)(implicit executor: GobraExecutionContext): Future[VerifierResult] = {
-    val config = Helper.verificationConfigFromTask(_server, verifierConfig, startTime, verify = true, completedProgress = completedProgress, ast = Some(ast))(executor)
-
-    if (config.packageInfoInputMap.keys.size != 1) {
-      successful(VerifierResult.Failure(Vector(NotFoundError("no or too many packages specified."))))
-    } else {
-      val pkgInfo = config.packageInfoInputMap.keys.head
-      val resultFuture = verifier.verifyAst(config, pkgInfo, ast, backtrack)(executor)
-      serverExceptionHandling(verifierConfig.fileData.toVector, resultFuture)
+    val fileModeConfig = Helper.getFileModeConfig(_server, verifierConfig, startTime, stopAfterEncoding = false, completedProgress = completedProgress, ast = Some(ast))(executor)
+    fileModeConfig.config match {
+      case Right(config) =>
+        if (config.packageInfoInputMap.keys.size != 1) {
+          successful(VerifierResult.Failure(Vector(NotFoundError("no or too many packages specified."))))
+        } else {
+          val pkgInfo = config.packageInfoInputMap.keys.head
+          val resultFuture = verifier.verifyAst(config, pkgInfo, ast, backtrack)(executor)
+          serverExceptionHandling(verifierConfig.fileData, verifierConfig.isolate, Some(ast), resultFuture)
+        }
+      case Left(errMsg) => successful(VerifierResult.Failure(Vector(ConfigError(errMsg))))
     }
   }
 
@@ -159,7 +169,7 @@ object GobraServer extends GobraFrontend {
   def goify(fileData: FileData)(implicit executor: GobraExecutionContext): Future[VerifierResult] = {
     val fileUri = fileData.fileUri
     val config = Helper.goifyConfigFromTask(fileData)
-    val goifyFuture = verify(Vector(fileData), config)(executor)
+    val goifyFuture = verify(Array(fileData), Array.empty, config)(executor)
 
     goifyFuture.onComplete {
       case Success(result) =>
@@ -188,8 +198,7 @@ object GobraServer extends GobraFrontend {
   def gobrafy(fileData: FileData): Unit = {
     var success = false
 
-    val filePath = fileData.filePath
-    //val fileUri = fileData.fileUri
+    val filePath = Helper.uri2Path(fileData.fileUri).toString
 
     val newFilePath = Helper.gobraFileExtension(filePath)
     val newFileUri = Helper.gobraFileExtension(fileData.fileUri)
@@ -225,9 +234,9 @@ object GobraServer extends GobraFrontend {
     * Get preview of Code which then gets displayed on the client side.
     * Currently the internal representation and the viper encoding can be previewed.
     */
-  def codePreview(fileData: Vector[FileData], internalPreview: Boolean, viperPreview: Boolean, selections: List[Range])(executor: GobraExecutionContext): Future[VerifierResult] = {
-    val config = Helper.previewConfigFromTask(fileData, internalPreview, viperPreview, selections)
-    verify(fileData, config)(executor)
+  def codePreview(fileData: Array[FileData], internalPreview: Boolean, viperPreview: Boolean, selections: List[Range])(executor: GobraExecutionContext): Future[VerifierResult] = {
+    val config = Helper.previewConfigFromTask(fileData.toVector, internalPreview, viperPreview, selections)
+    verify(fileData, Array.empty, config)(executor)
   }
 
 

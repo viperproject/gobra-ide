@@ -6,11 +6,10 @@
 
 import { LanguageClient, LanguageClientOptions, ServerOptions, StreamInfo } from 'vscode-languageclient';
 import * as vscode from 'vscode';
-import * as fs from 'fs';
 import * as net from 'net';
 import * as child_process from "child_process";
 import * as readline from 'readline';
-import { FileData, VerifierConfig } from "./MessagePayloads";
+import { FileData, IsolationData, VerifierConfig } from "./MessagePayloads";
 import { Helper, FileSchemes } from "./Helper";
 import { IdeEvents } from "./IdeEvents";
 import { Verifier } from "./VerificationService";
@@ -119,9 +118,10 @@ export class State {
     State.verificationRequests.delete(State.encodeUris(fileUris));
   }
 
-  public static updateFileData(fileUris: URI[]): void {
+  public static updateFileData(fileUris: URI[], isolationData: IsolationData[]): void {
     const fileData: FileData[] = fileUris.map(fileUri => new FileData(fileUri));
     this.verifierConfig.fileData = fileData;
+    this.verifierConfig.isolate = isolationData;
   }
 
   public static updateConfiguration(): void {

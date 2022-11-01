@@ -10,7 +10,7 @@ import { ProgressBar } from "./ProgressBar";
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { VerifierConfig, OverallVerificationResult, PreviewData, FileData } from "./MessagePayloads";
+import { VerifierConfig, OverallVerificationResult, PreviewData, FileData, IsolationData } from "./MessagePayloads";
 import { IdeEvents } from "./IdeEvents";
 
 import { Dependency, withProgressInWindow, Location, DependencyInstaller, RemoteZipExtractor, GitHubZipExtractor, LocalReference, ConfirmResult, Success } from 'vs-verification-toolbox';
@@ -18,6 +18,8 @@ import { URI } from "vscode-uri";
 
 export class Verifier {
   public static verifyItem: ProgressBar;
+  private static verifiedMemberSuccessDecoratorType: vscode.TextEditorDecorationType;
+  private static verifiedMemberFailureDecoratorType: vscode.TextEditorDecorationType;
 
   public static initialize(context: vscode.ExtensionContext, verifierConfig: VerifierConfig, fileUri: URI): void {
     // add file data of current file to the state
@@ -26,6 +28,9 @@ export class Verifier {
 
     // Initialize Verification Button in Statusbar
     Verifier.verifyItem = new ProgressBar(Texts.helloGobra, 10);
+
+    Verifier.verifiedMemberSuccessDecoratorType = vscode.window.createTextEditorDecorationType({backgroundColor: 'rgba(144,238,144,0.2)', isWholeLine: true});
+    Verifier.verifiedMemberFailureDecoratorType = vscode.window.createTextEditorDecorationType({backgroundColor: 'rgba(238,144,144,0.2)', isWholeLine: true});
 
     /**
       * Register Commands for Command Palette.
@@ -36,6 +41,7 @@ export class Verifier {
     Helper.registerCommand(ContributionCommands.verify, Verifier.manualVerify, context);
     Helper.registerCommand(ContributionCommands.verifyFile, Verifier.manualVerifyFile, context);
     Helper.registerCommand(ContributionCommands.verifyPackage, Verifier.manualVerifyPackage, context);
+    Helper.registerCommand(ContributionCommands.verifyMember, Verifier.manualVerifyMember, context);
     Helper.registerCommand(ContributionCommands.updateGobraTools, () => Verifier.updateGobraTools(context, true), context);
     Helper.registerCommand(ContributionCommands.showViperCodePreview, Verifier.showViperCodePreview, context);
     Helper.registerCommand(ContributionCommands.showInternalCodePreview, Verifier.showInternalCodePreview, context);
@@ -155,10 +161,25 @@ export class Verifier {
     Verifier.verifyFiles(fileUris, IdeEvents.Manual);
   }
 
+  /** 
+   * Verifies the member at the current cursor position
+   */
+  public static manualVerifyMember(): void {
+    State.updateConfiguration();
+    const fileUri = Helper.getCurrentlyOpenFileUri();
+    const lineNr = Helper.getCurrentlySelectedLineNr();
+    if (fileUri == null || lineNr == null) {
+      Helper.log(`getting currently open file or selected line number has failed`);
+      return;
+    }
+    const isolationData = new IsolationData(fileUri, [lineNr]);
+    Verifier.verify(fileUri, IdeEvents.Manual, [isolationData]);
+  }
+
   /**
    * Verifies the file identified by `fileUri` or the package it belongs to depending on the current settings
    */
-  public static verify(fileUri: URI, event: IdeEvents): void {
+  public static verify(fileUri: URI, event: IdeEvents, isolationData: IsolationData[] = []): void {
     let fileUris: URI[]
     if (Helper.verifyByDefaultPackage()) {
       fileUris = Verifier.getFileUrisForPackage(fileUri);
@@ -169,7 +190,7 @@ export class Verifier {
     } else {
       fileUris = [fileUri];
     }
-    Verifier.verifyFiles(fileUris, event);
+    Verifier.verifyFiles(fileUris, event, isolationData);
   }
 
   /**
@@ -195,7 +216,7 @@ export class Verifier {
   /**
     * Verifies the files with the given fileUri as one verification task
     */
-  public static verifyFiles(fileUris: URI[], event: IdeEvents): void {
+  public static verifyFiles(fileUris: URI[], event: IdeEvents, isolationData: IsolationData[] = []): void {
     State.removeVerificationRequests(fileUris);
 
 
@@ -222,7 +243,7 @@ export class Verifier {
     }
 
     State.updateConfiguration();
-    State.updateFileData(fileUris);
+    State.updateFileData(fileUris, isolationData);
 
     // return if one of the files is currently getting gobrafied.
     if (fileUris.some(fileUri => State.containsRunningGobrafications(fileUri))) {
@@ -269,7 +290,7 @@ export class Verifier {
       return;
     }
 
-    State.updateFileData([fileUri]);
+    State.updateFileData([fileUri], []);
     const fileData = new FileData(fileUri);
 
     // only goify if it is a gobra file
@@ -308,7 +329,7 @@ export class Verifier {
       return;
     }
 
-    State.updateFileData([fileUri]);
+    State.updateFileData([fileUri], []);
     const fileData = new FileData(fileUri);
 
     // only gobrafy if it is a go file
@@ -503,7 +524,7 @@ export class Verifier {
       fileUris = [fileUri];
     }
 
-    State.updateFileData(fileUris);
+    State.updateFileData(fileUris, []);
     const editor = vscode.window.activeTextEditor;
     if (editor) {
       editor.document.save().then((saved: boolean) => {
@@ -532,7 +553,7 @@ export class Verifier {
       fileUris = [fileUri];
     }
 
-    State.updateFileData(fileUris);
+    State.updateFileData(fileUris, []);
     const editor = vscode.window.activeTextEditor;
     if (editor) {
       editor.document.save().then((saved: boolean) => {
@@ -576,10 +597,31 @@ export class Verifier {
     const fileUris = overallResult.fileUris.map(uri => URI.parse(uri));
     State.removeRunningVerification(fileUris);
 
-    if (overallResult.success) {
+    if (overallResult.success && overallResult.members.length === 0) {
       Verifier.verifyItem.setProperties(overallResult.message, Color.green);
+    } else if (overallResult.success) {
+      // program has only been partially verified
+      Verifier.verifyItem.setProperties(overallResult.message, Color.orange);
     } else {
       Verifier.verifyItem.setProperties(overallResult.message, Color.red);
+    }
+
+    // note that we do not have to persist any data to offer this feature because Gobra server
+    // sends a overall verification result notification whenever the currently open file is changed
+    const textEditor = vscode.window.activeTextEditor;
+    // we check whether `overallResult.members` is set in order to be backwards compatible
+    if (textEditor && textEditor.document && overallResult.members) {
+      const currentMembers = overallResult.members
+        .filter(member => !member.isUnknown)
+        .filter(member => Helper.equal(URI.parse(member.fileUri), textEditor.document.uri));
+      const successRanges = currentMembers
+        .filter(member => member.success)
+        .map(member => member.range);
+      const failureRanges = currentMembers
+        .filter(member => !member.success)
+        .map(member => member.range);
+      textEditor.setDecorations(Verifier.verifiedMemberSuccessDecoratorType, successRanges);
+      textEditor.setDecorations(Verifier.verifiedMemberFailureDecoratorType, failureRanges);
     }
 
     Verifier.reverifyFiles(fileUris);

@@ -51,7 +51,7 @@ export class EvaluationHelper {
     writeStream.write("\n");
   }
 
-  public static async verify(fileUri: URI, filePath: string): Promise<void> {
+  public static async verify(fileUri: URI): Promise<void> {
     const location = await Verifier.updateGobraTools(State.context, false);
     const fileData = new FileData(fileUri);
     const z3Path = Helper.getZ3Path(location);
@@ -62,7 +62,7 @@ export class EvaluationHelper {
     if (boogiePath.error != null) {
       return Promise.reject(boogiePath.error);
     }
-    let config = new VerifierConfig([fileData], z3Path.path, boogiePath.path);
+    let config = new VerifierConfig([fileData], [], z3Path.path, boogiePath.path);
 
     let settings = new EvaluationGobraSettings();
     config.gobraSettings = settings;
