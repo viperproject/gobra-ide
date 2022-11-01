@@ -110,11 +110,26 @@ export class OverallVerificationResult {
   fileUris: string[];
   success: boolean;
   message: string;
+  members: MemberInformation[];
 
-  constructor(fileUris: string[], success: boolean, message: string) {
+  constructor(fileUris: string[], success: boolean, message: string, members: MemberInformation[]) {
     this.fileUris = fileUris;
     this.success = success;
     this.message = message;
+    this.members = members;
   }
-    
+}
+
+export class MemberInformation {
+  isUnknown: boolean;
+  fileUri: string;
+  success: boolean;
+  range: vscode.Range;
+
+  constructor(isUnknown: boolean, fileUri: string, success: boolean, range: vscode.Range) {
+    this.isUnknown = isUnknown;
+    this.fileUri = fileUri;
+    this.success = success;
+    this.range = range;
+  }
 }

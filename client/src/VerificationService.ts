@@ -18,6 +18,8 @@ import { URI } from "vscode-uri";
 
 export class Verifier {
   public static verifyItem: ProgressBar;
+  private static verifiedMemberSuccessDecoratorType: vscode.TextEditorDecorationType;
+  private static verifiedMemberFailureDecoratorType: vscode.TextEditorDecorationType;
 
   public static initialize(context: vscode.ExtensionContext, verifierConfig: VerifierConfig, fileUri: URI): void {
     // add file data of current file to the state
@@ -26,6 +28,9 @@ export class Verifier {
 
     // Initialize Verification Button in Statusbar
     Verifier.verifyItem = new ProgressBar(Texts.helloGobra, 10);
+
+    Verifier.verifiedMemberSuccessDecoratorType = vscode.window.createTextEditorDecorationType({backgroundColor: 'rgba(144,238,144,0.2)', isWholeLine: true});
+    Verifier.verifiedMemberFailureDecoratorType = vscode.window.createTextEditorDecorationType({backgroundColor: 'rgba(238,144,144,0.2)', isWholeLine: true});
 
     /**
       * Register Commands for Command Palette.
@@ -592,10 +597,31 @@ export class Verifier {
     const fileUris = overallResult.fileUris.map(uri => URI.parse(uri));
     State.removeRunningVerification(fileUris);
 
-    if (overallResult.success) {
+    if (overallResult.success && overallResult.members.length === 0) {
       Verifier.verifyItem.setProperties(overallResult.message, Color.green);
+    } else if (overallResult.success) {
+      // program has only been partially verified
+      Verifier.verifyItem.setProperties(overallResult.message, Color.orange);
     } else {
       Verifier.verifyItem.setProperties(overallResult.message, Color.red);
+    }
+
+    // note that we do not have to persist any data to offer this feature because Gobra server
+    // sends a overall verification result notification whenever the currently open file is changed
+    const textEditor = vscode.window.activeTextEditor;
+    // we check whether `overallResult.members` is set in order to be backwards compatible
+    if (textEditor && textEditor.document && overallResult.members) {
+      const currentMembers = overallResult.members
+        .filter(member => !member.isUnknown)
+        .filter(member => Helper.equal(URI.parse(member.fileUri), textEditor.document.uri));
+      const successRanges = currentMembers
+        .filter(member => member.success)
+        .map(member => member.range);
+      const failureRanges = currentMembers
+        .filter(member => !member.success)
+        .map(member => member.range);
+      textEditor.setDecorations(Verifier.verifiedMemberSuccessDecoratorType, successRanges);
+      textEditor.setDecorations(Verifier.verifiedMemberFailureDecoratorType, failureRanges);
     }
 
     Verifier.reverifyFiles(fileUris);

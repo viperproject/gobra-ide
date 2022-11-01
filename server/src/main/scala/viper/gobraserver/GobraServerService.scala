@@ -135,7 +135,7 @@ class GobraServerService(config: ServerConfig)(implicit executor: GobraServerExe
   def codePreview(previewDataJson: String): Unit = {
     val previewData: PreviewData = gson.fromJson(previewDataJson, classOf[PreviewData])
     val selections = previewData.selections.map(selection => new Range(selection(0), selection(1))).toList
-    GobraServer.codePreview(previewData.fileData.toVector, previewData.internalPreview, previewData.viperPreview, selections)(executor)
+    GobraServer.codePreview(previewData.fileData, previewData.internalPreview, previewData.viperPreview, selections)(executor)
   }
 
 

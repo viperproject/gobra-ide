@@ -7,6 +7,7 @@
 package viper.gobraserver
 
 import org.eclipse.lsp4j.Position
+import org.eclipse.lsp4j.Range
 
 case class FileData (
   // filePath: String,
@@ -44,7 +45,15 @@ case class VerifierConfig (
 case class OverallVerificationResult(
   fileUris: Array[String],
   success: Boolean,
-  message: String
+  message: String,
+  members: Array[MemberInformation] // information about verified members. Empty if entire program has been verified
+)
+
+case class MemberInformation(
+  isUnknown: Boolean, // set if only a particular member has been verified but no additional information is available. If set, all other fields should be ignored
+  fileUri: String,
+  success: Boolean,
+  range: Range
 )
 
 case class PreviewData (

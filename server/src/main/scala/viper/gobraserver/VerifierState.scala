@@ -6,7 +6,7 @@
 
 package viper.gobraserver
 
-import com.google.gson.Gson
+import com.google.gson.{Gson, GsonBuilder}
 import org.eclipse.lsp4j.{Diagnostic, Position, PublishDiagnosticsParams, Range, TextDocumentContentChangeEvent}
 import viper.gobra.reporting.BackTranslator.BackTrackInfo
 import viper.gobra.reporting.VerifierError

@@ -48,6 +48,10 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
 
   private lazy val fileUris: Vector[String] = fileData.map(_.fileUri)
   private lazy val filePaths: Vector[String] = fileUris.map(Helper.uri2Path(_).toString)
+  /** stores the Viper AST that the encoding produces */
+  private var generatedAst: Option[vpr.Program] = None
+  /** returns the AST passed to the reporter or the one generated */
+  private def getAst: Option[vpr.Program] = ast.orElse(generatedAst)
 
   /**
     * State and Helper functions used for tracking the progress of the Verification.
@@ -163,7 +167,7 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
     }
   }
 
-  private def finishedVerification() : Unit = {
+  private def finishedVerification(ast: Option[vpr.Program]) : Unit = {
     VerifierState.verificationRunning -= 1
     // remove all changes belonging to one of the files in `fileUris`:
     VerifierState.changes = VerifierState.changes.filter(change => !fileUris.contains(change._1))
@@ -171,7 +175,7 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
     val result = if (reportedErrors.isEmpty) VerifierResult.Success else VerifierResult.Failure(reportedErrors.toVector)
 
     val endTime = System.currentTimeMillis()
-    val overallResult = Helper.getOverallVerificationResult(fileUris, result, endTime - startTime)
+    val overallResult = Helper.getOverallVerificationResult(fileUris.toArray, verifierConfig.isolate, ast, result, endTime - startTime)
     VerifierState.updateVerificationInformation(fileUris, Right(overallResult))
   }
 
@@ -191,7 +195,7 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
 
       case ParserErrorMessage(_, result) =>
         updateDiagnostics(VerifierResult.Failure(result))
-        finishedVerification()
+        finishedVerification(getAst)
 
       case TypeCheckSuccessMessage(inputs, _, _, _, erasedGhostCode, goifiedGhostCode) =>
         if (filePaths == inputs) updateProgress(typeCheckEntityProgress)
@@ -200,7 +204,7 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
 
       case TypeCheckFailureMessage(_, _, _, result) =>
         updateDiagnostics(VerifierResult.Failure(result))
-        finishedVerification()
+        finishedVerification(getAst)
 
       case TypeCheckDebugMessage(inputs, _, debugTypeInfo) if debug => write(inputs, "debugType", debugTypeInfo())
 
@@ -209,6 +213,7 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
         if (printInternal) write(inputs, "internal", internal().formatted)
 
       case m@GeneratedViperMessage(_, inputs, ast, backtrack) =>
+        generatedAst = Some(ast()) // we implicitly assume here that this message is only emitted once per invocation of Gobra
         if (filePaths == inputs) updateProgress(encodeEntityProgress)
         if (printVpr) write(inputs, "vpr", m.vprAstFormatted)
         // submit the Viper AST's verification to the thread pool:
@@ -219,11 +224,11 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
           VerifierState.removeDiagnostics(fileUri)
           VerifierState.publishDiagnostics(fileUri)
         })
-        finishedVerification()
+        finishedVerification(getAst)
 
       case GobraOverallFailureMessage(_, result) =>
         updateDiagnostics(result)
-        finishedVerification()
+        finishedVerification(getAst)
 
       case GobraEntitySuccessMessage(_, _, member, _, _, _) =>
         if (isRelevantVprMember(member)) updateProgress(verificationEntityProgress)
