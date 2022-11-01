@@ -6,7 +6,7 @@
 
 package viper.gobraserver
 
-import com.google.gson.{Gson, GsonBuilder}
+import com.google.gson.Gson
 import org.eclipse.lsp4j.{Diagnostic, Position, PublishDiagnosticsParams, Range, TextDocumentContentChangeEvent}
 import viper.gobra.reporting.BackTranslator.BackTrackInfo
 import viper.gobra.reporting.VerifierError
@@ -132,7 +132,6 @@ object VerifierState {
   def publishDiagnostics(fileUri: String): Unit =
     client match {
       case Some(c) =>
-        println(s"fileUri: ${fileUri}")
         val params = new PublishDiagnosticsParams(fileUri, getDiagnostics(fileUri).asJava)
         c.publishDiagnostics(params)
       case None =>

@@ -139,7 +139,6 @@ object GobraServer extends GobraFrontend {
       successful(VerifierResult.Failure(Vector(NotFoundError("no or too many packages specified."))))
     } else {
       val pkgInfo = config.packageInfoInputMap.keys.head
-      println(s"verify: $config")
       val preprocessFuture = verifier.verify(pkgInfo, config)(executor)
       serverExceptionHandling(fileData, isolate, None, preprocessFuture)
     }
@@ -157,7 +156,6 @@ object GobraServer extends GobraFrontend {
           successful(VerifierResult.Failure(Vector(NotFoundError("no or too many packages specified."))))
         } else {
           val pkgInfo = config.packageInfoInputMap.keys.head
-          println(s"verifyAST: $config")
           val resultFuture = verifier.verifyAst(config, pkgInfo, ast, backtrack)(executor)
           serverExceptionHandling(verifierConfig.fileData, verifierConfig.isolate, Some(ast), resultFuture)
         }

@@ -10,7 +10,6 @@ import org.eclipse.lsp4j.Position
 import org.eclipse.lsp4j.Range
 
 case class FileData (
-  // filePath: String,
   fileUri: String
 )
 
