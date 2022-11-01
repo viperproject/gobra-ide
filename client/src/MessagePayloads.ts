@@ -9,9 +9,11 @@ import * as vscode from 'vscode';
 import { URI } from 'vscode-uri';
 
 export class FileData {
+  filePath: string; // deprecated
   fileUri: string;
 
   constructor(fileUri: URI) {
+    this.filePath = fileUri.fsPath;
     this.fileUri = fileUri.toString();
   }
 }
