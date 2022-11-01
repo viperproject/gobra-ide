@@ -1,7 +1,7 @@
 {
   "name": "gobra-ide",
   "displayName": "Gobra IDE",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "publisher": "viper-admin",
   "description": "This extension provides interactive IDE features for verifying programs in Gobra.",
   "author": {
@@ -13,7 +13,7 @@
     "url": "https://github.com/viperproject/gobra-ide"
   },
   "engines": {
-    "vscode": "^1.45.0"
+    "vscode": "^1.63.0"
   },
   "categories": [
     "Programming Languages"
@@ -37,7 +37,7 @@
     "@types/mocha": "^10.0.0",
     "@types/node": "^18.8.3",
     "@types/tmp": "^0.2.3",
-    "@types/vscode": "^1.45.0",
+    "@types/vscode": "^1.63.0",
     "@types/yargs": "^17.0.13",
     "@viperproject/locate-java-home": "^1.1.8",
     "@vscode/test-electron": "^2.2.0",
