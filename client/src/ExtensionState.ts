@@ -225,7 +225,7 @@ export class State {
           const match = line.match(portRegex);
           if (match != null && match[1] != null) {
             const port = Number(match[1]);
-            if (port != NaN) {
+            if (!Number.isNaN(port)) {
               portFound = true;
               resolve(port);
             }
