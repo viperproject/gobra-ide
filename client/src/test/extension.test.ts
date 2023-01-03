@@ -46,6 +46,11 @@ async function getGobraFilesInDataPath(): Promise<string[]> {
         .map(filename => path.join(DATA_ROOT, filename));
 }
 
+async function closeAllFiles(): Promise<void> {
+    log("closing all files");
+    await vscode.commands.executeCommand('workbench.action.closeAllEditors');
+}
+
 /**
  * Open a file in the IDE
  *
@@ -58,6 +63,7 @@ async function openFile(fileName: string): Promise<vscode.TextDocument> {
 }
 
 async function openAndVerify(fileName: string, command: string): Promise<vscode.TextDocument> {
+    await closeAllFiles();
     // open file, ...
     const document = await openFile(fileName);
     // ... send verification command to server...
