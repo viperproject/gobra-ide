@@ -35,7 +35,7 @@ jobs:
     container: gobraverifier/gobra-base:v5_z3_4.8.7
     steps:
       - name: Checkout Gobra-IDE
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           path: gobra-ide
           submodules: recursive
@@ -113,7 +113,7 @@ jobs:
         run: sudo apt-get install zip unzip
 
       - name: Download Gobra server artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: server.jar
 
@@ -202,13 +202,13 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout Gobra-IDE
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           path: gobra-ide
           # we do not need any submodules here as we only test the client
 
       - name: Download Gobra tools
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         id: tools-download
         with:
           name: ${{matrix.gobra-tools-zip-file}}
@@ -231,7 +231,7 @@ jobs:
       - run: java --version
 
       - name: Cache npm
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: gobra-ide/client/.npm
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
@@ -316,29 +316,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download Gobra Tools for Windows
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: GobraToolsWin.zip
           path: deploy
       - name: Download Gobra Tools for Linux
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: GobraToolsLinux.zip
           path: deploy
       - name: Download Gobra Tools for macOS
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: GobraToolsMac.zip
           path: deploy
 
       - name: Download packaged Gobra IDE
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: gobra-ide.vsix
           path: gobra-ide/client
 
       - name: Download version file
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: versions.txt
 
@@ -406,35 +406,35 @@ jobs:
     steps:
       # we have to checkout the repo to read client/package.json later on:
       - name: Checkout Gobra-IDE
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           path: gobra-ide
           # we do not need any submodules here as we only test the client
 
       - name: Download Gobra Tools for Windows
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: GobraToolsWin.zip
           path: deploy
       - name: Download Gobra Tools for Linux
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: GobraToolsLinux.zip
           path: deploy
       - name: Download Gobra Tools for macOS
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: GobraToolsMac.zip
           path: deploy
 
       - name: Download packaged Gobra IDE
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: gobra-ide.vsix
           path: gobra-ide/client
 
       - name: Download version file
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: versions.txt
 
