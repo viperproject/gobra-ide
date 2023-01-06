@@ -10,6 +10,7 @@ import * as path from 'path';
 import { State } from '../ExtensionState';
 import { Commands, ContributionCommands, Helper } from '../Helper';
 import { TestHelper } from './TestHelper';
+import { readdir } from 'fs/promises';
 
 const PROJECT_ROOT = path.join(__dirname, "..", "..");
 const DATA_ROOT = path.join(PROJECT_ROOT, "src", "test", "data");
@@ -31,6 +32,25 @@ function getTestDataPath(fileName: string): string {
     return path.join(DATA_ROOT, fileName);
 }
 
+async function getGobraFilesInDataPath(): Promise<string[]> {
+    function getExtension(filename: string): string | undefined {
+        return filename.split('.').pop();
+    }
+    
+    const filenames = await readdir(DATA_ROOT);
+    return filenames
+        .filter(filename => {
+            const ext = getExtension(filename);
+            return ext != undefined && (ext === "go" || ext === "gobra");
+        })
+        .map(filename => path.join(DATA_ROOT, filename));
+}
+
+async function closeAllFiles(): Promise<void> {
+    log("closing all files");
+    await vscode.commands.executeCommand('workbench.action.closeAllEditors');
+}
+
 /**
  * Open a file in the IDE
  *
@@ -43,6 +63,7 @@ async function openFile(fileName: string): Promise<vscode.TextDocument> {
 }
 
 async function openAndVerify(fileName: string, command: string): Promise<vscode.TextDocument> {
+    await closeAllFiles();
     // open file, ...
     const document = await openFile(fileName);
     // ... send verification command to server...
@@ -165,9 +186,26 @@ suite("Extension", () => {
 
     test("Verifying basic programs as a package fails because of differing package names", async function() {
         this.timeout(GOBRA_VERIFICATION_TIMEOUT_MS);
-        const document = await openAndVerifyPackage(ASSERT_FALSE);
-        const diagnostics = vscode.languages.getDiagnostics(document.uri);
-        assert.ok(diagnostics.length >= 1 && diagnostics[0].severity === vscode.DiagnosticSeverity.Error);
+        // note: we have to consider the diagnostics of all gobra and go files because we do not want
+        // to rely on a particular behavior of Gobra. Gobra will report an error in files with 
+        // differing package name. However, the file in which the error occurs depends on the order
+        // in which Gobra visits the files.
+        const filePaths = await getGobraFilesInDataPath();
+        const fileUris = filePaths.map(path => vscode.Uri.file(path));
+        const diagnosticsBeforeVerification = new Map(
+            fileUris.map(fileUri => [fileUri, vscode.languages.getDiagnostics(fileUri)]));
+        await openAndVerifyPackage(ASSERT_FALSE);
+        const diagnosticsAfterVerification = new Map(
+            fileUris.map(fileUri => [fileUri, vscode.languages.getDiagnostics(fileUri)]));
+        const newDiagnostics = fileUris.flatMap(fileUri => {
+            const prevDiags = diagnosticsBeforeVerification.get(fileUri);
+            const curDiags = diagnosticsAfterVerification.get(fileUri);
+            const newDiags = curDiags?.filter(diag => !prevDiags?.includes(diag));
+            return newDiags || [];
+        });
+        const newErrorDiagnostics = newDiagnostics
+            .filter(diag => diag.severity === vscode.DiagnosticSeverity.Error);
+        assert.ok(newErrorDiagnostics.length >= 1);
     });
 
     test("Verifying a package consisting of two files succeeds", async function() {
