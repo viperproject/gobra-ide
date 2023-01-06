@@ -67,7 +67,7 @@ jobs:
           echo "Silver: commit ${{ env.SILICON_SILVER_REF }}" >> versions.txt
         # first line overwrites versions.txt in case it already exists, all other append to the file
       - name: Upload version file
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: versions.txt
           path: versions.txt
@@ -78,7 +78,7 @@ jobs:
         # hence, invoking sbt in server folder means that sbt cache will be in gobra-ide/server/sbt-cache
 
       - name: Cache SBT
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: |
             gobra-ide/server/sbt-cache/.sbtboot
@@ -95,7 +95,7 @@ jobs:
         working-directory: gobra-ide/server
 
       - name: Upload Gobra server artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: server.jar
           path: gobra-ide/server/target/scala-2.13/server.jar
@@ -168,17 +168,17 @@ jobs:
         working-directory: GobraToolsMac
 
       - name: Upload Gobra Tools for Windows
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: GobraToolsWin.zip
           path: deploy/GobraToolsWin.zip
       - name: Upload Gobra Tools for Linux
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: GobraToolsLinux.zip
           path: deploy/GobraToolsLinux.zip
       - name: Upload Gobra Tools for macOS
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: GobraToolsMac.zip
           path: deploy/GobraToolsMac.zip
@@ -303,7 +303,7 @@ jobs:
 
       - name: Upload packaged Gobra-IDE (ubuntu-only)
         if: startsWith(matrix.os, 'ubuntu')
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: gobra-ide.vsix
           path: gobra-ide/client/gobra-ide.vsix
