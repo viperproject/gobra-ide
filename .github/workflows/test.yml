@@ -225,7 +225,7 @@ jobs:
           node-version: '18'
 
       - name: Setup Java JDK
-        uses: actions/setup-java@v1.4.3
+        uses: actions/setup-java@v3
         with:
           java-version: '11'
       - run: java --version
@@ -248,21 +248,17 @@ jobs:
       - run: npm ci --cache .npm --prefer-offline
         working-directory: gobra-ide/client
 
-      - name: Run tests (headless - non-windows)
-        if: "!startsWith(matrix.os, 'windows')"
-        uses: GabrielBB/xvfb-action@v1
-        with:
-          run: npm test --full-trace -- --gobraTools "${{steps.tools-download.outputs.download-path}}/GobraTools"
-          working-directory: gobra-ide/client
+      - name: Run tests (headless - non-ubuntu)
+        if: "!startsWith(matrix.os, 'ubuntu')"
+        run: npm test --full-trace -- --gobraTools "${{steps.tools-download.outputs.download-path}}/GobraTools"
+        working-directory: gobra-ide/client
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Run tests (headless - windows only)
-        if: startsWith(matrix.os, 'windows')
-        uses: GabrielBB/xvfb-action@v1
-        with:
-          run: npm test --full-trace -- --gobraTools "${{steps.tools-download.outputs.download-path}}/GobraTools"
-          working-directory: gobra-ide/client
+      - name: Run tests (headless - ubuntu only)
+        if: startsWith(matrix.os, 'ubuntu')
+        run: xvfb-run -a npm test --full-trace -- --gobraTools "${{steps.tools-download.outputs.download-path}}/GobraTools"
+        working-directory: gobra-ide/client
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
