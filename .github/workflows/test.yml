@@ -118,15 +118,15 @@ jobs:
           name: server.jar
 
       - name: Download Viper Tools for Windows
-        run: curl --fail --silent --show-error http://viper.ethz.ch/downloads/ViperToolsWin.zip --output ViperToolsWin.zip
+        run: curl --fail --silent --show-error https://viper.ethz.ch/downloads/ViperToolsWin.zip --output ViperToolsWin.zip
       - name: Unzip Viper Tools for Windows
         run: unzip ViperToolsWin.zip -d ViperToolsWin
       - name: Download Viper Tools for Linux
-        run: curl --fail --silent --show-error http://viper.ethz.ch/downloads/ViperToolsLinux.zip --output ViperToolsLinux.zip
+        run: curl --fail --silent --show-error https://viper.ethz.ch/downloads/ViperToolsLinux.zip --output ViperToolsLinux.zip
       - name: Unzip Viper Tools for Linux
         run: unzip ViperToolsLinux.zip -d ViperToolsLinux
       - name: Download Viper Tools for macOS
-        run: curl --fail --silent --show-error http://viper.ethz.ch/downloads/ViperToolsMac.zip --output ViperToolsMac.zip
+        run: curl --fail --silent --show-error https://viper.ethz.ch/downloads/ViperToolsMac.zip --output ViperToolsMac.zip
       - name: Unzip Viper Tools for macOS
         run: unzip ViperToolsMac.zip -d ViperToolsMac
 
