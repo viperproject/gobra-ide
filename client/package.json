@@ -34,7 +34,7 @@
   "main": "./dist/extension",
   "dependencies": {},
   "devDependencies": {
-    "@types/glob": "^8.0.0",
+    "@types/glob": "^8.0.1",
     "@types/mocha": "^10.0.1",
     "@types/node": "^18.8.3",
     "@types/tmp": "^0.2.3",
@@ -42,7 +42,7 @@
     "@types/yargs": "^17.0.22",
     "@viperproject/locate-java-home": "^1.1.8",
     "@vscode/test-electron": "^2.2.3",
-    "glob": "^8.0.3",
+    "glob": "^8.1.0",
     "mocha": "^10.2.0",
     "npm-run-all": "^4.1.5",
     "nyc": "^15.1.0",
