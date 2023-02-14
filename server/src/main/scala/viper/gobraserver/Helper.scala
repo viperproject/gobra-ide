@@ -90,6 +90,7 @@ object Helper {
           shouldParseOnly = parseOnly,
           stopAfterEncoding = stopAfterEncoding,
           cacheParser = true,
+          parallelizeBranches = true
         )
         FileModeConfig(inputFiles = inputFiles, baseConfig = baseConfig)
     }
