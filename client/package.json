@@ -40,7 +40,7 @@
     "@types/tmp": "^0.2.3",
     "@types/vscode": "^1.63.0",
     "@types/yargs": "^17.0.22",
-    "@viperproject/locate-java-home": "^1.1.8",
+    "@viperproject/locate-java-home": "^1.1.10",
     "@vscode/test-electron": "^2.2.3",
     "glob": "^8.1.0",
     "mocha": "^10.2.0",
