@@ -50,7 +50,7 @@
     "rimraf": "^4.1.3",
     "tmp": "^0.2.1",
     "ts-loader": "^9.4.2",
-    "typescript": "^4.9.5",
+    "typescript": "^5.0.3",
     "vs-verification-toolbox": "git+https://github.com/viperproject/vs-verification-toolbox.git",
     "vscode-languageclient": "^6.1.3",
     "vscode-uri": "^3.0.7",
