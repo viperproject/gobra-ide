@@ -89,7 +89,8 @@ object Helper {
           logLevel = Level.toLevel(logLevel),
           shouldParseOnly = parseOnly,
           stopAfterEncoding = stopAfterEncoding,
-          cacheParser = true,
+          parallelizeBranches = true,
+          cacheParserAndTypeChecker = true,
         )
         FileModeConfig(inputFiles = inputFiles, baseConfig = baseConfig)
     }
