@@ -39,7 +39,7 @@
     "@types/tmp": "^0.2.3",
     "@types/vscode": "^1.63.0",
     "@types/yargs": "^17.0.24",
-    "@viperproject/locate-java-home": "^1.1.12",
+    "@viperproject/locate-java-home": "^1.1.13",
     "@vscode/test-electron": "^2.3.4",
     "@vscode/vsce": "^2.20.0",
     "glob": "^8.1.0",
