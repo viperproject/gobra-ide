@@ -20,7 +20,7 @@
 
 import * as path from 'path';
 import * as Mocha from 'mocha';
-import * as glob from 'glob';
+import { glob } from 'glob';
 
 export async function run(): Promise<void> {
   // Create the mocha test
@@ -32,18 +32,11 @@ export async function run(): Promise<void> {
 
   const testsRoot = path.resolve(__dirname, '..');
 
-  const files: Array<string> = await new Promise((resolve, reject) =>
-    glob(
-      "**/*.evaluate.js",
-      {
-        cwd: testsRoot,
-      },
-      (err, result) => {
-        if (err) reject(err)
-        else resolve(result)
-      }
-    )
-  )
+  const files: Array<string> = await glob(
+    "**/*.evaluate.js",
+    {
+      cwd: testsRoot,
+    });
 
   // Add files to the test suite
   files.forEach(f => mocha.addFile(path.resolve(testsRoot, f)));
