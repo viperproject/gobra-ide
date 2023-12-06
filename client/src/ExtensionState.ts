@@ -34,8 +34,6 @@ export class State {
   private static runningGoifications: Set<string>;
   private static runningGobrafications: Set<string>;
 
-  public static verificationRequestTimeout: NodeJS.Timeout | null;
-
   public static verifierConfig: VerifierConfig;
 
   public static isFileInvolvedInRunningVerification(fileUri: URI): Boolean {
@@ -129,26 +127,6 @@ export class State {
     State.verifierConfig.gobraSettings = Helper.getGobraSettings();
   }
 
-  public static setVerificationRequestTimeout(fileUri: URI, event: IdeEvents): void {
-    State.verificationRequestTimeout = setTimeout(() => {
-      Verifier.verify(fileUri, event);
-      State.clearVerificationRequestTimeout();
-    }, Helper.getTimeout());
-  }
-
-  public static clearVerificationRequestTimeout(): void {
-    if (State.verificationRequestTimeout != null) {
-      clearTimeout(State.verificationRequestTimeout);
-      State.verificationRequestTimeout = null;
-    }
-  }
-
-  public static refreshVerificationRequestTimeout(): void {
-    if (State.verificationRequestTimeout != null) {
-      State.verificationRequestTimeout.refresh();
-    }
-  }
-
 
   // creates the language client and starts the server
   public static startLanguageServer(context: vscode.ExtensionContext, fileSystemWatcher: vscode.FileSystemWatcher, location: Location): Promise<void> {
@@ -160,8 +138,6 @@ export class State {
 
     this.runningGoifications = new Set<string>();
     this.runningGobrafications = new Set<string>();
-
-    this.verificationRequestTimeout = null;
 
     this.viperPreviewProvider = new CodePreviewProvider();
     vscode.workspace.registerTextDocumentContentProvider(FileSchemes.viper, this.viperPreviewProvider);

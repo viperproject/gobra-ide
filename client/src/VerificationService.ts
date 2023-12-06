@@ -94,18 +94,6 @@ export class Verifier {
         });
         return;
       }
-
-      // don't set timeout when auto verification is off
-      if (!Helper.isAutoVerify()) return;
-
-      // don't set timeout when file was saved
-      if (change.contentChanges.length == 0) return;
-
-      if (State.verificationRequestTimeout) {
-        State.refreshVerificationRequestTimeout();
-      } else {
-        State.setVerificationRequestTimeout(change.document.uri, IdeEvents.FileChange);
-      }
     }));
 
     // change of build version
@@ -218,9 +206,6 @@ export class Verifier {
     */
   public static verifyFiles(fileUris: URI[], event: IdeEvents, isolationData: IsolationData[] = []): void {
     State.removeVerificationRequests(fileUris);
-
-
-    State.clearVerificationRequestTimeout();
 
     // return when no text editor is active
     if (!vscode.window.activeTextEditor) return;
@@ -378,7 +363,6 @@ export class Verifier {
     // State.updateFileData([fileUri]);
     const fileData = new FileData(fileUri);
     State.client.sendNotification(Commands.changeFile, Helper.fileDataToJson(fileData));
-    State.clearVerificationRequestTimeout();
   }
 
 
