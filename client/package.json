@@ -34,7 +34,7 @@
   "main": "./dist/extension",
   "devDependencies": {
     "@types/glob": "^8.0.1",
-    "@types/mocha": "^10.0.4",
+    "@types/mocha": "^10.0.6",
     "@types/node": "^20.10.3",
     "@types/tmp": "^0.2.6",
     "@types/vscode": "^1.63.0",
