@@ -38,7 +38,7 @@
     "@types/node": "^20.9.0",
     "@types/tmp": "^0.2.6",
     "@types/vscode": "^1.63.0",
-    "@types/yargs": "^17.0.31",
+    "@types/yargs": "^17.0.32",
     "@viperproject/locate-java-home": "^1.1.13",
     "@vscode/test-electron": "^2.3.8",
     "@vscode/vsce": "^2.22.0",
