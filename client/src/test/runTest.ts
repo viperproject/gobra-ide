@@ -34,6 +34,10 @@ async function main() {
 			description: 'Path to the Gobra Tools that should be used as gobraToolsBasePath instead of the one specified in the settings (only for build version "Local")',
             type: 'string',
 		})
+		.option('configFile', {
+			description: `Path (absolute or relative to ${PROJECT_ROOT}) to the config file that should be used for testing. If none is provided, the tests default to all config files in ${path.join(DATA_ROOT, "settings")}.`,
+            type: 'string',
+		})
         .help() // show help if `--help` is used
         .argv;
 
@@ -49,12 +53,19 @@ async function main() {
 	console.info("Reading VS Code version...");
 	const vscode_version = fs.readFileSync(path.join(DATA_ROOT, "vscode-version")).toString().trim();
 	console.info(`Tests will use VS Code version '${vscode_version}'`);
-	console.info("Reading list of settings...");
-	const settings_list = fs.readdirSync(path.join(DATA_ROOT, "settings")).sort();
-	assert(settings_list.length > 0, "There are no settings to test");
+	let settings_paths: string[];
+	if (argv.configFile) {
+		settings_paths = [path.resolve(PROJECT_ROOT, argv.configFile)];
+	} else {
+		console.info("Reading list of settings...");
+		const settings_list = fs.readdirSync(path.join(DATA_ROOT, "settings")).sort();
+		settings_paths = settings_list.map(filename => path.join(DATA_ROOT, "settings", filename));
+	}
+	assert(settings_paths.length > 0, "There are no settings to test");
 	
 	let firstIteration = true;
-	for (const settings_file of settings_list) {
+	for (const settings_path of settings_paths) {
+		const settings_file = path.basename(settings_path);
 		console.info(`Testing settings ${settings_file}`);
 		let additionalSettings: Map<string, string>[];
 		if (argv.gobraTools) {
@@ -86,7 +97,6 @@ async function main() {
 			const tmpWorkspace = tmp.dirSync({ unsafeCleanup: true });
 			try {
 				// Prepare the workspace with the settings
-				const settings_path = path.join(DATA_ROOT, "settings", settings_file);
 				const workspace_vscode_path = path.join(tmpWorkspace.name, ".vscode");
 				const workspace_settings_path = path.join(workspace_vscode_path, "settings.json");
 				fs.mkdirSync(workspace_vscode_path);
