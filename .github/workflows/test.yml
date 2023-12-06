@@ -193,6 +193,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
+        config-file: ["src/test/data/settings/local.json", "src/test/data/settings/nightly.json", "src/test/data/settings/empty.json"]
         include:
           - os: macos-latest
             gobra-tools-zip-file: "GobraToolsMac.zip"
@@ -252,14 +253,14 @@ jobs:
 
       - name: Run tests (headless - non-ubuntu)
         if: "!startsWith(matrix.os, 'ubuntu')"
-        run: npm test --full-trace -- --gobraTools "${{steps.tools-download.outputs.download-path}}/GobraTools"
+        run: npm test --full-trace -- --gobraTools "${{steps.tools-download.outputs.download-path}}/GobraTools" --configFile "${{matrix.config-file}}"
         working-directory: gobra-ide/client
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run tests (headless - ubuntu only)
         if: startsWith(matrix.os, 'ubuntu')
-        run: xvfb-run -a npm test --full-trace -- --gobraTools "${{steps.tools-download.outputs.download-path}}/GobraTools"
+        run: xvfb-run -a npm test --full-trace -- --gobraTools "${{steps.tools-download.outputs.download-path}}/GobraTools" --configFile "${{matrix.config-file}}"
         working-directory: gobra-ide/client
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
