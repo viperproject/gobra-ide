@@ -17,6 +17,7 @@ import viper.server.core.ViperCoreServer
 import org.eclipse.lsp4j.{MessageParams, MessageType, Range}
 import viper.gobra.frontend.{Config, Gobrafier, Parser, RawConfig}
 import viper.server.ViperConfig
+import viper.server.vsi.DefaultVerificationServerStart
 
 import java.io.{BufferedWriter, File, FileWriter}
 import scala.concurrent.Future
@@ -40,7 +41,7 @@ object GobraServer extends GobraFrontend {
     _options = options
     _executor = executor
     val config = new ViperConfig(options)
-    _server = new ViperCoreServer(config)(executor)
+    _server = new ViperCoreServer(config)(executor) with DefaultVerificationServerStart
   }
 
   def start(): Unit = {

@@ -24,7 +24,7 @@ class GobraServerService(config: ServerConfig)(implicit executor: GobraServerExe
     // always send full text document for each notification:
     capabilities.setTextDocumentSync(TextDocumentSyncKind.Incremental)
 
-    val options: List[String] = List("--logLevel", config.logLevel.levelStr)
+    val options: List[String] = List("--disablePlugins", "--logLevel", config.logLevel.levelStr)
     GobraServer.init(options)(executor)
     GobraServer.start()
 

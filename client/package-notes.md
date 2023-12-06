@@ -1,9 +1,9 @@
 # Gobra IDE Build System
 Gobra IDE uses webpack as well as compilation using the plain typescript transpiler:
 - Webpack is used to bundle all transpiled source files into one large javascript file `dist/extension.js`.
-This is done before running the extension or packaging the extension (using `vsce`).
-The main motivation stems from `vsce` as it complains when including too many javascript files in the final `.vsix` package.
-`vsce` suggests bundling the extension by following [this guide](https://code.visualstudio.com/api/working-with-extensions/bundling-extension).
+This is done before running the extension or packaging the extension (using `@vscode/vsce`).
+The main motivation stems from `@vscode/vsce` as it complains when including too many javascript files in the final `.vsix` package.
+`@vscode/vsce` suggests bundling the extension by following [this guide](https://code.visualstudio.com/api/working-with-extensions/bundling-extension).
 - The plain webpack transpiler (`tsc`) on the other hand is used to compile the extension tests.
 It doesn't make much sense to bundle the transpiled tests as additional entry points would need to be handled.
 

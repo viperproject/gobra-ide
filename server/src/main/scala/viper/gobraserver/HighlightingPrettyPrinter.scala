@@ -451,7 +451,7 @@ object HighlightingPrettyPrinter extends HighlightingPrettyPrinterBase with Brac
   /** Show a domain member. */
   def showDomainMember(m: DomainMember): Cont = {
     val memberDoc = m match {
-      case f @ DomainFunc(_, _, _, unique) =>
+      case f @ DomainFunc(_, _, _, unique, _) =>
         if (unique) text("unique") <+> showDomainFunc(f) else showDomainFunc(f)
       case NamedDomainAxiom(name, exp) =>
         text("axiom") <+> name <+>
@@ -470,8 +470,8 @@ object HighlightingPrettyPrinter extends HighlightingPrettyPrinterBase with Brac
 
 
   def showDomainFunc(f: DomainFunc): Cont = {
-    val DomainFunc(name, formalArgs, typ, _) = f
-    text("function") <+> name <> parens(showVars(formalArgs)) <> ":" <+> show(typ)
+    val DomainFunc(name, formalArgs, typ, _, interpretation) = f
+    text("function") <+> name <> parens(showVars(formalArgs)) <> ":" <+> show(typ) <+> (if (interpretation.isDefined) text("interpretation") <+> s""""${interpretation.get}"""" else nil)
   }
 
   /** Show a program member. */
@@ -553,9 +553,10 @@ object HighlightingPrettyPrinter extends HighlightingPrettyPrinterBase with Brac
   /** Show a user-defined domain. */
   def showDomain(d: Domain): Cont = {
     d match {
-      case Domain(name, functions, axioms, typVars) =>
+      case Domain(name, functions, axioms, typVars, interpretations) =>
         text("domain") <+> name <>
           (if (typVars.isEmpty) nil else text("[") <> ssep(typVars map show, char (',') <> space) <> "]") <+>
+          (if (interpretations.isEmpty) nil else text("interpretation") <+> parens(ssep(interpretations.get.toSeq.map(i => text(i._1) <> ":" <+> s""""${i._2}""""), char (',') <> space))) <+>
           braces(nest(defaultIndent,
             line <> line <>
               ssep((functions ++ axioms) map show, line <> line)
