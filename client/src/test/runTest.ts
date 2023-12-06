@@ -55,14 +55,17 @@ async function main() {
 	
 	let firstIteration = true;
 	for (const settings_file of settings_list) {
-		const additionalSettings: Map<string, string>[] = [];
+		console.info(`Testing settings ${settings_file}`);
+		let additionalSettings: Map<string, string>[];
 		if (argv.gobraTools) {
 			const gobraToolsSettings = new Map([
 				["gobraDependencies.gobraToolsPaths.gobraToolsBasePath.windows", argv.gobraTools],
 				["gobraDependencies.gobraToolsPaths.gobraToolsBasePath.linux", argv.gobraTools],
 				["gobraDependencies.gobraToolsPaths.gobraToolsBasePath.mac", argv.gobraTools]]
 			);
-			additionalSettings.push(gobraToolsSettings);
+			additionalSettings = [gobraToolsSettings];
+		} else {
+			additionalSettings = [new Map()];
 		}
 		
 		for (const addSettings of additionalSettings) {
@@ -74,7 +77,12 @@ async function main() {
 			}
 			firstIteration = false;
 
-			console.info(`Testing with settings '${settings_file}' and additional settings ${mapToString(addSettings)}...`);
+			if (addSettings.size === 0) {
+				console.info(`Testing with settings '${settings_file}' and no additional settings`);
+			} else {
+				console.info(`Testing with settings '${settings_file}' and additional settings ${mapToString(addSettings)}...`);
+			}
+
 			const tmpWorkspace = tmp.dirSync({ unsafeCleanup: true });
 			try {
 				// Prepare the workspace with the settings

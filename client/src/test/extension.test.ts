@@ -67,9 +67,12 @@ async function openAndVerify(fileName: string, command: string): Promise<vscode.
     // open file, ...
     const document = await openFile(fileName);
     // ... send verification command to server...
+    const executed = new Promise((resolve) => State.client.onNotification(Commands.overallResult, resolve));
+    console.debug(`execute ${command}`);
     await vscode.commands.executeCommand(command);
     // ... and wait for result notification from server
-    await new Promise((resolve) => State.client.onNotification(Commands.overallResult, resolve));
+    await executed;
+    console.debug(`executed ${command}`);
     return document;
 }
 
