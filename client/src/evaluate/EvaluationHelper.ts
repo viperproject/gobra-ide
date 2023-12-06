@@ -11,7 +11,7 @@ import { Helper } from "../Helper";
 import { State } from "../ExtensionState";
 import { URI } from 'vscode-uri';
 import * as fs from 'fs';
-import * as glob from 'glob';
+import { glob } from 'glob';
 import { Verifier } from '../VerificationService';
 
 const PROJECT_ROOT = path.join(__dirname, "..", "..");
@@ -25,17 +25,11 @@ export class EvaluationHelper {
   public static evaluationResultsFile = path.join(EvaluationHelper.evaluationResultsPath, "evaluationResults.txt");
 
   public static async getEvaluationFiles(): Promise<string[]> {
-    const files = await new Promise<string[]>((resolve, reject) =>
-    glob(
+    const files = await glob(
       "**/*.gobra",
       {
         cwd: DATA_ROOT,
-      },
-      (err, result) => {
-        if (err) reject(err)
-        else resolve(result)
-      }
-    ));
+      });
     return files.map(f => path.resolve(DATA_ROOT, f));
   }
 
