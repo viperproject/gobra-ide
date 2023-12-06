@@ -107,7 +107,20 @@ jobs:
 
 
   create-gobra-tools:
+    name: create-gobra-tools - ${{ matrix.gobra-tools-platform }}
     needs: build-and-test-server
+    strategy:
+      # tests should not be stopped when they fail on one of the OSes:
+      fail-fast: false
+      matrix:
+        viper-tools-platform: ["ViperToolsWin", "ViperToolsLinux", "ViperToolsMac"]
+        include:
+          - viper-tools-platform: "ViperToolsWin"
+            gobra-tools-platform: "GobraToolsWin"
+          - viper-tools-platform: "ViperToolsLinux"
+            gobra-tools-platform: "GobraToolsLinux"
+          - viper-tools-platform: "ViperToolsMac"
+            gobra-tools-platform: "GobraToolsMac"
     runs-on: ubuntu-latest
     steps:
       - name: Install prerequisites
@@ -118,71 +131,35 @@ jobs:
         with:
           name: server.jar
 
-      - name: Download Viper Tools for Windows
-        run: wget --no-verbose https://viper.ethz.ch/downloads/ViperToolsWin.zip --output-document=ViperToolsWin.zip
-      - name: Unzip Viper Tools for Windows
-        run: unzip ViperToolsWin.zip -d ViperToolsWin
-      - name: Download Viper Tools for Linux
-        run: wget --no-verbose https://viper.ethz.ch/downloads/ViperToolsLinux.zip --output-document=ViperToolsLinux.zip
-      - name: Unzip Viper Tools for Linux
-        run: unzip ViperToolsLinux.zip -d ViperToolsLinux
-      - name: Download Viper Tools for macOS
-        run: wget --no-verbose https://viper.ethz.ch/downloads/ViperToolsMac.zip --output-document=ViperToolsMac.zip
-      - name: Unzip Viper Tools for macOS
-        run: unzip ViperToolsMac.zip -d ViperToolsMac
+      - name: Download Viper Tools
+        run: wget --no-verbose https://viper.ethz.ch/downloads/${{ matrix.viper-tools-platform }}.zip --output-document=${{ matrix.viper-tools-platform }}.zip
+      - name: Unzip Viper Tools
+        run: unzip ${{ matrix.viper-tools-platform }}.zip -d ${{ matrix.viper-tools-platform }}
 
-      - name: Create a Gobra Tools folder per platform
-        run: |
-          mkdir -p GobraToolsWin
-          mkdir -p GobraToolsLinux
-          mkdir -p GobraToolsMac
+      - name: Create a Gobra Tools folder
+        run: mkdir -p ${{ matrix.gobra-tools-platform }}
 
       - name: Copy boogie from ViperTools to Gobra Tools
-        run: |
-          cp -R ViperToolsWin/boogie GobraToolsWin/boogie/
-          cp -R ViperToolsLinux/boogie GobraToolsLinux/boogie/
-          cp -R ViperToolsMac/boogie GobraToolsMac/boogie/
+        run: cp -R ${{ matrix.viper-tools-platform }}/boogie ${{ matrix.gobra-tools-platform }}/boogie/
 
       - name: Copy z3 from ViperTools to Gobra Tools
-        run: |
-          cp -R ViperToolsWin/z3 GobraToolsWin/z3/
-          cp -R ViperToolsLinux/z3 GobraToolsLinux/z3/
-          cp -R ViperToolsMac/z3 GobraToolsMac/z3/
+        run: cp -R ${{ matrix.viper-tools-platform }}/z3 ${{ matrix.gobra-tools-platform }}/z3/
 
       - name: Copy Gobra server artifact to Gobra Tools
-        run: |
-          mkdir -p GobraToolsWin/server && cp server.jar GobraToolsWin/server/server.jar
-          mkdir -p GobraToolsLinux/server && cp server.jar GobraToolsLinux/server/server.jar
-          mkdir -p GobraToolsMac/server && cp server.jar GobraToolsMac/server/server.jar
+        run: mkdir -p ${{ matrix.gobra-tools-platform }}/server && cp server.jar ${{ matrix.gobra-tools-platform }}/server/server.jar
 
-      - name: Create folder to store all Gobra Tools platform zip files
+      - name: Create folder to store Gobra Tools platform zip files
         run: mkdir deploy
         # note that we change into the tool folder to zip it. This avoids including the parent folder in the zip
-      - name: Zip Gobra Tools for Windows
-        run: zip -r ../deploy/GobraToolsWin.zip ./*
-        working-directory: GobraToolsWin
-      - name: Zip Gobra Tools for Linux
-        run: zip -r ../deploy/GobraToolsLinux.zip ./*
-        working-directory: GobraToolsLinux
-      - name: Zip Gobra Tools for macOS
-        run: zip -r ../deploy/GobraToolsMac.zip ./*
-        working-directory: GobraToolsMac
+      - name: Zip Gobra Tools
+        run: zip -r ../deploy/${{ matrix.gobra-tools-platform }}.zip ./*
+        working-directory: ${{ matrix.gobra-tools-platform }}
 
-      - name: Upload Gobra Tools for Windows
+      - name: Upload Gobra Tools
         uses: actions/upload-artifact@v3
         with:
-          name: GobraToolsWin.zip
-          path: deploy/GobraToolsWin.zip
-      - name: Upload Gobra Tools for Linux
-        uses: actions/upload-artifact@v3
-        with:
-          name: GobraToolsLinux.zip
-          path: deploy/GobraToolsLinux.zip
-      - name: Upload Gobra Tools for macOS
-        uses: actions/upload-artifact@v3
-        with:
-          name: GobraToolsMac.zip
-          path: deploy/GobraToolsMac.zip
+          name: ${{ matrix.gobra-tools-platform }}.zip
+          path: deploy/${{ matrix.gobra-tools-platform }}.zip
 
 
   build-and-test-client:
