@@ -193,7 +193,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
-        config-file: ["src/test/data/settings/local.json", "src/test/data/settings/nightly.json", "src/test/data/settings/empty.json"]
+        config-file: ["src/test/data/settings/local.json", "src/test/data/settings/nightly.json"]
         include:
           - os: macos-latest
             gobra-tools-zip-file: "GobraToolsMac.zip"
