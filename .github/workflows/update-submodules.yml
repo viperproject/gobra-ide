@@ -51,6 +51,7 @@ jobs:
             * Updates Gobra from `${{ env.PREV_GOBRA_REF }}` to `${{ env.CUR_GOBRA_REF }}`.
 
       - name: Enable auto-merge of PR
+        if: env.PREV_GOBRA_REF != env.CUR_GOBRA_REF
         run: gh pr merge --merge --auto "${{ steps.pr.outputs.pull-request-number }}"
         env:
           GH_TOKEN: ${{ secrets.VIPER_ADMIN_TOKEN }}
