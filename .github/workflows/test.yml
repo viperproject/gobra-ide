@@ -36,7 +36,7 @@ jobs:
     container: gobraverifier/gobra-base:v5_z3_4.8.7
     steps:
       - name: Checkout Gobra-IDE
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           path: gobra-ide
           submodules: recursive
@@ -68,7 +68,7 @@ jobs:
           echo "Silver: commit ${{ env.SILICON_SILVER_REF }}" >> versions.txt
         # first line overwrites versions.txt in case it already exists, all other append to the file
       - name: Upload version file
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: versions.txt
           path: versions.txt
@@ -79,7 +79,7 @@ jobs:
         # hence, invoking sbt in server folder means that sbt cache will be in gobra-ide/server/sbt-cache
 
       - name: Cache SBT
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             gobra-ide/server/sbt-cache/.sbtboot
@@ -96,7 +96,7 @@ jobs:
         working-directory: gobra-ide/server
 
       - name: Upload Gobra server artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: server.jar
           path: gobra-ide/server/target/scala-2.13/server.jar
@@ -127,7 +127,7 @@ jobs:
         run: sudo apt-get install zip unzip
 
       - name: Download Gobra server artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: server.jar
 
@@ -156,7 +156,7 @@ jobs:
         working-directory: ${{ matrix.gobra-tools-platform }}
 
       - name: Upload Gobra Tools
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.gobra-tools-platform }}.zip
           path: deploy/${{ matrix.gobra-tools-platform }}.zip
@@ -181,13 +181,13 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout Gobra-IDE
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           path: gobra-ide
           # we do not need any submodules here as we only test the client
 
       - name: Download Gobra tools
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         id: tools-download
         with:
           name: ${{matrix.gobra-tools-zip-file}}
@@ -199,19 +199,19 @@ jobs:
         working-directory: local
 
       - name: Install Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '18'
 
       - name: Setup Java JDK
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           java-version: '11'
           distribution: 'temurin'
       - run: java --version
 
       - name: Cache npm
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: gobra-ide/client/.npm
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
@@ -279,7 +279,7 @@ jobs:
 
       - name: Upload packaged Gobra-IDE (ubuntu-only)
         if: startsWith(matrix.os, 'ubuntu')
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: gobra-ide.vsix
           path: gobra-ide/client/gobra-ide.vsix
@@ -292,29 +292,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download Gobra Tools for Windows
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: GobraToolsWin.zip
           path: deploy
       - name: Download Gobra Tools for Linux
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: GobraToolsLinux.zip
           path: deploy
       - name: Download Gobra Tools for macOS
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: GobraToolsMac.zip
           path: deploy
 
       - name: Download packaged Gobra IDE
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: gobra-ide.vsix
           path: gobra-ide/client
 
       - name: Download version file
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: versions.txt
 
@@ -382,35 +382,35 @@ jobs:
     steps:
       # we have to checkout the repo to read client/package.json later on:
       - name: Checkout Gobra-IDE
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           path: gobra-ide
           # we do not need any submodules here as we only test the client
 
       - name: Download Gobra Tools for Windows
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: GobraToolsWin.zip
           path: deploy
       - name: Download Gobra Tools for Linux
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: GobraToolsLinux.zip
           path: deploy
       - name: Download Gobra Tools for macOS
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: GobraToolsMac.zip
           path: deploy
 
       - name: Download packaged Gobra IDE
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: gobra-ide.vsix
           path: gobra-ide/client
 
       - name: Download version file
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: versions.txt
 
@@ -489,7 +489,7 @@ jobs:
           echo "CURRENT_VERSION=$CURRENT_VERSION" >> $GITHUB_ENV
 
       - name: Publish the extension to Visual Studio Marketplace
-        uses: HaaLeo/publish-vscode-extension@v0
+        uses: HaaLeo/publish-vscode-extension@v1
         if: env.CURRENT_VERSION != env.LAST_PUBLISHED_VERSION
         with:
           pat: ${{ secrets.VSCE_TOKEN }}
@@ -498,7 +498,7 @@ jobs:
           packagePath: ''
 
       - name: Publish the extension to Open VSX Registry
-        uses: HaaLeo/publish-vscode-extension@v0
+        uses: HaaLeo/publish-vscode-extension@v1
         if: env.CURRENT_VERSION != env.LAST_PUBLISHED_VERSION
         with:
           pat: ${{ secrets.OPEN_VSX_TOKEN }}
