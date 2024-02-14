@@ -228,8 +228,8 @@ export class Verifier {
       return;
     }
 
-    // save files such that Gobra verifies the currently visible state of the files
-    await Verifier.saveFiles(fileUris);
+    // save .go and .gobra files since they might either be part of `fileUris` or get imported
+    await Verifier.saveOpenGoAndGobraFiles();
 
     State.updateConfiguration();
     State.updateFileData(fileUris, isolationData);
@@ -254,19 +254,18 @@ export class Verifier {
   }
 
   /**
-   * Saves the specified files if they contain unsaved changes
+   * Saves all open `.go` and `.gobra` files if they contain unsaved changes
    */
-  private static saveFiles(fileUris: URI[]): Promise<void> {
-    const filePaths = fileUris.map(uri => uri.fsPath);
+  private static async saveOpenGoAndGobraFiles(): Promise<void> {
     const savePromises = vscode.window.visibleTextEditors
-      .filter(editor => filePaths.some(filePath => filePath == editor.document.uri.fsPath))
+      .filter(editor => Verifier.isGoOrGobraPath(editor.document.uri.fsPath))
       .filter(editor => editor.document.isDirty)
       .map(editor => editor.document.save().then(success => {
         if (!success) {
           throw new Error(`Saving ${editor.document.fileName} before verification failed`);
         }
       }));
-    return Promise.all(savePromises).then();
+    await Promise.all(savePromises);
   }
 
   /**
