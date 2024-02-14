@@ -202,9 +202,10 @@ export class Verifier {
   }
 
   /**
-    * Verifies the files with the given fileUri as one verification task
+    * Verifies the files with the given fileUri as one verification task.
+    * Returns when the verification request has been sent to the server or added to the list of pending verification requests
     */
-  public static verifyFiles(fileUris: URI[], event: IdeEvents, isolationData: IsolationData[] = []): void {
+  public static async verifyFiles(fileUris: URI[], event: IdeEvents, isolationData: IsolationData[] = []): Promise<void> {
     State.removeVerificationRequests(fileUris);
 
     // return when no text editor is active
@@ -227,6 +228,9 @@ export class Verifier {
       return;
     }
 
+    // save .go and .gobra files since they might either be part of `fileUris` or get imported
+    await Verifier.saveOpenGoAndGobraFiles();
+
     State.updateConfiguration();
     State.updateFileData(fileUris, isolationData);
 
@@ -240,16 +244,28 @@ export class Verifier {
       State.addRunningVerification(fileUris);
       fileUris.forEach(fileUri => Verifier.verifyItem.progress(fileUri, 0));
 
-      vscode.window.activeTextEditor.document.save().then((saved: boolean) => {
-        Helper.log("sending verification request");
-
-        State.client.sendNotification(Commands.verify, Helper.configToJson(State.verifierConfig));
-      });
+      Helper.log("sending verification request");
+      State.client.sendNotification(Commands.verify, Helper.configToJson(State.verifierConfig));
     } else {
       if (!State.containsVerificationRequests(fileUris) && event != IdeEvents.Save) {
         State.addVerificationRequests(fileUris, event);
       }
     }
+  }
+
+  /**
+   * Saves all open `.go` and `.gobra` files if they contain unsaved changes
+   */
+  private static async saveOpenGoAndGobraFiles(): Promise<void> {
+    const savePromises = vscode.window.visibleTextEditors
+      .filter(editor => Verifier.isGoOrGobraPath(editor.document.uri.fsPath))
+      .filter(editor => editor.document.isDirty)
+      .map(editor => editor.document.save().then(success => {
+        if (!success) {
+          throw new Error(`Saving ${editor.document.fileName} before verification failed`);
+        }
+      }));
+    await Promise.all(savePromises);
   }
 
   /**
