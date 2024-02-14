@@ -252,8 +252,10 @@ jobs:
 #          token: ${{ secrets.CODECOV_TOKEN }}
 #          file: gobra-ide/client/coverage/lcov.info
 
-      - name: Clean 'dist' folder (ubuntu only)
-        if: startsWith(matrix.os, 'ubuntu')
+      # make sure that the following actions (in particular the artifact upload) are only executed for a single matrix configuration
+
+      - name: Clean 'dist' folder (only once)
+        if: startsWith(matrix.os, 'ubuntu') && endsWith(matrix.config-file, 'local.json')
         run: npm run clean
         working-directory: gobra-ide/client
 
@@ -261,24 +263,24 @@ jobs:
       # locate-java-home and vs-verification-toolbox dependencies (the two non-npm dependencies).
       # this seems related to https://github.com/npm/cli/issues/791
       # the current workaround is to `run npm install` first:
-      - name: Run 'npm install' as a workaround to later being able to package Gobra-IDE (ubuntu only)
-        if: startsWith(matrix.os, 'ubuntu')
+      - name: Run 'npm install' as a workaround to later being able to package Gobra-IDE (only once)
+        if: startsWith(matrix.os, 'ubuntu') && endsWith(matrix.config-file, 'local.json')
         run: npm install
         working-directory: gobra-ide/client
 
-      - name: List all files that will be packaged (ubuntu only)
-        if: startsWith(matrix.os, 'ubuntu')
+      - name: List all files that will be packaged (only once)
+        if: startsWith(matrix.os, 'ubuntu') && endsWith(matrix.config-file, 'local.json')
         run: npx @vscode/vsce ls
         working-directory: gobra-ide/client
 
-      - name: Package Gobra-IDE extension (ubuntu only)
-        if: startsWith(matrix.os, 'ubuntu')
+      - name: Package Gobra-IDE extension (only once)
+        if: startsWith(matrix.os, 'ubuntu') && endsWith(matrix.config-file, 'local.json')
         # note that baseContentUrl has to be manually provided as @vscode/vsce does not know that it is run in the client subfolder:
         run: npm run package -- --baseContentUrl https://github.com/viperproject/gobra-ide/raw/master/client --out gobra-ide.vsix
         working-directory: gobra-ide/client
 
-      - name: Upload packaged Gobra-IDE (ubuntu-only)
-        if: startsWith(matrix.os, 'ubuntu')
+      - name: Upload packaged Gobra-IDE (only once)
+        if: startsWith(matrix.os, 'ubuntu') && endsWith(matrix.config-file, 'local.json')
         uses: actions/upload-artifact@v4
         with:
           name: gobra-ide.vsix
