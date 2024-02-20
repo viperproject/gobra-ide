@@ -162,15 +162,28 @@ jobs:
           path: deploy/${{ matrix.gobra-tools-platform }}.zip
 
 
+  prepare-matrix:
+    name: Gather config files
+    runs-on: ubuntu-latest
+    steps:
+      - id: set-matrix
+        run: |
+          CONFIG_FILES=$(find src/test/data/settings | jq -R . | jq -s)
+          echo "config-files=$CONFIG_FILES" >> $GITHUB_OUTPUT
+        working-directory: gobra-ide/client
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.config-files }}
+
+
   build-and-test-client:
     name: build-and-test-client - ${{ matrix.os }}, ${{ matrix.config-file }}
-    needs: create-gobra-tools
+    needs: [prepare-matrix, create-gobra-tools]
     strategy:
       # tests should not be stopped when they fail on one of the OSes:
       fail-fast: false
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
-        config-file: ["src/test/data/settings/local.json", "src/test/data/settings/nightly.json"]
+        config-file: ${{ fromJson(needs.prepare-matrix.outputs.config-files) }}
         include:
           - os: macos-latest
             gobra-tools-zip-file: "GobraToolsMac.zip"
