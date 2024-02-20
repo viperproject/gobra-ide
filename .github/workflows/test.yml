@@ -177,7 +177,15 @@ jobs:
           echo "config-files=$CONFIG_FILES" >> $GITHUB_OUTPUT
         working-directory: gobra-ide/client
     outputs:
-      matrix: ${{ steps.set-matrix.outputs.config-files }}
+      config-files: ${{ steps.set-matrix.outputs.config-files }}
+
+
+  test-matrix:
+    needs: prepare-matrix
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo ${{ needs.prepare-matrix.outputs.config-files }}
+      - run: echo ${{ fromJson(needs.prepare-matrix.outputs.config-files) }}
 
 
   build-and-test-client:
