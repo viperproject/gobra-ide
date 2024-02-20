@@ -163,9 +163,14 @@ jobs:
 
 
   prepare-matrix:
-    name: Gather config files
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout Gobra-IDE
+        uses: actions/checkout@v4
+        with:
+          path: gobra-ide
+          # we do not need any submodules here as we only test the client
+
       - id: set-matrix
         run: |
           CONFIG_FILES=$(find src/test/data/settings | jq -R . | jq -s)
