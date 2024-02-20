@@ -173,7 +173,7 @@ jobs:
 
       - id: set-matrix
         run: |
-          CONFIG_FILES=$(find src/test/data/settings | jq -R . | jq -s)
+          CONFIG_FILES=$(find src/test/data/settings | jq -R . | jq -s ". | tostring")
           echo "config-files=$CONFIG_FILES" >> $GITHUB_OUTPUT
         working-directory: gobra-ide/client
     outputs:
