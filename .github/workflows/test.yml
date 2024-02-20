@@ -173,19 +173,12 @@ jobs:
 
       - id: set-matrix
         run: |
-          CONFIG_FILES=$(find src/test/data/settings | jq -R . | jq -s ". | tostring")
+          # find files with ending '.json' in client/src/test/data/settings and store them as a JSON array
+          CONFIG_FILES=$(find src/test/data/settings -type f -name "*.json" | jq -R . | jq -s ". | tostring")
           echo "config-files=$CONFIG_FILES" >> $GITHUB_OUTPUT
         working-directory: gobra-ide/client
     outputs:
       config-files: ${{ steps.set-matrix.outputs.config-files }}
-
-
-  test-matrix:
-    needs: prepare-matrix
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo ${{ needs.prepare-matrix.outputs.config-files }}
-      - run: echo ${{ fromJson(needs.prepare-matrix.outputs.config-files) }}
 
 
   build-and-test-client:
