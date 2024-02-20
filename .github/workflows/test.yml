@@ -180,15 +180,6 @@ jobs:
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
 
-  test-matrix:
-    needs: prepare-matrix
-    strategy:
-      matrix:
-        config-file: ${{ fromJson(needs.prepare-matrix.outputs.matrix).config-file }}
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo "Hello World"
-
 
   build-and-test-client:
     name: build-and-test-client - ${{ matrix.os }}, ${{ matrix.config-file }}
