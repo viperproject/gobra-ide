@@ -13,8 +13,8 @@
     "url": "https://github.com/viperproject/gobra-ide"
   },
   "engines": {
-    "vscode": "^1.63.0",
-    "node": ">=16"
+    "vscode": "^1.90.0",
+    "node": ">=20"
   },
   "categories": [
     "Programming Languages"
