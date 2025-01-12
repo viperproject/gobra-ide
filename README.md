@@ -1,5 +1,5 @@
 # Visual Studio Code extension for Gobra
-https://github.com/viperproject/gobra-ide/actions/workflows/test.yml/badge.svg?branch=master
+
 [![Test Status](https://github.com/viperproject/gobra-ide/actions/workflows/test.yml/badge.svg?branch=master)](https://github.com/viperproject/gobra-ide/actions?query=workflow%3Atest+branch%3Amaster)
 [![License: MPL 2.0](https://img.shields.io/badge/License-MPL%202.0-brightgreen.svg)](./LICENSE)
 
