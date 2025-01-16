@@ -9,12 +9,14 @@ package viper.gobraserver
 import com.google.gson.Gson
 import viper.gobra.Gobra
 import viper.gobra.GobraFrontend
-import viper.gobra.reporting.{ConfigError, NotFoundError, VerifierResult}
+import viper.gobra.reporting.{NotFoundError, VerifierError, VerifierResult}
 import viper.gobra.util.{GobraExecutionContext, Violation}
 import viper.gobra.reporting.BackTranslator.BackTrackInfo
 import viper.silver.ast.Program
 import viper.server.core.ViperCoreServer
 import org.eclipse.lsp4j.{MessageParams, MessageType, Range}
+import scalaz.EitherT
+import scalaz.Scalaz.futureInstance
 import viper.gobra.frontend.{Config, Gobrafier, Parser, RawConfig}
 import viper.server.ViperConfig
 import viper.server.vsi.DefaultVerificationServerStart
@@ -127,7 +129,7 @@ object GobraServer extends GobraFrontend {
   def verify(fileData: Array[FileData], isolate: Array[IsolationData], rawConfig: RawConfig)(implicit executor: GobraExecutionContext): Future[VerifierResult] = {
     rawConfig.config match {
       case Right(config) => verify(fileData, isolate, config)
-      case Left(errMsg) => successful(VerifierResult.Failure(Vector(ConfigError(errMsg))))
+      case Left(errs) => successful(VerifierResult.Failure(errs))
     }
   }
 
@@ -160,7 +162,7 @@ object GobraServer extends GobraFrontend {
           val resultFuture = verifier.verifyAst(config, pkgInfo, ast, backtrack)(executor)
           serverExceptionHandling(verifierConfig.fileData, verifierConfig.isolate, Some(ast), resultFuture)
         }
-      case Left(errMsg) => successful(VerifierResult.Failure(Vector(ConfigError(errMsg))))
+      case Left(errs) => successful(VerifierResult.Failure(errs))
     }
   }
 
@@ -169,27 +171,22 @@ object GobraServer extends GobraFrontend {
     */
   def goify(fileData: FileData)(implicit executor: GobraExecutionContext): Future[VerifierResult] = {
     val fileUri = fileData.fileUri
-    val config = Helper.goifyConfigFromTask(fileData)
-    val goifyFuture = verify(Array(fileData), Array.empty, config)(executor)
 
-    goifyFuture.onComplete {
-      case Success(result) =>
-        (result, VerifierState.client) match {
-          case (VerifierResult.Success, Some(c)) =>
-            c.finishedGoifying(fileUri, success = true)
-          case (VerifierResult.Failure(_), Some(c)) =>
-            c.finishedGoifying(fileUri, success = false)
-          case _ =>
-        }
-      
-      case Failure(_) =>
-        VerifierState.client match {
-          case Some(c) => c.finishedGoifying(fileUri, success = false)
-          case None =>
-        }
-    }
+    val eitherResult = for {
+      config <- EitherT.fromEither(Future.successful[Either[Vector[VerifierError], Config]](Helper.goifyConfigFromTask(fileData)))
+      result <- EitherT.rightT(verify(Array(fileData), Array.empty, config)(executor))
+    } yield result
 
-    goifyFuture
+    val resultFut = eitherResult.fold(errs => VerifierResult.Failure(errs), identity)
+    resultFut.onComplete(res => (res, VerifierState.client) match {
+      case (Success(VerifierResult.Success), Some(c)) =>
+        c.finishedGoifying(fileUri, success = true)
+      case (_, Some(c)) =>
+        c.finishedGoifying(fileUri, success = false)
+      case _ => // no client to inform
+    })
+
+    resultFut
   }
 
 
@@ -235,9 +232,12 @@ object GobraServer extends GobraFrontend {
     * Get preview of Code which then gets displayed on the client side.
     * Currently the internal representation and the viper encoding can be previewed.
     */
-  def codePreview(fileData: Array[FileData], internalPreview: Boolean, viperPreview: Boolean, selections: List[Range])(executor: GobraExecutionContext): Future[VerifierResult] = {
-    val config = Helper.previewConfigFromTask(fileData.toVector, internalPreview, viperPreview, selections)
-    verify(fileData, Array.empty, config)(executor)
+  def codePreview(fileData: Array[FileData], internalPreview: Boolean, viperPreview: Boolean, selections: List[Range])(implicit executor: GobraExecutionContext): Future[VerifierResult] = {
+    val eitherResult = for {
+      config <- EitherT.fromEither(Future.successful[Either[Vector[VerifierError], Config]](Helper.previewConfigFromTask(fileData.toVector, internalPreview, viperPreview, selections)))
+      result <- EitherT.rightT(verify(fileData, Array.empty, config)(executor))
+    } yield result
+    eitherResult.fold(errs => VerifierResult.Failure(errs), identity)
   }
 
 

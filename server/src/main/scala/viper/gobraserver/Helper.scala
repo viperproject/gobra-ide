@@ -9,7 +9,7 @@ package viper.gobraserver
 import viper.gobra.frontend.{BaseConfig, Config, FileModeConfig, PackageInfo, Source}
 import viper.gobra.backend.ViperBackends
 import viper.gobra.reporting
-import viper.gobra.reporting.{FileWriterReporter, VerifierResult}
+import viper.gobra.reporting.{FileWriterReporter, VerifierError, VerifierResult}
 import org.eclipse.lsp4j.{Position, Range}
 
 import java.nio.file.{Path, Paths}
@@ -32,11 +32,22 @@ object Helper {
     Paths.get(new URI(uri))
   }
 
-  private def getPackageInfoInputMap(fileData: Vector[FileData]): Map[PackageInfo, Vector[Source]] = {
+  private def getPackageInfoInputMap(fileData: Vector[FileData]): Either[Vector[VerifierError], Map[PackageInfo, Vector[Source]]] = {
     // sort data (again) if it isn't already
     val sortedFileData = fileData.sortBy(_.fileUri)
     val sources = sortedFileData.map(fileDatum => FromFileSource(uri2Path(fileDatum.fileUri)))
-    sources.groupBy(Source.getPackageInfo(_, Path.of("")))
+    val eitherSourceAndPkgInfos = sources.map(source =>
+      for {
+        pkgInfo <- Source.getPackageInfo(source, Path.of(""))
+      } yield (source, pkgInfo))
+    val (errors, sourceAndPkgInfos) = eitherSourceAndPkgInfos.partitionMap(identity)
+    if (errors.nonEmpty) {
+      Left(errors.flatten)
+    } else {
+      val pkgGroups = sourceAndPkgInfos.groupBy(_._2)
+      // remove package infos from map's values:
+      Right(pkgGroups.map { case (pkgInfo, sourcesAndInfos) => (pkgInfo, sourcesAndInfos.map(_._1)) })
+    }
   }
 
   def getFileModeConfig(server: ViperCoreServer, config: VerifierConfig, startTime: Long, stopAfterEncoding: Boolean, completedProgress: Int = 0, ast: Option[vpr.Program] = None)(executor: GobraExecutionContext): FileModeConfig = {
@@ -99,31 +110,37 @@ object Helper {
   def convertIsolationData(data: Array[IsolationData]): List[(Path, List[Int])] =
     data.map(isolationDatum => (uri2Path(isolationDatum.fileUri), isolationDatum.lineNrs.toList)).toList
 
-  def goifyConfigFromTask(fileData: FileData): Config = {
+  def goifyConfigFromTask(fileData: FileData): Either[Vector[VerifierError], Config] = {
     val reporter = FileWriterReporter(goify = true)
 
-    Config(
-      packageInfoInputMap = getPackageInfoInputMap(Vector(fileData)),
-      shouldDesugar = false,
-      shouldViperEncode = false,
-      shouldVerify = false,
-      reporter = reporter
-    )
+    for {
+      pkgInfo <- getPackageInfoInputMap(Vector(fileData))
+      config = Config(
+        packageInfoInputMap = pkgInfo,
+        shouldDesugar = false,
+        shouldViperEncode = false,
+        shouldVerify = false,
+        reporter = reporter
+      )
+    } yield config
   }
 
-  def previewConfigFromTask(fileData: Vector[FileData], internalPreview: Boolean, viperPreview: Boolean, selections: List[Range]): Config = {
+  def previewConfigFromTask(fileData: Vector[FileData], internalPreview: Boolean, viperPreview: Boolean, selections: List[Range]): Either[Vector[VerifierError], Config] = {
     val reporter = PreviewReporter(
       internalPreview = internalPreview,
       viperPreview = viperPreview,
       selections = selections
     )
 
-    Config(
-      packageInfoInputMap = getPackageInfoInputMap(fileData),
-      shouldVerify = false,
-      shouldViperEncode = viperPreview,
-      reporter = reporter
-    )
+    for {
+      pkgInfo <- getPackageInfoInputMap(fileData)
+      config = Config(
+        packageInfoInputMap = pkgInfo,
+        shouldVerify = false,
+        shouldViperEncode = viperPreview,
+        reporter = reporter
+      )
+    } yield config
   }
 
   /**
