@@ -168,6 +168,7 @@ export class Verifier {
    * Verifies the file identified by `fileUri` or the package it belongs to depending on the current settings
    */
   public static verify(fileUri: URI, event: IdeEvents, isolationData: IsolationData[] = []): void {
+    Helper.log(`verify fileUri ${fileUri} because of event ${IdeEvents[event]} with isolation data ${isolationData}`);
     let fileUris: URI[]
     if (Helper.verifyByDefaultPackage()) {
       fileUris = Verifier.getFileUrisForPackage(fileUri);
@@ -220,11 +221,10 @@ export class Verifier {
     if (nonGobraAndNonGoFiles.length > 0) {
       const msg = `Gobra can only verify files with '.gobra' and '.go' endings but got '${nonGobraAndNonGoFiles.map(f => f.fsPath).join("', '")}'`
       Helper.log(msg);
-      vscode.window.showInformationMessage(msg);
-      return;
-    }
-    if (hasGoFiles && event != IdeEvents.Manual) {
-      // Go files are not automatically verified and the user has to trigger this manually
+      // omit popup unless user manually tried to verify these files:
+      if (event == IdeEvents.Manual) {
+        vscode.window.showInformationMessage(msg);
+      }
       return;
     }
 
