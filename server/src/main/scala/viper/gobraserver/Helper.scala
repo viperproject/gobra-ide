@@ -9,7 +9,7 @@ package viper.gobraserver
 import viper.gobra.frontend.{BaseConfig, Config, FileModeConfig, PackageInfo, Source}
 import viper.gobra.backend.ViperBackends
 import viper.gobra.reporting
-import viper.gobra.reporting.{FileWriterReporter, VerifierError, VerifierResult}
+import viper.gobra.reporting.{FileWriterReporter, GobraReporter, VerifierError, VerifierResult}
 import org.eclipse.lsp4j.{Position, Range}
 
 import java.nio.file.{Path, Paths}
@@ -50,61 +50,57 @@ object Helper {
     }
   }
 
-  def getFileModeConfig(server: ViperCoreServer, config: VerifierConfig, startTime: Long, stopAfterEncoding: Boolean, completedProgress: Int = 0, ast: Option[vpr.Program] = None)(executor: GobraExecutionContext): FileModeConfig = {
-    config match {
-      case VerifierConfig(
-        fileData,
-        isolate,
-        GobraSettings(backendId, serverMode, debug, eraseGhost, goify, unparse, printInternal, printViper, parseOnly, logLevel, moduleName, includeDirs),
-        z3Exe,
-        boogieExe
-      ) =>
-        val backend = backendId match {
-          case "SILICON" if serverMode => ViperBackends.ViperServerWithSilicon(Some(server))
-          case "SILICON" => ViperBackends.SiliconBackend
-          case "CARBON" if serverMode => ViperBackends.ViperServerWithCarbon(Some(server))
-          case "CARBON" => ViperBackends.CarbonBackend
-          case _ => ViperBackends.SiliconBackend
-        }
+  def getReporter(config: VerifierConfig, server: ViperCoreServer, startTime: Long, stopAfterEncoding: Boolean, completedProgress: Int = 0, ast: Option[vpr.Program] = None)(executor: GobraExecutionContext): GobraReporter with VerificationFinishNotifier = {
+    // ensure consistent ordering such that e.g. caching works as expected:
+    val sortedFileData = config.fileData.sortBy(_.fileUri).toVector
+    GobraIdeReporter(
+      startTime = startTime,
+      verifierConfig = config,
+      fileData = sortedFileData,
+      verificationFraction = defaultVerificationFraction,
+      progress = completedProgress,
+      ast = ast,
+      unparse = config.gobraSettings.unparse,
+      eraseGhost = config.gobraSettings.eraseGhost,
+      goify = config.gobraSettings.goify,
+      debug = config.gobraSettings.debug,
+      printInternal = config.gobraSettings.printInternal,
+      printVpr = config.gobraSettings.printViper,
+      submitAstJob = stopAfterEncoding,
+      cacheDiagnostics = config.gobraSettings.serverMode,
+      logger = server.globalLogger
+    )(executor)
+  }
 
-        // ensure consistent ordering such that e.g. caching works as expected:
-        val sortedFileData = fileData.sortBy(_.fileUri).toVector
-        val reporter = GobraIdeReporter(
-          startTime = startTime,
-          verifierConfig = config,
-          fileData = sortedFileData,
-          backend = backend,
-          verificationFraction = defaultVerificationFraction,
-          progress = completedProgress,
-          ast = ast,
-          unparse = unparse,
-          eraseGhost = eraseGhost,
-          goify = goify,
-          debug = debug,
-          printInternal = printInternal,
-          printVpr = printViper,
-          logger = server.globalLogger
-        )(executor)
-
-        val convertedIsolationData = convertIsolationData(isolate)
-
-        val inputFiles = sortedFileData.map(fileDatum => uri2Path(fileDatum.fileUri))
-        val baseConfig = BaseConfig(
-          moduleName = moduleName,
-          includeDirs = includeDirs.map(Paths.get(_)).toVector,
-          reporter = reporter,
-          backend = backend,
-          isolate = convertedIsolationData,
-          z3Exe = Some(z3Exe),
-          boogieExe = Some(boogieExe),
-          logLevel = Level.toLevel(logLevel),
-          shouldParseOnly = parseOnly,
-          stopAfterEncoding = stopAfterEncoding,
-          parallelizeBranches = true,
-          cacheParserAndTypeChecker = true,
-        )
-        FileModeConfig(inputFiles = inputFiles, baseConfig = baseConfig)
+  def getFileModeConfig(config: VerifierConfig, server: ViperCoreServer, reporter: GobraReporter, stopAfterEncoding: Boolean): FileModeConfig = {
+    val backend = config.gobraSettings.backend match {
+      case "SILICON" if config.gobraSettings.serverMode => ViperBackends.ViperServerWithSilicon(Some(server))
+      case "SILICON" => ViperBackends.SiliconBackend
+      case "CARBON" if config.gobraSettings.serverMode => ViperBackends.ViperServerWithCarbon(Some(server))
+      case "CARBON" => ViperBackends.CarbonBackend
+      case _ => ViperBackends.SiliconBackend
     }
+
+    val convertedIsolationData = convertIsolationData(config.isolate)
+
+    // ensure consistent ordering such that e.g. caching works as expected:
+    val sortedFileData = config.fileData.sortBy(_.fileUri).toVector
+    val inputFiles = sortedFileData.map(fileDatum => uri2Path(fileDatum.fileUri))
+    val baseConfig = BaseConfig(
+      moduleName = config.gobraSettings.moduleName,
+      includeDirs = config.gobraSettings.includeDirs.map(Paths.get(_)).toVector,
+      reporter = reporter,
+      backend = backend,
+      isolate = convertedIsolationData,
+      z3Exe = Some(config.z3Executable),
+      boogieExe = Some(config.boogieExecutable),
+      logLevel = Level.toLevel(config.gobraSettings.logLevel),
+      shouldParseOnly = config.gobraSettings.parseOnly,
+      stopAfterEncoding = stopAfterEncoding,
+      parallelizeBranches = true,
+      cacheParserAndTypeChecker = true,
+    )
+    FileModeConfig(inputFiles = inputFiles, baseConfig = baseConfig)
   }
 
   def convertIsolationData(data: Array[IsolationData]): List[(Path, List[Int])] =
