@@ -7,9 +7,11 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as path from 'path';
+import { URI } from 'vscode-uri';
 import { State } from '../ExtensionState';
 import { Commands, ContributionCommands, Helper } from '../Helper';
 import { TestHelper } from './TestHelper';
+import { OverallVerificationResult } from '../MessagePayloads';
 import { readdir } from 'fs/promises';
 
 const PROJECT_ROOT = path.join(__dirname, "..", "..");
@@ -67,7 +69,19 @@ async function openAndVerify(fileName: string, command: string): Promise<vscode.
     // open file, ...
     const document = await openFile(fileName);
     // ... send verification command to server...
-    const executed = new Promise((resolve) => State.client.onNotification(Commands.overallResult, resolve));
+    const executed = new Promise<void>((resolve) => {
+        // the following handler only listens to `overallResult` notifications
+        // that are related to `fileName`:
+        function handler(jsonOverallResult: string) {
+            const overallResult: OverallVerificationResult = Helper.jsonToOverallResult(jsonOverallResult);
+            const fileUris = overallResult.fileUris.map(uri => URI.parse(uri));
+            const expectedFileUri = URI.file(getTestDataPath(fileName));
+            if (fileUris.some(fileUri => fileUri.toString() === expectedFileUri.toString())) {
+                resolve();
+            }
+        }
+        State.client.onNotification(Commands.overallResult, handler)
+    });
     console.debug(`execute ${command}`);
     await vscode.commands.executeCommand(command);
     // ... and wait for result notification from server
@@ -150,7 +164,7 @@ suite("Extension", () => {
         const diagnostics = vscode.languages.getDiagnostics(document.uri);
         assert.strictEqual(diagnostics.length, 0);
     });
-
+    
     test("Verify simple incorrect program", async function() {
         this.timeout(GOBRA_VERIFICATION_TIMEOUT_MS);
         const document = await openAndVerifyFile(ASSERT_FALSE);
