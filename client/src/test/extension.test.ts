@@ -202,7 +202,9 @@ suite("Extension", () => {
             fileUris.map(fileUri => [fileUri, vscode.languages.getDiagnostics(fileUri)]));
         const newDiagnostics = fileUris.flatMap(fileUri => {
             const prevDiags = diagnosticsBeforeVerification.get(fileUri);
+            log(`prevDiags for ${fileUri}: ${prevDiags}`);
             const curDiags = diagnosticsAfterVerification.get(fileUri);
+            log(`curDiags for ${fileUri}: ${curDiags}`);
             const newDiags = curDiags?.filter(diag => !prevDiags?.includes(diag));
             return newDiags || [];
         });
