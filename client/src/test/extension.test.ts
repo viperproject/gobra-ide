@@ -64,7 +64,11 @@ async function openFile(fileName: string): Promise<vscode.TextDocument> {
     return TestHelper.openFile(filePath);
 }
 
-async function openAndVerify(fileName: string, command: string): Promise<vscode.TextDocument> {
+/**
+ * @param expectSingleFile if true, verification result messages about multiple files are ignored
+ * @param expectMultipleFiles if true, verification result messages about a single file are ignored
+ */
+async function openAndVerify(fileName: string, command: string, expectSingleFile: boolean = false, expectMultipleFiles: boolean = false): Promise<vscode.TextDocument> {
     await closeAllFiles();
     const executed = new Promise<void>((resolve) => {
         // the following handler only listens to `overallResult` notifications
@@ -74,7 +78,9 @@ async function openAndVerify(fileName: string, command: string): Promise<vscode.
             const overallResult: OverallVerificationResult = Helper.jsonToOverallResult(jsonOverallResult);
             const fileUris = overallResult.fileUris.map(uri => URI.parse(uri));
             const expectedFileUri = URI.file(getTestDataPath(fileName));
-            if (fileUris.some(fileUri => fileUri.toString() === expectedFileUri.toString())) {
+            if (fileUris.some(fileUri => fileUri.toString() === expectedFileUri.toString()) &&
+                (expectSingleFile ? fileUris.length === 1 : true) &&
+                (expectMultipleFiles ? fileUris.length > 1 : true)) {
                 resolve();
             }
         }
@@ -92,11 +98,18 @@ async function openAndVerify(fileName: string, command: string): Promise<vscode.
 }
 
 function openAndVerifyFile(fileName: string): Promise<vscode.TextDocument> {
-    return openAndVerify(fileName, ContributionCommands.verifyFile);
+    return openAndVerify(fileName, ContributionCommands.verifyFile, true);
 }
 
-async function openAndVerifyPackage(fileName: string): Promise<vscode.TextDocument> {
-    return openAndVerify(fileName, ContributionCommands.verifyPackage);
+/**
+ * @param multipleFilesInPackageExpected: expresses whether we expect a verification result message 
+ *                                        referring to two or more files. Other verification result
+ *                                        messages are ignored. This is particularly useful if the
+ *                                        same file is verifying in non-package mode (e.g., triggered by
+ *                                        opening this file)
+ */
+async function openAndVerifyPackage(fileName: string, multipleFilesInPackageExpected: boolean): Promise<vscode.TextDocument> {
+    return openAndVerify(fileName, ContributionCommands.verifyPackage, false, multipleFilesInPackageExpected);
 }
 
 suite("Extension", () => {
@@ -212,7 +225,7 @@ suite("Extension", () => {
         const fileUris = filePaths.map(path => vscode.Uri.file(path));
         const diagnosticsBeforeVerification = new Map(
             fileUris.map(fileUri => [fileUri, vscode.languages.getDiagnostics(fileUri)]));
-        await openAndVerifyPackage(ASSERT_FALSE);
+        await openAndVerifyPackage(ASSERT_FALSE, true);
         const diagnosticsAfterVerification = new Map(
             fileUris.map(fileUri => [fileUri, vscode.languages.getDiagnostics(fileUri)]));
         const newDiagnostics = fileUris.flatMap(fileUri => {
@@ -230,7 +243,7 @@ suite("Extension", () => {
 
     test("Verifying a package consisting of two files succeeds", async function() {
         this.timeout(GOBRA_VERIFICATION_TIMEOUT_MS);
-        const document = await openAndVerifyPackage(PKG_FILE_1);
+        const document = await openAndVerifyPackage(PKG_FILE_1, true);
         const diagnostics = vscode.languages.getDiagnostics(document.uri);
         assert.strictEqual(diagnostics.length, 0);
     });
