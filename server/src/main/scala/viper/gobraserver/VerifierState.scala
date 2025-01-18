@@ -61,7 +61,10 @@ object VerifierState {
       val isDifferent = !_verificationInformation.get(fileUri).contains(info)
       if (isDifferent) {
         _verificationInformation += (fileUri -> info)
+        println(s"sending verification information")
         sendVerificationInformation(fileUri)
+      } else {
+        println(s"skips sending verification information as it is unchanged")
       }
     })
   }
