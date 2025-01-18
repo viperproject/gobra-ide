@@ -601,7 +601,8 @@ export class Verifier {
     }
   }
 
-  private static handleOverallResultNotification(jsonOverallResult: string): void {
+  // this function is non-private such that we can invoke it in our unit tests
+  static handleOverallResultNotification(jsonOverallResult: string): void {
     let overallResult: OverallVerificationResult = Helper.jsonToOverallResult(jsonOverallResult);
 
     const fileUris = overallResult.fileUris.map(uri => URI.parse(uri));

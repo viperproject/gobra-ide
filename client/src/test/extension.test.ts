@@ -12,6 +12,7 @@ import { State } from '../ExtensionState';
 import { Commands, ContributionCommands, Helper } from '../Helper';
 import { TestHelper } from './TestHelper';
 import { OverallVerificationResult } from '../MessagePayloads';
+import { Verifier } from '../VerificationService';
 import { readdir } from 'fs/promises';
 
 const PROJECT_ROOT = path.join(__dirname, "..", "..");
@@ -75,6 +76,8 @@ async function openAndVerify(fileName: string, command: string, expectSingleFile
         // that are related to `fileName`:
         function handler(jsonOverallResult: string) {
             log(`Overall result received: ${jsonOverallResult}`);
+            // since we overwrite the notification handler, we have to manually forward the notification:
+            Verifier.handleOverallResultNotification(jsonOverallResult);
             const overallResult: OverallVerificationResult = Helper.jsonToOverallResult(jsonOverallResult);
             const fileUris = overallResult.fileUris.map(uri => URI.parse(uri));
             const expectedFileUri = URI.file(getTestDataPath(fileName));
