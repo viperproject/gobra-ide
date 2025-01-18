@@ -68,7 +68,7 @@ export class State {
       for(let entry of set.values()) {
         setContent += `'${entry}', `
       }
-      Helper.log(`removing encoding from set failed as file URIs were not contained therein. The set contains ${setContent}`);
+      Helper.log(`removing ${encoding} from set failed as file URIs were not contained therein. The set contains ${setContent}`);
     }
   }
 
