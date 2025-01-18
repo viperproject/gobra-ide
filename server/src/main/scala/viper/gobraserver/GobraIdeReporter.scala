@@ -121,12 +121,12 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
     val fileType = error.position.map(pos => getFileType(pos.file.toString)).getOrElse(FileType.Gobra)
     val startPos = new Position(
       error.position.get.start.line - 1,
-      if (fileType == FileType.Gobra) error.position.get.start.column - 1 else 0
+      if (fileType == FileType.Gobra) math.max(error.position.get.start.column - 1, 0) else 0
     )
     val endPos = error.position.get.end match {
       case Some(pos) => new Position(
         pos.line - 1,
-        if (fileType == FileType.Gobra) pos.column - 1 else Int.MaxValue
+        if (fileType == FileType.Gobra) math.max(pos.column - 1, 0) else Int.MaxValue
       )
       case None => startPos
     }
