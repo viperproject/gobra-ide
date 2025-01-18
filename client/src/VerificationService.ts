@@ -232,7 +232,7 @@ export class Verifier {
       if (event == IdeEvents.Manual) {
         vscode.window.showInformationMessage(msg);
       }
-      return;
+      return Promise.reject(new Error(msg));
     }
 
     // save .go and .gobra files since they might either be part of `fileUris` or get imported
@@ -243,7 +243,9 @@ export class Verifier {
 
     // return if one of the files is currently getting gobrafied.
     if (fileUris.some(fileUri => State.containsRunningGobrafications(fileUri))) {
-      return;
+      const msg = `One of the files is currently getting gobrafied -- verification aborted`;
+      Helper.log(msg);
+      return Promise.reject(new Error(msg));
     }
     
     if (!State.containsRunningVerification(fileUris)) {
@@ -251,9 +253,10 @@ export class Verifier {
       State.addRunningVerification(fileUris);
       fileUris.forEach(fileUri => Verifier.verifyItem.progress(fileUri, 0));
 
-      Helper.log("sending verification request");
+      Helper.log(`sending verification request for ${fileUris}`);
       State.client.sendNotification(Commands.verify, Helper.configToJson(State.verifierConfig));
     } else {
+      Helper.log(`Verification is already running for ${fileUris}`);
       if (!State.containsVerificationRequests(fileUris) && event != IdeEvents.Save) {
         State.addVerificationRequests(fileUris, event);
       }
