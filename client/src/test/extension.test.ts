@@ -86,6 +86,16 @@ async function openAndVerify(fileName: string, command: string, expectSingleFile
         }
         State.client.onNotification(Commands.overallResult, handler)
     });
+    const diagnosticsReceived = new Promise<void>((resolve) => {
+        function handler(e: vscode.DiagnosticChangeEvent) {
+            log(`diagnostics changed for ${e.uris}`);
+            const expectedFileUri = URI.file(getTestDataPath(fileName));
+            if (e.uris.some(fileUri => fileUri.toString() === expectedFileUri.toString())) {
+                resolve();
+            }
+        }
+        vscode.languages.onDidChangeDiagnostics(handler);
+    })
     // open file, ...
     const document = await openFile(fileName);
     // ... send verification command to server...
@@ -93,6 +103,8 @@ async function openAndVerify(fileName: string, command: string, expectSingleFile
     await vscode.commands.executeCommand(command);
     // ... and wait for result notification from server
     await executed;
+    // ... and wait for diagnostics to be received and processed by VSCode:
+    await diagnosticsReceived;
     log(`executed ${command}`);
     return document;
 }
