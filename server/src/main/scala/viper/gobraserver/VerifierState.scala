@@ -6,6 +6,7 @@
 
 package viper.gobraserver
 
+import ch.qos.logback.classic.Logger
 import com.google.gson.Gson
 import org.eclipse.lsp4j.{Diagnostic, Position, PublishDiagnosticsParams, Range, TextDocumentContentChangeEvent}
 import viper.gobra.reporting.BackTranslator.BackTrackInfo
@@ -129,10 +130,13 @@ object VerifierState {
   /**
     * Publish all available diagnostics.
     */
-  def publishDiagnostics(fileUri: String): Unit =
+  def publishDiagnostics(fileUri: String, logger: Option[Logger]): Unit =
     client match {
       case Some(c) =>
-        val params = new PublishDiagnosticsParams(fileUri, getDiagnostics(fileUri).asJava)
+        val diagnostics = getDiagnostics(fileUri).asJava
+        logger.foreach(_.debug(s"Publish diagnostics: ${diagnostics.toString}"))
+        println(s"Publish diagnostics: ${diagnostics.toString}")
+        val params = new PublishDiagnosticsParams(fileUri, diagnostics)
         c.publishDiagnostics(params)
       case None =>
     }
@@ -272,14 +276,14 @@ object VerifierState {
     tmpDiagnostic
   }
 
-  def updateDiagnostics(fileUri: String, changes: List[TextDocumentContentChangeEvent]): Unit = {
+  def updateDiagnostics(fileUri: String, changes: List[TextDocumentContentChangeEvent], logger: Option[Logger]): Unit = {
     if (changes.isEmpty) return
 
     _diagnostics.get(fileUri) match {
       case Some(diagnostics) =>
         val newDiagnostics = translateDiagnostics(changes, diagnostics)
         addDiagnostics(fileUri, newDiagnostics)
-        publishDiagnostics(fileUri)
+        publishDiagnostics(fileUri, logger)
       case None =>
     }
 

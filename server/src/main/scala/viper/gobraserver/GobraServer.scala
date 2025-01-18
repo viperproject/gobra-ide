@@ -99,7 +99,7 @@ object GobraServer extends GobraFrontend {
 
               VerifierState.updateVerificationInformation(fileUris.toVector, Right(overallResult))
 
-              fileUris.foreach(VerifierState.publishDiagnostics)
+              fileUris.foreach(fileUri => VerifierState.publishDiagnostics(fileUri, Some(_server.globalLogger)))
 
             case e =>
               println("Exception occurred:")
@@ -216,7 +216,7 @@ object GobraServer extends GobraFrontend {
     VerifierState.removeDiagnostics(newFileUri)
     VerifierState.removeVerificationInformation(Vector(newFileUri))
 
-    if (newFileUri == VerifierState.openFileUri) VerifierState.publishDiagnostics(newFileUri)
+    if (newFileUri == VerifierState.openFileUri) VerifierState.publishDiagnostics(newFileUri, Some(_server.globalLogger))
 
     try {
       val fileBuffer = Source.fromFile(filePath)

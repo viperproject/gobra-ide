@@ -162,7 +162,7 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
     val oldDiagnostics = VerifierState.getDiagnostics(file.fileUri)
     VerifierState.addDiagnostics(file.fileUri, diagnostics ++ oldDiagnostics)
 
-    VerifierState.publishDiagnostics(file.fileUri)
+    VerifierState.publishDiagnostics(file.fileUri, Some(logger))
 
     if (cacheDiagnostics) {
       VerifierState.addDiagnosticsCache(file.fileUri, sortedErrors, diagnostics)
@@ -232,7 +232,7 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
       case GobraOverallSuccessMessage(_) =>
         fileUris.foreach(fileUri => {
           VerifierState.removeDiagnostics(fileUri)
-          VerifierState.publishDiagnostics(fileUri)
+          VerifierState.publishDiagnostics(fileUri, Some(logger))
         })
         notifyOverallVerificationFinished(VerifierResult.Success, getAst)
 

@@ -60,7 +60,7 @@ class GobraServerService(config: ServerConfig)(implicit executor: GobraServerExe
     val fileUri = params.getTextDocument.getUri
     val changes = params.getContentChanges.asScala.toList
 
-    VerifierState.updateDiagnostics(fileUri, changes)
+    VerifierState.updateDiagnostics(fileUri, changes, None)
 
     if (VerifierState.verificationRunning > 0) {
       VerifierState.changes = VerifierState.changes :+ (fileUri, changes)
@@ -116,7 +116,7 @@ class GobraServerService(config: ServerConfig)(implicit executor: GobraServerExe
   def changeFile(fileDataJson: String): Unit = {
     val fileData: FileData = gson.fromJson(fileDataJson, classOf[FileData])
     VerifierState.openFileUri = fileData.fileUri
-    VerifierState.publishDiagnostics(VerifierState.openFileUri)
+    VerifierState.publishDiagnostics(VerifierState.openFileUri, None)
     VerifierState.sendVerificationInformation(VerifierState.openFileUri)
   }
 
