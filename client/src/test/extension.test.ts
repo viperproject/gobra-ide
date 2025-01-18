@@ -238,18 +238,21 @@ suite("Extension", () => {
         // in which Gobra visits the files.
         const filePaths = await getGobraFilesInDataPath();
         const fileUris = filePaths.map(path => vscode.Uri.file(path));
-        const diagnosticsBeforeVerification = new Map(
-            fileUris.map(fileUri => [fileUri, vscode.languages.getDiagnostics(fileUri)]));
+        // const diagnosticsBeforeVerification = new Map(
+        //     fileUris.map(fileUri => [fileUri, vscode.languages.getDiagnostics(fileUri)]));
         await openAndVerifyPackage(ASSERT_FALSE, true);
         const diagnosticsAfterVerification = new Map(
             fileUris.map(fileUri => [fileUri, vscode.languages.getDiagnostics(fileUri)]));
         const newDiagnostics = fileUris.flatMap(fileUri => {
+            // LA 19.1.25: since opening and closing files triggers various verifications,
+            // comparing to 'old' diagnostics is too brittle.
+            /*
             const prevDiags = diagnosticsBeforeVerification.get(fileUri);
-            log(`prevDiags for ${fileUri}: ${prevDiags}`);
             const curDiags = diagnosticsAfterVerification.get(fileUri);
-            log(`curDiags for ${fileUri}: ${curDiags}`);
             const newDiags = curDiags?.filter(diag => !prevDiags?.includes(diag));
             return newDiags || [];
+            */
+            return diagnosticsAfterVerification.get(fileUri) || [];
         });
         const newErrorDiagnostics = newDiagnostics
             .filter(diag => diag.severity === vscode.DiagnosticSeverity.Error);
