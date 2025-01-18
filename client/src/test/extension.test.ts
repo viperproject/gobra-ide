@@ -60,19 +60,17 @@ async function closeAllFiles(): Promise<void> {
  */
 async function openFile(fileName: string): Promise<vscode.TextDocument> {
     const filePath = getTestDataPath(fileName);
-    log("Open " + filePath);
+    log(`Open ${filePath}`);
     return TestHelper.openFile(filePath);
 }
 
 async function openAndVerify(fileName: string, command: string): Promise<vscode.TextDocument> {
     await closeAllFiles();
-    // open file, ...
-    const document = await openFile(fileName);
-    // ... send verification command to server...
     const executed = new Promise<void>((resolve) => {
         // the following handler only listens to `overallResult` notifications
         // that are related to `fileName`:
         function handler(jsonOverallResult: string) {
+            log(`Overall result received: ${jsonOverallResult}`);
             const overallResult: OverallVerificationResult = Helper.jsonToOverallResult(jsonOverallResult);
             const fileUris = overallResult.fileUris.map(uri => URI.parse(uri));
             const expectedFileUri = URI.file(getTestDataPath(fileName));
@@ -82,11 +80,14 @@ async function openAndVerify(fileName: string, command: string): Promise<vscode.
         }
         State.client.onNotification(Commands.overallResult, handler)
     });
-    console.debug(`execute ${command}`);
+    // open file, ...
+    const document = await openFile(fileName);
+    // ... send verification command to server...
+    log(`execute ${command}`);
     await vscode.commands.executeCommand(command);
     // ... and wait for result notification from server
     await executed;
-    console.debug(`executed ${command}`);
+    log(`executed ${command}`);
     return document;
 }
 
@@ -245,4 +246,5 @@ suite("Extension", () => {
         await vscode.commands.executeCommand("gobra.updateGobraTools");
         log("done updating Gobra tools");
     });
+
 });

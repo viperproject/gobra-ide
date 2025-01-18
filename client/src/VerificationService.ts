@@ -111,75 +111,81 @@ export class Verifier {
   /**
     * Verifies the currently opened file or package
     */
-  public static manualVerify(): void {
+  public static manualVerify(): Promise<void> {
     State.updateConfiguration();
     const fileUri = Helper.getCurrentlyOpenFileUri();
     if (fileUri == null) {
-      Helper.log(`getting currently open file has failed`);
-      return;
+      const errMsg = `getting currently open file has failed`;
+      Helper.log(errMsg);
+      return Promise.reject(errMsg);
     }
-    Verifier.verify(fileUri, IdeEvents.Manual);
+    return Verifier.verify(fileUri, IdeEvents.Manual);
   }
 
   /**
     * Verifies the currently opened file
     */
-  public static manualVerifyFile(): void {
+  public static manualVerifyFile(): Promise<void> {
     State.updateConfiguration();
     const fileUri = Helper.getCurrentlyOpenFileUri();
     if (fileUri == null) {
-      Helper.log(`getting currently open file has failed`);
-      return;
+      const errMsg = `getting currently open file has failed`;
+      Helper.log(errMsg);
+      return Promise.reject(errMsg);
     }
-    Verifier.verifyFiles([fileUri], IdeEvents.Manual);
+    Helper.log(`verifying file ${fileUri}`);
+    return Verifier.verifyFiles([fileUri], IdeEvents.Manual);
   }
 
   /**
     * Verifies the currently opened package
     */
-   public static manualVerifyPackage(): void {
+   public static manualVerifyPackage(): Promise<void> {
     State.updateConfiguration();
     const fileUri = Helper.getCurrentlyOpenFileUri();
     if (fileUri == null) {
-      Helper.log(`getting currently open file has failed`);
-      return;
+      const errMsg = `getting currently open file has failed`;
+      Helper.log(errMsg);
+      return Promise.reject(errMsg);
     }
     const fileUris = Verifier.getFileUrisForPackage(fileUri);
     Helper.log(`verifying the following files: ${fileUris}`);
-    Verifier.verifyFiles(fileUris, IdeEvents.Manual);
+    return Verifier.verifyFiles(fileUris, IdeEvents.Manual);
   }
 
   /** 
    * Verifies the member at the current cursor position
    */
-  public static manualVerifyMember(): void {
+  public static manualVerifyMember(): Promise<void> {
     State.updateConfiguration();
     const fileUri = Helper.getCurrentlyOpenFileUri();
     const lineNr = Helper.getCurrentlySelectedLineNr();
     if (fileUri == null || lineNr == null) {
-      Helper.log(`getting currently open file or selected line number has failed`);
-      return;
+      const errMsg = `getting currently open file or selected line number has failed`;
+      Helper.log(errMsg);
+      return Promise.reject(new Error(errMsg));
     }
     const isolationData = new IsolationData(fileUri, [lineNr]);
-    Verifier.verify(fileUri, IdeEvents.Manual, [isolationData]);
+    return Verifier.verify(fileUri, IdeEvents.Manual, [isolationData]);
   }
 
   /**
    * Verifies the file identified by `fileUri` or the package it belongs to depending on the current settings
    */
-  public static verify(fileUri: URI, event: IdeEvents, isolationData: IsolationData[] = []): void {
+  public static verify(fileUri: URI, event: IdeEvents, isolationData: IsolationData[] = []): Promise<void> {
     Helper.log(`verify fileUri ${fileUri} because of event ${IdeEvents[event]} with isolation data ${isolationData}`);
     let fileUris: URI[]
     if (Helper.verifyByDefaultPackage()) {
       fileUris = Verifier.getFileUrisForPackage(fileUri);
       if (fileUris.length === 0) {
-        Helper.log(`${fileUri.fsPath} was resolved to zero package files - skipping verification`);
-        return;
+        const errMsg = `${fileUri.fsPath} was resolved to zero package files - skipping verification`;
+        Helper.log(errMsg);
+        return Promise.reject(new Error(errMsg));
       }
     } else {
       fileUris = [fileUri];
     }
-    Verifier.verifyFiles(fileUris, event, isolationData);
+    return Verifier.verifyFiles(fileUris, event, isolationData);
   }
 
   /**
@@ -209,11 +215,12 @@ export class Verifier {
   public static async verifyFiles(fileUris: URI[], event: IdeEvents, isolationData: IsolationData[] = []): Promise<void> {
     State.removeVerificationRequests(fileUris);
 
-    // return when no text editor is active
-    if (!vscode.window.activeTextEditor) return;
-
     // return when the gobra tools are currently being updated.
-    if (State.updatingGobraTools) return;
+    if (State.updatingGobraTools) {
+      const errMsg = `Gobra Tools are currently updating -- verification aborted`;
+      Helper.log(errMsg);
+      return Promise.reject(new Error(errMsg));
+    }
     
     // only verify if it is a gobra file or a go file where the verification was manually invoked.
     const nonGobraAndNonGoFiles = fileUris.filter(fileUri => !Verifier.isGoOrGobraPath(fileUri.fsPath));
