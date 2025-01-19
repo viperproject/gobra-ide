@@ -12,13 +12,16 @@ import java.nio.charset.StandardCharsets.UTF_8
 import java.nio.file.Paths
 import org.apache.commons.io.FileUtils
 import org.eclipse.lsp4j.{Diagnostic, DiagnosticSeverity, Position, Range}
-import viper.gobra.backend.ViperBackend
-import viper.gobra.backend.ViperBackends.ViperServerBackend
 import viper.gobra.reporting._
 import viper.gobra.util.{GobraExecutionContext, OutputUtil, Violation}
 import viper.silver.{ast => vpr}
 
 import scala.collection.mutable
+
+trait VerificationFinishNotifier {
+  /** informs clients of GobraServer that verification is done */
+  def notifyOverallVerificationFinished(res: VerifierResult, ast: Option[vpr.Program]): Unit
+}
 
 /**
   * There is a GobraIdeReporter per verification unit, i.e. a set of files that are verified together. This can be
@@ -32,7 +35,6 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
                             startTime: Long,
                             verifierConfig: VerifierConfig,
                             fileData: Vector[FileData],
-                            backend: ViperBackend,
                             verificationFraction: Double,
                             var progress: Double,
                             ast: Option[vpr.Program],
@@ -42,7 +44,9 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
                             debug: Boolean = false,
                             printInternal: Boolean = false,
                             printVpr: Boolean = false,
-                            logger: Logger)(executor: GobraExecutionContext) extends GobraReporter {
+                            submitAstJob: Boolean = true,
+                            cacheDiagnostics: Boolean = false,
+                            logger: Logger)(executor: GobraExecutionContext) extends GobraReporter with VerificationFinishNotifier {
 
   require(fileData.nonEmpty)
 
@@ -117,12 +121,12 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
     val fileType = error.position.map(pos => getFileType(pos.file.toString)).getOrElse(FileType.Gobra)
     val startPos = new Position(
       error.position.get.start.line - 1,
-      if (fileType == FileType.Gobra) error.position.get.start.column - 1 else 0
+      if (fileType == FileType.Gobra) math.max(error.position.get.start.column - 1, 0) else 0
     )
     val endPos = error.position.get.end match {
       case Some(pos) => new Position(
         pos.line - 1,
-        if (fileType == FileType.Gobra) pos.column - 1 else Int.MaxValue
+        if (fileType == FileType.Gobra) math.max(pos.column - 1, 0) else Int.MaxValue
       )
       case None => startPos
     }
@@ -135,7 +139,6 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
     case VerifierResult.Failure(errs) =>
       val newErrors = errs.filterNot(reportedErrors)
       reportedErrors ++= newErrors
-
       fileData.foreach(file => updateDiagnosticsPerFile(file, newErrors))
   }
 
@@ -159,20 +162,26 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
     val oldDiagnostics = VerifierState.getDiagnostics(file.fileUri)
     VerifierState.addDiagnostics(file.fileUri, diagnostics ++ oldDiagnostics)
 
-    VerifierState.publishDiagnostics(file.fileUri)
+    VerifierState.publishDiagnostics(file.fileUri, Some(logger))
 
-    backend match {
-      case _: ViperServerBackend => VerifierState.addDiagnosticsCache(file.fileUri, sortedErrors, diagnostics)
-      case _ =>
+    if (cacheDiagnostics) {
+      VerifierState.addDiagnosticsCache(file.fileUri, sortedErrors, diagnostics)
     }
   }
 
-  private def finishedVerification(ast: Option[vpr.Program]) : Unit = {
+  private var isFinished: Boolean = false
+
+  def notifyOverallVerificationFinished(result: VerifierResult, ast: Option[vpr.Program]) : Unit = {
+    if (isFinished) {
+      return
+    }
+    isFinished = true
+
+    updateDiagnostics(result)
+
     VerifierState.verificationRunning -= 1
     // remove all changes belonging to one of the files in `fileUris`:
     VerifierState.changes = VerifierState.changes.filter(change => !fileUris.contains(change._1))
-
-    val result = if (reportedErrors.isEmpty) VerifierResult.Success else VerifierResult.Failure(reportedErrors.toVector)
 
     val endTime = System.currentTimeMillis()
     val overallResult = Helper.getOverallVerificationResult(fileUris.toArray, verifierConfig.isolate, ast, result, endTime - startTime)
@@ -194,8 +203,7 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
         if (unparse) write(input, "unparsed", program().formatted)
 
       case ParserErrorMessage(_, result) =>
-        updateDiagnostics(VerifierResult.Failure(result))
-        finishedVerification(getAst)
+        notifyOverallVerificationFinished(VerifierResult.Failure(result), getAst)
 
       case TypeCheckSuccessMessage(inputs, _, _, _, erasedGhostCode, goifiedGhostCode) =>
         if (filePaths == inputs) updateProgress(typeCheckEntityProgress)
@@ -203,8 +211,7 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
         if (goify) write(inputs, "go", goifiedGhostCode())
 
       case TypeCheckFailureMessage(_, _, _, result) =>
-        updateDiagnostics(VerifierResult.Failure(result))
-        finishedVerification(getAst)
+        notifyOverallVerificationFinished(VerifierResult.Failure(result), getAst)
 
       case TypeCheckDebugMessage(inputs, _, debugTypeInfo) if debug => write(inputs, "debugType", debugTypeInfo())
 
@@ -216,19 +223,21 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
         generatedAst = Some(ast()) // we implicitly assume here that this message is only emitted once per invocation of Gobra
         if (filePaths == inputs) updateProgress(encodeEntityProgress)
         if (printVpr) write(inputs, "vpr", m.vprAstFormatted)
-        // submit the Viper AST's verification to the thread pool:
-        VerifierState.submitVerificationJob(ast(), backtrack(), startTime, progress.round.toInt, verifierConfig)(executor)
+        if (submitAstJob) {
+          // this is the old behavior where we split the generation of the Viper AST from its verification
+          // submit the Viper AST's verification to the thread pool:
+          VerifierState.submitVerificationJob(ast(), backtrack(), startTime, progress.round.toInt, verifierConfig)(executor)
+        }
 
       case GobraOverallSuccessMessage(_) =>
         fileUris.foreach(fileUri => {
           VerifierState.removeDiagnostics(fileUri)
-          VerifierState.publishDiagnostics(fileUri)
+          VerifierState.publishDiagnostics(fileUri, Some(logger))
         })
-        finishedVerification(getAst)
+        notifyOverallVerificationFinished(VerifierResult.Success, getAst)
 
       case GobraOverallFailureMessage(_, result) =>
-        updateDiagnostics(result)
-        finishedVerification(getAst)
+        notifyOverallVerificationFinished(result, getAst)
 
       case GobraEntitySuccessMessage(_, _, member, _, _, _) =>
         if (isRelevantVprMember(member)) updateProgress(verificationEntityProgress)

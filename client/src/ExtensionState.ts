@@ -60,7 +60,16 @@ export class State {
     return set.has(State.encodeUris(fileUris));
   }
   private static removeUris(set: Set<string>, fileUris: URI[]) {
-    set.delete(State.encodeUris(fileUris));
+    const encoding = State.encodeUris(fileUris);
+    if (set.has(encoding)) {
+      set.delete(encoding);
+    } else {
+      let setContent = "";
+      for(let entry of set.values()) {
+        setContent += `'${entry}', `
+      }
+      Helper.log(`removing ${encoding} from set failed as file URIs were not contained therein. The set contains ${setContent}`);
+    }
   }
 
   private static addUri(set: Set<string>, fileUri: URI) {

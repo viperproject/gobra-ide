@@ -6,6 +6,7 @@
 
 package viper.gobraserver
 
+import ch.qos.logback.classic.Logger
 import com.google.gson.Gson
 import org.eclipse.lsp4j.{Diagnostic, Position, PublishDiagnosticsParams, Range, TextDocumentContentChangeEvent}
 import viper.gobra.reporting.BackTranslator.BackTrackInfo
@@ -60,7 +61,10 @@ object VerifierState {
       val isDifferent = !_verificationInformation.get(fileUri).contains(info)
       if (isDifferent) {
         _verificationInformation += (fileUri -> info)
+        println(s"sending verification information")
         sendVerificationInformation(fileUri)
+      } else {
+        println(s"skips sending verification information as it is unchanged")
       }
     })
   }
@@ -129,18 +133,23 @@ object VerifierState {
   /**
     * Publish all available diagnostics.
     */
-  def publishDiagnostics(fileUri: String): Unit =
+  def publishDiagnostics(fileUri: String, logger: Option[Logger]): Unit =
     client match {
       case Some(c) =>
-        val params = new PublishDiagnosticsParams(fileUri, getDiagnostics(fileUri).asJava)
+        val diagnostics = getDiagnostics(fileUri).asJava
+        logger.foreach(_.debug(s"Publish diagnostics: ${diagnostics.toString}"))
+        println(s"Publish diagnostics: ${diagnostics.toString}")
+        val params = new PublishDiagnosticsParams(fileUri, diagnostics)
         c.publishDiagnostics(params)
       case None =>
     }
 
-
   def translateDiagnostics(changes: List[TextDocumentContentChangeEvent], diagnostics: List[Diagnostic]): List[Diagnostic] = {
-    var newDiagnostics = diagnostics
-    
+    diagnostics.map(diagnostic => translateDiagnostic(changes, diagnostic))
+  }
+
+  def translateDiagnostic(changes: List[TextDocumentContentChangeEvent], diagnostic: Diagnostic): Diagnostic = {
+    var tmpDiagnostic = diagnostic
     changes.foreach(change => {
       val range = change.getRange
 
@@ -148,7 +157,7 @@ object VerifierState {
       var (cStartL, cStartC) = (Helper.startLine(range), Helper.startChar(range))
       var (cEndL, cEndC) = (Helper.endLine(range), Helper.endChar(range))
 
-      newDiagnostics = change.getText match {
+      tmpDiagnostic = change.getText match {
         case "" =>
           /**
             * Delete character or line case.
@@ -156,55 +165,52 @@ object VerifierState {
           val deletedLines = cEndL - cStartL
           val deletedCharacters = max(cEndC - cStartC, 0)
 
-          newDiagnostics.map(diagnostic => {
-            val range = diagnostic.getRange
+          val range = tmpDiagnostic.getRange
 
-            // Position of the Diagnostic
-            var (startL, startC) = (Helper.startLine(range), Helper.startChar(range))
-            var (endL, endC) = (Helper.endLine(range), Helper.endChar(range))
+          // Position of the Diagnostic
+          var (startL, startC) = (Helper.startLine(range), Helper.startChar(range))
+          var (endL, endC) = (Helper.endLine(range), Helper.endChar(range))
 
-            /**
-              * On same line as Diagnostic.
-              * Before the first character of the Diagnostic.
-              */
-            if (cEndC <= startC && cEndL == endL) {
-              startC = startC - deletedCharacters
-
-              /**
-                * Delete line, so diagnostic may not start at the beginning of the line.
-                */
-              if (cStartL < cEndL && cStartL < startL) startC = startC + cStartC
-            }
-               
-            /**
-              * On same line as Diagnostic.
-              * Between the start and end character of the Diagnostic.
-              */
-            if (cEndC <= endC && cEndL == endL) {
-              endC = endC - deletedCharacters
-
-              /**
-                * Delete line, so the end character may need some offset resulting from characters
-                * which were on the line the diagnostic gets moved to.
-                */
-              if (cStartL < cEndL) endC = endC + cStartC
-            }
+          /**
+            * On same line as Diagnostic.
+            * Before the first character of the Diagnostic.
+            */
+          if (cEndC <= startC && cEndL == endL) {
+            startC = startC - deletedCharacters
 
             /**
-              * Lines deleted before the diagnostic.
+              * Delete line, so diagnostic may not start at the beginning of the line.
               */
-            if (cEndL <= startL) {
-              startL = startL - deletedLines
-            }
-            if (cEndL <= endL) {
-              endL = endL - deletedLines
-            }
+            if (cStartL < cEndL && cStartL < startL) startC = startC + cStartC
+          }
 
-            val startPos = new Position(startL, startC)
-            val endPos = new Position(endL, endC)
-            new Diagnostic(new Range(startPos, endPos), diagnostic.getMessage, diagnostic.getSeverity, "")
-            
-          })
+          /**
+            * On same line as Diagnostic.
+            * Between the start and end character of the Diagnostic.
+            */
+          if (cEndC <= endC && cEndL == endL) {
+            endC = endC - deletedCharacters
+
+            /**
+              * Delete line, so the end character may need some offset resulting from characters
+              * which were on the line the diagnostic gets moved to.
+              */
+            if (cStartL < cEndL) endC = endC + cStartC
+          }
+
+          /**
+            * Lines deleted before the diagnostic.
+            */
+          if (cEndL <= startL) {
+            startL = startL - deletedLines
+          }
+          if (cEndL <= endL) {
+            endL = endL - deletedLines
+          }
+
+          val startPos = new Position(startL, startC)
+          val endPos = new Position(endL, endC)
+          new Diagnostic(new Range(startPos, endPos), tmpDiagnostic.getMessage, tmpDiagnostic.getSeverity, "")
         case text =>
           /**
             * Characters were overwritten with Code Completion / Intellisense.
@@ -219,70 +225,68 @@ object VerifierState {
           val numReturns = text.count(_=='\r')
           val addedCharacters = text.count(_!='\n') - numReturns - overwrittenCharacters
 
-          newDiagnostics.map(diagnostic => {
-            // Position of the Diagnostic
-            var (startL, startC) = (diagnostic.getRange.getStart.getLine, diagnostic.getRange.getStart.getCharacter)
-            var (endL, endC) = (diagnostic.getRange.getEnd.getLine, diagnostic.getRange.getEnd.getCharacter)
+          val range = tmpDiagnostic.getRange
+          // Position of the Diagnostic
+          var (startL, startC) = (range.getStart.getLine, range.getStart.getCharacter)
+          var (endL, endC) = (range.getEnd.getLine, range.getEnd.getCharacter)
 
-            /**
-              * Line added before the diagnostic or at the same line
-              * before the start character of the diagnostic.
-              */
-            if (cEndL < startL || (cStartC <= startC && cEndL == startL)) {
-              startL = startL + addedLines
-            }
+          /**
+            * Line added before the diagnostic or at the same line
+            * before the start character of the diagnostic.
+            */
+          if (cEndL < startL || (cStartC <= startC && cEndL == startL)) {
+            startL = startL + addedLines
+          }
 
-            /**
-              * Characters added on same line and before the start
-              * of the diagnostic.
-              */
-            if (cStartC <= startC && cEndL == endL) {
-              if (addedLines > 0) {
-                startC = startC - cStartC
-              } else {
-                startC = startC + addedCharacters
-              }
-            }
-
-
-            /**
-              * Characters added on same line and before the end
-              * of the diagnostic.
-              */
-            if (cEndC < endC && cEndL == endL) {
-              if (addedLines > 0) {
-                endC = endC - cEndC
-                endL = endL + addedLines
-              } else {
-                endC = endC + addedCharacters
-              }
-            } else if (cEndL < endL) {
-              endL = endL + addedLines
-            }
-            
-
-            val startPos = new Position(startL, startC)
-            val endPos = new Position(endL, endC)
-            if (startL < 0 || startC < 0 || endL < 0 || endC < 0) {
-              null
+          /**
+            * Characters added on same line and before the start
+            * of the diagnostic.
+            */
+          if (cStartC <= startC && cEndL == endL) {
+            if (addedLines > 0) {
+              startC = startC - cStartC
             } else {
-              new Diagnostic(new Range(startPos, endPos), diagnostic.getMessage, diagnostic.getSeverity, "")
+              startC = startC + addedCharacters
             }
-          })
+          }
+
+
+          /**
+            * Characters added on same line and before the end
+            * of the diagnostic.
+            */
+          if (cEndC < endC && cEndL == endL) {
+            if (addedLines > 0) {
+              endC = endC - cEndC
+              endL = endL + addedLines
+            } else {
+              endC = endC + addedCharacters
+            }
+          } else if (cEndL < endL) {
+            endL = endL + addedLines
+          }
+
+
+          val startPos = new Position(startL, startC)
+          val endPos = new Position(endL, endC)
+          if (startL < 0 || startC < 0 || endL < 0 || endC < 0) {
+            null
+          } else {
+            new Diagnostic(new Range(startPos, endPos), tmpDiagnostic.getMessage, tmpDiagnostic.getSeverity, "")
+          }
       }
-      newDiagnostics = newDiagnostics.filter(_!=null)
     })
-    newDiagnostics
+    tmpDiagnostic
   }
 
-  def updateDiagnostics(fileUri: String, changes: List[TextDocumentContentChangeEvent]): Unit = {
+  def updateDiagnostics(fileUri: String, changes: List[TextDocumentContentChangeEvent], logger: Option[Logger]): Unit = {
     if (changes.isEmpty) return
 
     _diagnostics.get(fileUri) match {
       case Some(diagnostics) =>
         val newDiagnostics = translateDiagnostics(changes, diagnostics)
         addDiagnostics(fileUri, newDiagnostics)
-        publishDiagnostics(fileUri)
+        publishDiagnostics(fileUri, logger)
       case None =>
     }
 

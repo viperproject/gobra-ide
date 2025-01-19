@@ -7,9 +7,12 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as path from 'path';
+import { URI } from 'vscode-uri';
 import { State } from '../ExtensionState';
 import { Commands, ContributionCommands, Helper } from '../Helper';
 import { TestHelper } from './TestHelper';
+import { OverallVerificationResult } from '../MessagePayloads';
+import { Verifier } from '../VerificationService';
 import { readdir } from 'fs/promises';
 
 const PROJECT_ROOT = path.join(__dirname, "..", "..");
@@ -58,30 +61,70 @@ async function closeAllFiles(): Promise<void> {
  */
 async function openFile(fileName: string): Promise<vscode.TextDocument> {
     const filePath = getTestDataPath(fileName);
-    log("Open " + filePath);
+    log(`Open ${filePath}`);
     return TestHelper.openFile(filePath);
 }
 
-async function openAndVerify(fileName: string, command: string): Promise<vscode.TextDocument> {
+/**
+ * @param expectSingleFile if true, verification result messages about multiple files are ignored
+ * @param expectMultipleFiles if true, verification result messages about a single file are ignored
+ */
+async function openAndVerify(fileName: string, command: string, expectSingleFile: boolean = false, expectMultipleFiles: boolean = false): Promise<vscode.TextDocument> {
     await closeAllFiles();
+    const executed = new Promise<void>((resolve) => {
+        // the following handler only listens to `overallResult` notifications
+        // that are related to `fileName`:
+        function handler(jsonOverallResult: string) {
+            log(`Overall result received: ${jsonOverallResult}`);
+            // since we overwrite the notification handler, we have to manually forward the notification:
+            Verifier.handleOverallResultNotification(jsonOverallResult);
+            const overallResult: OverallVerificationResult = Helper.jsonToOverallResult(jsonOverallResult);
+            const fileUris = overallResult.fileUris.map(uri => URI.parse(uri));
+            const expectedFileUri = URI.file(getTestDataPath(fileName));
+            if (fileUris.some(fileUri => fileUri.toString() === expectedFileUri.toString()) &&
+                (expectSingleFile ? fileUris.length === 1 : true) &&
+                (expectMultipleFiles ? fileUris.length > 1 : true)) {
+                resolve();
+            }
+        }
+        State.client.onNotification(Commands.overallResult, handler)
+    });
+    const diagnosticsReceived = new Promise<void>((resolve) => {
+        function handler(e: vscode.DiagnosticChangeEvent) {
+            log(`diagnostics changed for ${e.uris}`);
+            const expectedFileUri = URI.file(getTestDataPath(fileName));
+            if (e.uris.some(fileUri => fileUri.toString() === expectedFileUri.toString())) {
+                resolve();
+            }
+        }
+        vscode.languages.onDidChangeDiagnostics(handler);
+    })
     // open file, ...
     const document = await openFile(fileName);
     // ... send verification command to server...
-    const executed = new Promise((resolve) => State.client.onNotification(Commands.overallResult, resolve));
-    console.debug(`execute ${command}`);
+    log(`execute ${command}`);
     await vscode.commands.executeCommand(command);
     // ... and wait for result notification from server
     await executed;
-    console.debug(`executed ${command}`);
+    // ... and wait for diagnostics to be received and processed by VSCode:
+    await diagnosticsReceived;
+    log(`executed ${command}`);
     return document;
 }
 
 function openAndVerifyFile(fileName: string): Promise<vscode.TextDocument> {
-    return openAndVerify(fileName, ContributionCommands.verifyFile);
+    return openAndVerify(fileName, ContributionCommands.verifyFile, true);
 }
 
-async function openAndVerifyPackage(fileName: string): Promise<vscode.TextDocument> {
-    return openAndVerify(fileName, ContributionCommands.verifyPackage);
+/**
+ * @param multipleFilesInPackageExpected: expresses whether we expect a verification result message 
+ *                                        referring to two or more files. Other verification result
+ *                                        messages are ignored. This is particularly useful if the
+ *                                        same file is verifying in non-package mode (e.g., triggered by
+ *                                        opening this file)
+ */
+async function openAndVerifyPackage(fileName: string, multipleFilesInPackageExpected: boolean): Promise<vscode.TextDocument> {
+    return openAndVerify(fileName, ContributionCommands.verifyPackage, false, multipleFilesInPackageExpected);
 }
 
 suite("Extension", () => {
@@ -150,7 +193,7 @@ suite("Extension", () => {
         const diagnostics = vscode.languages.getDiagnostics(document.uri);
         assert.strictEqual(diagnostics.length, 0);
     });
-
+    
     test("Verify simple incorrect program", async function() {
         this.timeout(GOBRA_VERIFICATION_TIMEOUT_MS);
         const document = await openAndVerifyFile(ASSERT_FALSE);
@@ -195,16 +238,21 @@ suite("Extension", () => {
         // in which Gobra visits the files.
         const filePaths = await getGobraFilesInDataPath();
         const fileUris = filePaths.map(path => vscode.Uri.file(path));
-        const diagnosticsBeforeVerification = new Map(
-            fileUris.map(fileUri => [fileUri, vscode.languages.getDiagnostics(fileUri)]));
-        await openAndVerifyPackage(ASSERT_FALSE);
+        // const diagnosticsBeforeVerification = new Map(
+        //     fileUris.map(fileUri => [fileUri, vscode.languages.getDiagnostics(fileUri)]));
+        await openAndVerifyPackage(ASSERT_FALSE, true);
         const diagnosticsAfterVerification = new Map(
             fileUris.map(fileUri => [fileUri, vscode.languages.getDiagnostics(fileUri)]));
         const newDiagnostics = fileUris.flatMap(fileUri => {
+            // LA 19.1.25: since opening and closing files triggers various verifications,
+            // comparing to 'old' diagnostics is too brittle.
+            /*
             const prevDiags = diagnosticsBeforeVerification.get(fileUri);
             const curDiags = diagnosticsAfterVerification.get(fileUri);
             const newDiags = curDiags?.filter(diag => !prevDiags?.includes(diag));
             return newDiags || [];
+            */
+            return diagnosticsAfterVerification.get(fileUri) || [];
         });
         const newErrorDiagnostics = newDiagnostics
             .filter(diag => diag.severity === vscode.DiagnosticSeverity.Error);
@@ -213,7 +261,7 @@ suite("Extension", () => {
 
     test("Verifying a package consisting of two files succeeds", async function() {
         this.timeout(GOBRA_VERIFICATION_TIMEOUT_MS);
-        const document = await openAndVerifyPackage(PKG_FILE_1);
+        const document = await openAndVerifyPackage(PKG_FILE_1, true);
         const diagnostics = vscode.languages.getDiagnostics(document.uri);
         assert.strictEqual(diagnostics.length, 0);
     });
@@ -229,4 +277,5 @@ suite("Extension", () => {
         await vscode.commands.executeCommand("gobra.updateGobraTools");
         log("done updating Gobra tools");
     });
+
 });
