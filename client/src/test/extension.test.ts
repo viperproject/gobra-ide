@@ -21,6 +21,7 @@ const ASSERT_TRUE = "assert_true.gobra";
 const ASSERT_FALSE = "assert_false.gobra";
 const FAILING_POST_GOBRA = "failing_post.gobra";
 const FAILING_POST_GO = "failing_post.go";
+const DECREASES = "decreases.gobra";
 const PKG_FILE_1 = "pkg/file1.gobra";
 
 const URL_CONVERSION_TIMEOUT_MS = 5000; // 5s
@@ -227,6 +228,20 @@ suite("Extension", () => {
                 )
             ),
             "The 'false' expression in the postcondition of a go program was not reported."
+        );
+    });
+
+    test("Verify program requiring Viper plugins and underline non-terminating recursive call (Gobra Issue #823)", async function() {
+        this.timeout(GOBRA_VERIFICATION_TIMEOUT_MS);
+        const document = await openAndVerifyFile(DECREASES);
+        const diagnostics = vscode.languages.getDiagnostics(document.uri);
+        assert.ok(
+            diagnostics.some(
+                (diagnostic) => (
+                    document.getText(diagnostic.range).includes("infiniteRecursion(i - 1)")
+                )
+            ),
+            "The non-terminating recursive call was not reported."
         );
     });
 

@@ -1,0 +1,9 @@
+package decrease
+
+// this test case checks that Gobra / GobraServer correctly invokes
+// Viper plugins as verifying this file requires the termination plugin.
+
+decreases i
+func infiniteRecursion(i int) {
+    infiniteRecursion(i - 1)
+}
