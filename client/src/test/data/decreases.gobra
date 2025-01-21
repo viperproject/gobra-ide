@@ -1,0 +1,12 @@
+// Any copyright is dedicated to the Public Domain.
+// http://creativecommons.org/publicdomain/zero/1.0/
+
+package decrease
+
+// this test case checks that Gobra / GobraServer correctly invokes
+// Viper plugins as verifying this file requires the termination plugin.
+
+decreases i
+func infiniteRecursion(i int) {
+    infiniteRecursion(i - 1)
+}
