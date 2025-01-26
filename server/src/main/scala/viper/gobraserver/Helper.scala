@@ -90,7 +90,7 @@ object Helper {
       moduleName = config.gobraSettings.moduleName,
       includeDirs = config.gobraSettings.includeDirs.map(Paths.get(_)).toVector,
       reporter = reporter,
-      backend = backend,
+      backend = Some(backend),
       isolate = convertedIsolationData,
       z3Exe = Some(config.z3Executable),
       boogieExe = Some(config.boogieExecutable),
