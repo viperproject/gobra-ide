@@ -47,7 +47,7 @@ jobs:
             * Update VS Code version used in tests to `${{ env.LATEST_VSCODE_VERSION }}`.
 
       - name: Enable auto-merge of PR
-        if: env.PREV_GOBRA_REF != env.CUR_GOBRA_REF
+        if: env.TEST_VSCODE_VERSION != env.LATEST_VSCODE_VERSION
         run: gh pr merge --merge --auto "${{ steps.pr.outputs.pull-request-number }}"
         env:
           GH_TOKEN: ${{ secrets.VIPER_ADMIN_TOKEN }}
