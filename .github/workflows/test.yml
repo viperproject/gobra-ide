@@ -68,7 +68,7 @@ jobs:
           echo "Silver: commit ${{ env.SILICON_SILVER_REF }}" >> versions.txt
         # first line overwrites versions.txt in case it already exists, all other append to the file
       - name: Upload version file
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: versions.txt
           path: versions.txt
@@ -79,7 +79,7 @@ jobs:
         # hence, invoking sbt in server folder means that sbt cache will be in gobra-ide/server/sbt-cache
 
       - name: Cache SBT
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             gobra-ide/server/sbt-cache/.sbtboot
@@ -96,7 +96,7 @@ jobs:
         working-directory: gobra-ide/server
 
       - name: Upload Gobra server artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: server.jar
           path: gobra-ide/server/target/scala-2.13/server.jar
@@ -127,7 +127,7 @@ jobs:
         run: sudo apt-get install zip unzip
 
       - name: Download Gobra server artifact
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: server.jar
 
@@ -156,7 +156,7 @@ jobs:
         working-directory: ${{ matrix.gobra-tools-platform }}
 
       - name: Upload Gobra Tools
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.gobra-tools-platform }}.zip
           path: deploy/${{ matrix.gobra-tools-platform }}.zip
@@ -206,7 +206,7 @@ jobs:
           # we do not need any submodules here as we only test the client
 
       - name: Download Gobra tools
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         id: tools-download
         with:
           name: ${{matrix.gobra-tools-zip-file}}
@@ -230,7 +230,7 @@ jobs:
       - run: java --version
 
       - name: Cache npm
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: gobra-ide/client/.npm
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
@@ -300,7 +300,7 @@ jobs:
 
       - name: Upload packaged Gobra-IDE (only once)
         if: startsWith(matrix.os, 'ubuntu') && endsWith(matrix.config-file, 'local.json')
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: gobra-ide.vsix
           path: gobra-ide/client/gobra-ide.vsix
@@ -313,29 +313,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download Gobra Tools for Windows
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: GobraToolsWin.zip
           path: deploy
       - name: Download Gobra Tools for Linux
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: GobraToolsLinux.zip
           path: deploy
       - name: Download Gobra Tools for macOS
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: GobraToolsMac.zip
           path: deploy
 
       - name: Download packaged Gobra IDE
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: gobra-ide.vsix
           path: gobra-ide/client
 
       - name: Download version file
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: versions.txt
 
@@ -409,29 +409,29 @@ jobs:
           # we do not need any submodules here as we only test the client
 
       - name: Download Gobra Tools for Windows
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: GobraToolsWin.zip
           path: deploy
       - name: Download Gobra Tools for Linux
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: GobraToolsLinux.zip
           path: deploy
       - name: Download Gobra Tools for macOS
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: GobraToolsMac.zip
           path: deploy
 
       - name: Download packaged Gobra IDE
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: gobra-ide.vsix
           path: gobra-ide/client
 
       - name: Download version file
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: versions.txt
 
