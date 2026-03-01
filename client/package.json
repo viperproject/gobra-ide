@@ -1,7 +1,7 @@
 {
   "name": "gobra-ide",
   "displayName": "Gobra IDE",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "publisher": "viper-admin",
   "description": "This extension provides interactive IDE features for verifying programs in Gobra.",
   "author": {
