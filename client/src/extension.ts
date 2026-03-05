@@ -62,7 +62,7 @@ export function activate(context: vscode.ExtensionContext): Thenable<any> {
 		if (fs.existsSync(gobraToolsPath)) {
 			Helper.log(`cleanInstall has been requested and gobra tools already exist --> delete them`);
 			// wipe gobraToolsPath if it exists:
-			fs.rmdirSync(gobraToolsPath, { recursive: true });
+			fs.rmSync(gobraToolsPath, { recursive: true });
 		} else {
 			Helper.log(`cleanInstall has been requested but gobra tools do not exist yet --> NOP`);
 		}
