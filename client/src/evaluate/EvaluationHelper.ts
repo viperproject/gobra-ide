@@ -5,16 +5,16 @@
 // Copyright (c) 2011-2020 ETH Zurich.
 
 import * as path from 'path';
-import { VerifierConfig, GobraSettings, FileData } from "../MessagePayloads";
-import { Commands } from "../Helper";
-import { Helper } from "../Helper";
-import { State } from "../ExtensionState";
+import { VerifierConfig, GobraSettings, FileData } from "../MessagePayloads.js";
+import { Commands } from "../Helper.js";
+import { Helper } from "../Helper.js";
+import { State } from "../ExtensionState.js";
 import { URI } from 'vscode-uri';
 import * as fs from 'fs';
 import { glob } from 'glob';
-import { Verifier } from '../VerificationService';
+import { Verifier } from '../VerificationService.js';
 
-const PROJECT_ROOT = path.join(__dirname, "..", "..");
+const PROJECT_ROOT = path.join(import.meta.dirname, "..", "..");
 const DATA_ROOT = path.join(PROJECT_ROOT, "src", "evaluate", "data");
 
 export class EvaluationHelper {

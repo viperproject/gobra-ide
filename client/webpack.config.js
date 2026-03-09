@@ -18,11 +18,11 @@
 // BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT 
 // OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-//@ts-check
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-'use strict';
-
-const path = require('path');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 /**@type {import('webpack').Configuration}*/
 const config = {
@@ -32,16 +32,22 @@ const config = {
         // the bundle is stored in the 'dist' folder (check package.json) -> https://webpack.js.org/configuration/output/
         path: path.resolve(__dirname, 'dist'),
         filename: 'extension.js',
-        libraryTarget: 'commonjs2',
-        devtoolModuleFilenameTemplate: '../[resource-path]'
+        module: true,
+        chunkFormat: 'module',
+    },
+    experiments: {
+        outputModule: true,
     },
     devtool: 'source-map',
-    externals: {
-        vscode: 'commonjs vscode' // the vscode-module is created on-the-fly and must be excluded. Add other modules that cannot be webpack'edv-> https://webpack.js.org/configuration/externals/
-    },
+    externals: [{
+        vscode: 'module vscode' // the vscode-module is created on-the-fly and must be excluded. Add other modules that cannot be webpack'edv-> https://webpack.js.org/configuration/externals/
+    }],
     resolve: {
         // support reading TypeScript and JavaScript files -> https://github.com/TypeStrong/ts-loader
-        extensions: ['.ts', '.js']
+        extensions: ['.ts', '.js'],
+        extensionAlias: {
+            '.js': ['.ts', '.js'],
+        },
     },
     module: {
         rules: [
@@ -57,4 +63,4 @@ const config = {
         ]
     }
 };
-module.exports = config;
+export default config;

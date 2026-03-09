@@ -22,7 +22,7 @@ import * as path from 'path';
 
 import { runTests } from '@vscode/test-electron';
 
-const PROJECT_ROOT = path.join(__dirname, "..", "..");
+const PROJECT_ROOT = path.join(import.meta.dirname, "..", "..");
 
 async function main() {
   try {
@@ -32,7 +32,7 @@ async function main() {
 
     // The path to the extension test runner script
     // Passed to --extensionTestsPath
-    const extensionTestsPath = path.resolve(__dirname, 'index');
+    const extensionTestsPath = path.resolve(import.meta.dirname, 'index.js');
 
     // Download VS Code, unzip it and run the integration test
     await runTests({ extensionDevelopmentPath, extensionTestsPath });

@@ -12,8 +12,9 @@
     "type": "git",
     "url": "https://github.com/viperproject/gobra-ide"
   },
+  "type": "module",
   "engines": {
-    "vscode": "^1.90.0",
+    "vscode": "^1.100.0",
     "node": ">=20"
   },
   "categories": [
@@ -31,7 +32,7 @@
     "viper",
     "eth"
   ],
-  "main": "./dist/extension",
+  "main": "./dist/extension.js",
   "devDependencies": {
     "@types/mocha": "^10.0.10",
     "@types/node": "^25.3.3",
@@ -58,15 +59,15 @@
     "yargs": "^18.0.0"
   },
   "scripts": {
-    "webpack-production": "webpack --mode production",
-    "webpack-development": "webpack --mode development",
-    "webpack-development-watch": "webpack --mode development --watch",
+    "webpack-production": "webpack --config webpack.config.js --mode production",
+    "webpack-development": "webpack --config webpack.config.js --mode development",
+    "webpack-development-watch": "webpack --config webpack.config.js --mode development --watch",
     "tsc": "tsc",
     "clean": "rimraf dist",
     "vscode:prepublish": "npm-run-all --sequential clean webpack-production",
     "compile": "npm-run-all --sequential clean webpack-development",
     "watch": "npm-run-all --sequential clean webpack-development-watch",
-    "test-compile": "npm-run-all --sequential clean tsc",
+    "test-compile": "npm-run-all --sequential clean tsc webpack-development",
     "pretest": "npm run test-compile",
     "test": "node ./dist/test/runTest.js",
     "report-coverage": "nyc report --reporter=html",

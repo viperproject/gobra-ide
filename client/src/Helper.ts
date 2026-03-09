@@ -11,9 +11,9 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { URI } from 'vscode-uri';
 import { GitHubReleaseAsset, Location } from 'vs-verification-toolbox';
-import * as locate_java_home from '@viperproject/locate-java-home';
-import { IJavaHomeInfo } from '@viperproject/locate-java-home/js/es5/lib/interfaces';
-import { VerifierConfig, OverallVerificationResult, FileData, GobraSettings, PlatformDependendPath, GobraDependencies, PreviewData, HighlightingPosition } from "./MessagePayloads";
+import locate_java_home from '@viperproject/locate-java-home';
+import type { IJavaHomeInfo } from '@viperproject/locate-java-home/js/es5/lib/interfaces.js';
+import { VerifierConfig, OverallVerificationResult, FileData, GobraSettings, PlatformDependendPath, GobraDependencies, PreviewData, HighlightingPosition } from "./MessagePayloads.js";
 
 
 export class Helper {
@@ -167,7 +167,7 @@ export class Helper {
           mustBeJDK: true // we currently disallow JREs
         };
         Helper.log("Searching for Java home...");
-        locate_java_home.default(options, (err, javaHomes) => {
+        locate_java_home.default(options, (err: Error | null, javaHomes?: IJavaHomeInfo[]) => {
           if (err) {
             Helper.log(err.message);
             reject(err.message);

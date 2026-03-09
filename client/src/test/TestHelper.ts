@@ -5,8 +5,8 @@
 // Copyright (c) 2011-2020 ETH Zurich.
 
 import * as vscode from 'vscode';
-import * as extension from '../extension';
-import * as Notifier from '../Notifier';
+import * as extension from '../extension.js';
+import * as Notifier from '../Notifier.js';
 
 export class TestHelper {
 

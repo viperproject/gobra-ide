@@ -19,13 +19,16 @@
 // OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 import * as path from 'path';
-import * as Mocha from 'mocha';
+import Mocha from 'mocha';
 import { glob } from 'glob';
-import NYC = require("nyc");
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+const NYC = require("nyc");
 
 export async function run(): Promise<void> {
-    const nyc: NYC = new NYC({
-        cwd: path.join(__dirname, "..", ".."),
+    const nyc = new NYC({
+        cwd: path.join(import.meta.dirname, "..", ".."),
         instrument: true,
         extension: [
             ".ts",
@@ -51,7 +54,7 @@ export async function run(): Promise<void> {
         color: true,
     });
 
-    const testsRoot = path.resolve(__dirname, '..');
+    const testsRoot = path.resolve(import.meta.dirname, '..');
 
     const files: Array<string> = await glob(
         "**/*.test.js",

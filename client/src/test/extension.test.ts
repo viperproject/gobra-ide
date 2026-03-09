@@ -4,18 +4,18 @@
 //
 // Copyright (c) 2011-2020 ETH Zurich.
 
-import * as assert from 'assert';
+import assert from 'assert';
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { URI } from 'vscode-uri';
-import { State } from '../ExtensionState';
-import { Commands, ContributionCommands, Helper } from '../Helper';
-import { TestHelper } from './TestHelper';
-import { OverallVerificationResult } from '../MessagePayloads';
-import { Verifier } from '../VerificationService';
+import { State } from '../ExtensionState.js';
+import { Commands, ContributionCommands, Helper } from '../Helper.js';
+import { TestHelper } from './TestHelper.js';
+import { OverallVerificationResult } from '../MessagePayloads.js';
+import { Verifier } from '../VerificationService.js';
 import { readdir } from 'fs/promises';
 
-const PROJECT_ROOT = path.join(__dirname, "..", "..");
+const PROJECT_ROOT = path.join(import.meta.dirname, "..", "..");
 const DATA_ROOT = path.join(PROJECT_ROOT, "src", "test", "data");
 const ASSERT_TRUE = "assert_true.gobra";
 const ASSERT_FALSE = "assert_false.gobra";

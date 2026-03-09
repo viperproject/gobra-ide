@@ -5,7 +5,7 @@
 // Copyright (c) 2011-2020 ETH Zurich.
 
 import * as vscode from 'vscode';
-import { HighlightingPosition } from './MessagePayloads';
+import { HighlightingPosition } from './MessagePayloads.js';
 
 export class CodePreviewProvider implements vscode.TextDocumentContentProvider {
   private static decoration = vscode.window.createTextEditorDecorationType({

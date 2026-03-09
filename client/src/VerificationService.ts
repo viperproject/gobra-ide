@@ -4,14 +4,14 @@
 //
 // Copyright (c) 2011-2020 ETH Zurich.
 
-import { State } from "./ExtensionState";
-import { Helper, Commands, ContributionCommands, Texts, Color, PreviewUris, BuildChannel } from "./Helper";
-import { ProgressBar } from "./ProgressBar";
+import { State } from "./ExtensionState.js";
+import { Helper, Commands, ContributionCommands, Texts, Color, PreviewUris, BuildChannel } from "./Helper.js";
+import { ProgressBar } from "./ProgressBar.js";
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { VerifierConfig, OverallVerificationResult, PreviewData, FileData, IsolationData } from "./MessagePayloads";
-import { IdeEvents } from "./IdeEvents";
+import { VerifierConfig, OverallVerificationResult, PreviewData, FileData, IsolationData } from "./MessagePayloads.js";
+import { IdeEvents } from "./IdeEvents.js";
 
 import { Dependency, withProgressInWindow, Location, DependencyInstaller, RemoteZipExtractor, GitHubZipExtractor, LocalReference, ConfirmResult, Success } from 'vs-verification-toolbox';
 import { URI } from "vscode-uri";

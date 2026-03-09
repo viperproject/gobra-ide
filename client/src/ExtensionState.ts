@@ -9,11 +9,11 @@ import * as vscode from 'vscode';
 import * as net from 'net';
 import * as child_process from "child_process";
 import * as readline from 'readline';
-import { FileData, IsolationData, VerifierConfig } from "./MessagePayloads";
-import { Helper, FileSchemes } from "./Helper";
-import { IdeEvents } from "./IdeEvents";
-import { Verifier } from "./VerificationService";
-import { CodePreviewProvider } from "./CodePreviewProvider";
+import { FileData, IsolationData, VerifierConfig } from "./MessagePayloads.js";
+import { Helper, FileSchemes } from "./Helper.js";
+import { IdeEvents } from "./IdeEvents.js";
+import { Verifier } from "./VerificationService.js";
+import { CodePreviewProvider } from "./CodePreviewProvider.js";
 import { Location } from 'vs-verification-toolbox';
 import { URI } from 'vscode-uri';
 

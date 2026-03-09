@@ -11,5 +11,5 @@ declare module 'nyc' {
       writeCoverageFile(): Promise<void>;
       wrap(): Promise<void>;
     }
-    export = NYC;
+    export default NYC;
 }

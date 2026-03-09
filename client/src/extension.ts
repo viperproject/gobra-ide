@@ -8,11 +8,11 @@ import * as vscode from 'vscode';
 import { URI, Utils } from 'vscode-uri';
 import * as fs from 'fs';
 
-import { State } from './ExtensionState';
-import { Verifier } from './VerificationService';
-import { FileData, VerifierConfig } from './MessagePayloads';
-import { Helper } from './Helper';
-import * as Notifier from './Notifier';
+import { State } from './ExtensionState.js';
+import { Verifier } from './VerificationService.js';
+import { FileData, VerifierConfig } from './MessagePayloads.js';
+import { Helper } from './Helper.js';
+import * as Notifier from './Notifier.js';
 import { Location } from 'vs-verification-toolbox';
 
 

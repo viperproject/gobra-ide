@@ -18,18 +18,18 @@
 // BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT 
 // OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-import * as fs from "fs";
+import * as fs from "node:fs";
 import * as tmp from "tmp";
 import * as path from 'path';
-import * as yargs from 'yargs';
+import yargs from 'yargs';
 import { runTests } from '@vscode/test-electron';
 import { assert } from "console";
 
-const PROJECT_ROOT = path.join(__dirname, "..", "..");
+const PROJECT_ROOT = path.join(import.meta.dirname, "..", "..");
 const DATA_ROOT = path.join(PROJECT_ROOT, "src", "test", "data");
 
 async function main() {
-	const argv = await yargs
+	const argv = await yargs(process.argv.slice(2))
 		.option('gobraTools', {
 			description: 'Path to the Gobra Tools that should be used as gobraToolsBasePath instead of the one specified in the settings (only for build version "Local")',
             type: 'string',
@@ -47,7 +47,7 @@ async function main() {
 
 	// The path to the extension test script
 	// Passed to --extensionTestsPath
-	const extensionTestsPath = path.resolve(__dirname, 'index');
+	const extensionTestsPath = path.resolve(import.meta.dirname, 'index.js');
 
 	// Download VS Code, unzip it and run the integration test
 	console.info("Reading VS Code version...");
