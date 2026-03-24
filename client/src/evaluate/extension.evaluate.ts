@@ -6,7 +6,9 @@
 
 import { after } from 'mocha';
 import * as fs from 'fs';
-import * as vscode from 'vscode';
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
+const vscode = require('vscode') as typeof import('vscode');
 import performanceNow from 'performance-now';
 
 import { TestHelper } from "../test/TestHelper.js";

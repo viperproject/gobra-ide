@@ -15,6 +15,14 @@ import { Helper } from './Helper.js';
 import * as Notifier from './Notifier.js';
 import { Location } from 'vs-verification-toolbox';
 
+// Re-export internal modules so that tests can import them from the webpack bundle,
+// ensuring tests share the same module instances as the running extension.
+export { State } from './ExtensionState.js';
+export { Helper, Commands, ContributionCommands } from './Helper.js';
+export { Verifier } from './VerificationService.js';
+export { OverallVerificationResult } from './MessagePayloads.js';
+export * as Notifier from './Notifier.js';
+
 
 let fileSystemWatcher: vscode.FileSystemWatcher;
 

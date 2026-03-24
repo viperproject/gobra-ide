@@ -167,7 +167,7 @@ export class Helper {
           mustBeJDK: true // we currently disallow JREs
         };
         Helper.log("Searching for Java home...");
-        locate_java_home.default(options, (err: Error | null, javaHomes?: IJavaHomeInfo[]) => {
+        locate_java_home(options, (err: Error | null, javaHomes?: IJavaHomeInfo[]) => {
           if (err) {
             Helper.log(err.message);
             reject(err.message);

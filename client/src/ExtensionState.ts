@@ -4,7 +4,7 @@
 //
 // Copyright (c) 2011-2020 ETH Zurich.
 
-import { LanguageClient, LanguageClientOptions, ServerOptions, StreamInfo } from 'vscode-languageclient';
+import { LanguageClient, LanguageClientOptions, ServerOptions, StreamInfo } from 'vscode-languageclient/node.js';
 import * as vscode from 'vscode';
 import * as net from 'net';
 import * as child_process from "child_process";
@@ -185,14 +185,14 @@ export class State {
     // client and server
     this.client = new LanguageClient('gobraServer', 'Gobra IDE - Server Communication', serverOptions, clientOptions);
 
-    // Start the client together with the server.
-    const disposable = this.client.start();
-    // Push the disposable to the context's subscriptions so that the
+    // Push the client to the context's subscriptions so that the
     // client can be deactivated on extension deactivation
-    context.subscriptions.push(disposable);
+    context.subscriptions.push(this.client);
     this.context = context;
-    
-    return State.client.onReady();
+
+    // Start the client together with the server.
+    // In v9, start() returns a Promise that resolves when the client is ready.
+    return this.client.start();
   }
 
   // creates a server for the given server binary
