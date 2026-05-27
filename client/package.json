@@ -47,7 +47,7 @@
     "nyc": "^17.1.0",
     "performance-now": "^2.1.0",
     "rimraf": "^6.0.1",
-    "tmp": "^0.2.5",
+    "tmp": "^0.2.6",
     "ts-loader": "^9.5.2",
     "typescript": "^5.9.2",
     "vs-verification-toolbox": "git+https://github.com/viperproject/vs-verification-toolbox.git",
