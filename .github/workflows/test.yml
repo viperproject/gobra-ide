@@ -36,7 +36,7 @@ jobs:
     container: gobraverifier/gobra-base:v5_z3_4.8.7
     steps:
       - name: Checkout Gobra-IDE
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           path: gobra-ide
           submodules: recursive
@@ -79,7 +79,7 @@ jobs:
         # hence, invoking sbt in server folder means that sbt cache will be in gobra-ide/server/sbt-cache
 
       - name: Cache SBT
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: |
             gobra-ide/server/sbt-cache/.sbtboot
@@ -166,7 +166,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Gobra-IDE
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           path: gobra-ide
           # we do not need any submodules here as we only test the client
@@ -200,7 +200,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout Gobra-IDE
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           path: gobra-ide
           # we do not need any submodules here as we only test the client
@@ -230,7 +230,7 @@ jobs:
       - run: java --version
 
       - name: Cache npm
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: gobra-ide/client/.npm
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
@@ -403,7 +403,7 @@ jobs:
     steps:
       # we have to checkout the repo to read client/package.json later on:
       - name: Checkout Gobra-IDE
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           path: gobra-ide
           # we do not need any submodules here as we only test the client
