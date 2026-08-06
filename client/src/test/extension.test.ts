@@ -281,6 +281,17 @@ suite("Extension", () => {
         assert.strictEqual(diagnostics.length, 0);
     });
     
+    test("Show version information", async function() {
+        const popupText = await vscode.commands.executeCommand<string>(ContributionCommands.showVersionInformation);
+        const extensionVersion: string = State.context.extension.packageJSON.version;
+        assert.ok(popupText != null && popupText.includes(extensionVersion),
+            `popup text '${popupText}' does not contain the extension version`);
+        // both the Gobra IDE server commit and the Gobra commit should be full 40-character hashes:
+        const commitMatches = popupText.match(/\b[0-9a-f]{40}\b/g) ?? [];
+        assert.strictEqual(commitMatches.length, 2,
+            `popup text '${popupText}' does not contain two full commit hashes`);
+    });
+
     test("Update Gobra tools", async function() {
         // execute this test as the last one as the IDE has to be restarted afterwards
         this.timeout(GOBRA_TOOL_UPDATE_TIMEOUT_MS);
