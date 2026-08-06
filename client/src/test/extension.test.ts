@@ -286,10 +286,14 @@ suite("Extension", () => {
         const extensionVersion: string = State.context.extension.packageJSON.version;
         assert.ok(popupText != null && popupText.includes(extensionVersion),
             `popup text '${popupText}' does not contain the extension version`);
-        // both the Gobra IDE server commit and the Gobra commit should be full 40-character hashes:
-        const commitMatches = popupText.match(/\b[0-9a-f]{40}\b/g) ?? [];
-        assert.strictEqual(commitMatches.length, 2,
-            `popup text '${popupText}' does not contain two full commit hashes`);
+        // both the Gobra IDE server and Gobra should report a version and a full 40-character
+        // commit hash. Note that the hashes have to be anchored to their labels as branch names
+        // may contain hashes as well (e.g. GitHub merge-queue branches such as
+        // 'gh-readonly-queue/master/pr-638-<sha>'):
+        assert.ok(/Gobra IDE server: \S+ \([0-9a-f]{40}/.test(popupText),
+            `popup text '${popupText}' does not contain the Gobra IDE server version and commit`);
+        assert.ok(/Gobra: \S+ \([0-9a-f]{40}/.test(popupText),
+            `popup text '${popupText}' does not contain the Gobra version and commit`);
     });
 
     test("Update Gobra tools", async function() {
