@@ -23,10 +23,16 @@ export class TestHelper {
   }
 
   public static async startExtension(initialFilePath: string): Promise<void> {
+    // opening the file triggers the extension's activation (via its activation events):
     await TestHelper.openFile(initialFilePath);
-    // Dynamically import the webpack bundle to access the shared Notifier instance
-    const { Notifier } = await import('../extension.js');
-    await Notifier.waitExtensionActivation();
+    const extension = vscode.extensions.getExtension("viper-admin.gobra-ide");
+    if (extension == null) {
+      throw new Error("extension 'viper-admin.gobra-ide' was not found");
+    }
+    // `activate` returns the promise of the (possibly already in-flight) activation, i.e., it
+    // resolves as soon as the extension's activation has completed and rejects if the activation
+    // has failed:
+    await extension.activate();
   }
 
   /**
@@ -34,6 +40,8 @@ export class TestHelper {
    * It looks as if the extension's deactive function is not called and hence the extension is kept alive.
    */
   public static async stopExtension(): Promise<void> {
+    // dynamically import the webpack bundle such that `deactivate` is called on the very module
+    // instance that VSCode has activated:
     const extension = await import('../extension.js');
     await extension.deactivate();
   }

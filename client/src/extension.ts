@@ -12,7 +12,6 @@ import { State } from './ExtensionState.js';
 import { Verifier } from './VerificationService.js';
 import { FileData, VerifierConfig } from './MessagePayloads.js';
 import { Helper } from './Helper.js';
-import * as Notifier from './Notifier.js';
 import { Location } from 'vs-verification-toolbox';
 
 // Re-export internal modules so that tests can import them from the webpack bundle,
@@ -21,7 +20,6 @@ export { State } from './ExtensionState.js';
 export { Helper, Commands, ContributionCommands } from './Helper.js';
 export { Verifier } from './VerificationService.js';
 export { OverallVerificationResult } from './MessagePayloads.js';
-export * as Notifier from './Notifier.js';
 
 
 let fileSystemWatcher: vscode.FileSystemWatcher;
@@ -57,7 +55,7 @@ export function activate(context: vscode.ExtensionContext): Thenable<any> {
 			}
 			const verifierConfig = new VerifierConfig([fileData], [], z3Path.path, boogiePath.path);
 			Verifier.initialize(context, verifierConfig, fileUri);
-			Notifier.notifyExtensionActivation();
+			Helper.log("The extension is now active.");
 		}
 	}
 
@@ -79,13 +77,7 @@ export function activate(context: vscode.ExtensionContext): Thenable<any> {
 	// install gobra tools
 	return Verifier.updateGobraTools(context, false)
 		.then(startServer)
-		.then(initVerifier(fileUri))
-		.catch(err => {
-			// notify listeners (in particular the extension tests) such that they do not wait
-			// indefinitely for an activation that will never happen:
-			Notifier.notifyExtensionActivationFailure(err instanceof Error ? err : new Error(`${err}`));
-			throw err;
-		});
+		.then(initVerifier(fileUri));
 }
 
 export async function deactivate(): Promise<void> {
