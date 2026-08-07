@@ -18,6 +18,14 @@ object Server {
 
   val name = "Gobra Server"
 
+  /**
+    * version of the communication protocol between the Gobra IDE extension (client) and this server.
+    * The client sends the protocol version it implements in the LSP initialize request and the server
+    * rejects the request if the versions do not match. This version has to be bumped on every breaking
+    * change of the custom `gobraServer` messages (in sync with the client's counterpart in Helper.ts).
+    */
+  val protocolVersion: Int = 2
+
   val version: String = {
     val buildRevision = BuildInfo.git("revision")
     val buildBranch = BuildInfo.git("branch")

@@ -6,29 +6,53 @@
 
 package viper.gobraserver
 
+import com.google.gson.JsonObject
 import java.util.concurrent.CompletableFuture
-import com.google.gson.Gson
+import org.eclipse.lsp4j.jsonrpc.ResponseErrorException
+import org.eclipse.lsp4j.jsonrpc.messages.{ResponseError, ResponseErrorCode}
 import org.eclipse.lsp4j.jsonrpc.services.{JsonNotification, JsonRequest}
-import org.eclipse.lsp4j.{DidChangeTextDocumentParams, DidChangeWatchedFilesParams, DidCloseTextDocumentParams, DidOpenTextDocumentParams, DidSaveTextDocumentParams, InitializeParams, InitializeResult, MessageParams, MessageType, Range, ServerCapabilities, TextDocumentSyncKind}
+import org.eclipse.lsp4j.{DidChangeTextDocumentParams, DidChangeWatchedFilesParams, DidCloseTextDocumentParams, DidOpenTextDocumentParams, DidSaveTextDocumentParams, InitializeParams, InitializeResult, MessageParams, MessageType, Range, ServerCapabilities, ServerInfo, TextDocumentSyncKind}
 
 import scala.jdk.CollectionConverters._
 import scala.annotation.unused
+import scala.util.Try
 
 class GobraServerService(config: ServerConfig)(implicit executor: GobraServerExecutionContext) extends IdeLanguageClientAware {
-  private val gson: Gson = new Gson()
-
 
   @JsonRequest(value = "initialize")
-  def initialize(@unused params: InitializeParams): CompletableFuture[InitializeResult] = {
+  def initialize(params: InitializeParams): CompletableFuture[InitializeResult] = {
+    // the client sends the version of the client-server communication protocol it implements as
+    // part of the initialization options. Clients predating this version handshake do not send it:
+    val clientProtocolVersion: Option[Int] = params.getInitializationOptions match {
+      case obj: JsonObject if obj.has("protocolVersion") => Try(obj.get("protocolVersion").getAsInt).toOption
+      case _ => None
+    }
+    if (!clientProtocolVersion.contains(Server.protocolVersion)) {
+      val msg = s"The Gobra IDE extension (communication protocol version ${clientProtocolVersion.getOrElse(1)}) " +
+        s"is incompatible with the installed Gobra server (communication protocol version ${Server.protocolVersion}). " +
+        "Please update the Gobra IDE extension and the Gobra tools (command 'Gobra: Update Gobra Tools') to matching versions."
+      // note that the exception has to be returned as a failed future. Directly throwing it would
+      // cause lsp4j to respond with a generic internal error instead of this error message:
+      return CompletableFuture.failedFuture(new ResponseErrorException(new ResponseError(ResponseErrorCode.InvalidRequest, msg, null)))
+    }
+
     val capabilities = new ServerCapabilities()
     // always send full text document for each notification:
     capabilities.setTextDocumentSync(TextDocumentSyncKind.Incremental)
+    // advertise the protocol version this server implements such that the client can in turn
+    // check it against the protocol version it expects. Servers predating the version handshake
+    // do not advertise any version:
+    val experimental = new JsonObject()
+    experimental.addProperty("protocolVersion", Server.protocolVersion)
+    capabilities.setExperimental(experimental)
 
     val options: List[String] = List("--logLevel", config.logLevel.levelStr)
     GobraServer.init(options)(executor)
     GobraServer.start()
 
-    CompletableFuture.completedFuture(new InitializeResult(capabilities))
+    val result = new InitializeResult(capabilities)
+    result.setServerInfo(new ServerInfo(Server.name, Server.version))
+    CompletableFuture.completedFuture(result)
   }
 
   @JsonRequest(value = "shutdown")
@@ -68,8 +92,8 @@ class GobraServerService(config: ServerConfig)(implicit executor: GobraServerExe
   }
 
   @JsonNotification("gobraServer/setOpenFileUri")
-  def setOpenFileUri(fileUri: String): Unit = {
-    VerifierState.openFileUri = fileUri
+  def setOpenFileUri(fileData: FileData): Unit = {
+    VerifierState.openFileUri = fileData.fileUri
   }
 
   @JsonNotification("textDocument/didClose")
@@ -86,35 +110,25 @@ class GobraServerService(config: ServerConfig)(implicit executor: GobraServerExe
   def didChangeWatchedFiles(@unused params: DidChangeWatchedFilesParams): Unit = {}
 
   @JsonNotification("gobraServer/verify")
-  def verify(configJson: String): Unit = {
-    var config: VerifierConfig = gson.fromJson(configJson, classOf[VerifierConfig])
-    // isolate is a newly introduced field. To be backwards compatible, we allow it to not exist in the string
-    // in this case, gson will simply set the corresponding field to null which is unexpected and thus get's replaced
-    // by a sensible default value:
-    if (config.isolate == null) {
-      config = config.copy(isolate = Array.empty)
-    }
+  def verify(config: VerifierConfig): Unit = {
     val fileUris = config.fileData.map(_.fileUri).toVector
     VerifierState.updateVerificationInformation(fileUris, Left(0))
     GobraServer.preprocess(config)
   }
 
   @JsonNotification("gobraServer/goifyFile")
-  def goifyFile(fileDataJson: String): Unit = {
-    val fileData: FileData = gson.fromJson(fileDataJson, classOf[FileData])
+  def goifyFile(fileData: FileData): Unit = {
     GobraServer.goify(fileData)
   }
 
   @JsonNotification("gobraServer/gobrafyFile")
-  def gobrafyFile(fileDataJson: String): Unit = {
-    val fileData: FileData = gson.fromJson(fileDataJson, classOf[FileData])
+  def gobrafyFile(fileData: FileData): Unit = {
     GobraServer.gobrafy(fileData)
   }
 
 
   @JsonNotification("gobraServer/changeFile")
-  def changeFile(fileDataJson: String): Unit = {
-    val fileData: FileData = gson.fromJson(fileDataJson, classOf[FileData])
+  def changeFile(fileData: FileData): Unit = {
     VerifierState.openFileUri = fileData.fileUri
     VerifierState.publishDiagnostics(VerifierState.openFileUri, None)
     VerifierState.sendVerificationInformation(VerifierState.openFileUri)
@@ -132,8 +146,7 @@ class GobraServerService(config: ServerConfig)(implicit executor: GobraServerExe
   }
 
   @JsonNotification("gobraServer/codePreview")
-  def codePreview(previewDataJson: String): Unit = {
-    val previewData: PreviewData = gson.fromJson(previewDataJson, classOf[PreviewData])
+  def codePreview(previewData: PreviewData): Unit = {
     val selections = previewData.selections.map(selection => new Range(selection(0), selection(1))).toList
     GobraServer.codePreview(previewData.fileData, previewData.internalPreview, previewData.viperPreview, selections)(executor)
   }

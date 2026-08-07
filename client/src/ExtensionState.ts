@@ -4,16 +4,16 @@
 //
 // Copyright (c) 2011-2020 ETH Zurich.
 
-import { LanguageClient, LanguageClientOptions, ServerOptions, StreamInfo } from 'vscode-languageclient';
+import { LanguageClient, LanguageClientOptions, ServerOptions, StreamInfo } from 'vscode-languageclient/node';
 import * as vscode from 'vscode';
 import * as net from 'net';
 import * as child_process from "child_process";
 import * as readline from 'readline';
-import { FileData, IsolationData, VerifierConfig } from "./MessagePayloads";
-import { Helper, FileSchemes } from "./Helper";
-import { IdeEvents } from "./IdeEvents";
-import { Verifier } from "./VerificationService";
-import { CodePreviewProvider } from "./CodePreviewProvider";
+import { FileData, IsolationData, VerifierConfig } from "./MessagePayloads.js";
+import { Helper, FileSchemes, Commands, Texts } from "./Helper.js";
+import { IdeEvents } from "./IdeEvents.js";
+import { Verifier } from "./VerificationService.js";
+import { CodePreviewProvider } from "./CodePreviewProvider.js";
 import { Location } from 'vs-verification-toolbox';
 import { URI } from 'vscode-uri';
 
@@ -138,7 +138,7 @@ export class State {
 
 
   // creates the language client and starts the server
-  public static startLanguageServer(context: vscode.ExtensionContext, fileSystemWatcher: vscode.FileSystemWatcher, location: Location): Promise<void> {
+  public static async startLanguageServer(context: vscode.ExtensionContext, fileSystemWatcher: vscode.FileSystemWatcher, location: Location): Promise<void> {
 
     this.updatingGobraTools = false;
 
@@ -178,6 +178,10 @@ export class State {
       documentSelector: [{ scheme: 'file', language: 'gobra' }, { scheme: 'file', language: 'go' }],
       synchronize: {
           fileEvents: fileSystemWatcher
+      },
+      // the server rejects the initialize request if it implements a different protocol version:
+      initializationOptions: {
+        protocolVersion: Commands.protocolVersion
       }
     }
 
@@ -185,14 +189,30 @@ export class State {
     // client and server
     this.client = new LanguageClient('gobraServer', 'Gobra IDE - Server Communication', serverOptions, clientOptions);
 
-    // Start the client together with the server.
-    const disposable = this.client.start();
-    // Push the disposable to the context's subscriptions so that the
+    // Push the client to the context's subscriptions so that the
     // client can be deactivated on extension deactivation
-    context.subscriptions.push(disposable);
+    context.subscriptions.push(this.client);
     this.context = context;
-    
-    return State.client.onReady();
+
+    // Start the client together with the server.
+    // In v9, start() returns a Promise that resolves when the client is ready.
+    // Note that starting fails if the server rejects the initialize request, e.g., because the
+    // server implements a different protocol version than this client:
+    await this.client.start();
+
+    // check that the server implements the same protocol version as this client. While the server
+    // rejects the initialize request of clients implementing a different protocol version, this
+    // check catches servers that predate the version handshake (they accept the initialize request
+    // of any client and do not advertise a protocol version) as well as any future server that
+    // considers itself compatible with this client while this client does not:
+    const experimental: { protocolVersion?: number } | undefined = this.client.initializeResult?.capabilities?.experimental;
+    const serverProtocolVersion = experimental?.protocolVersion;
+    if (serverProtocolVersion !== Commands.protocolVersion) {
+      const msg = Texts.incompatibleServer(serverProtocolVersion);
+      vscode.window.showErrorMessage(msg);
+      await this.client.stop();
+      throw new Error(msg);
+    }
   }
 
   // creates a server for the given server binary

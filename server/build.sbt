@@ -15,12 +15,17 @@ lazy val gobraServer = (project in file("."))
   .settings(
     name := "gobra-ide",
     description := "Server implementation for Gobra IDE",
-    version := "0.0.1",
+    version := "1.0.0",
     organization := "viper",
     homepage := Some(url("https://github.com/viperproject/gobra-ide")),
     licenses := Seq("MPL-2.0 License" -> url("https://opensource.org/licenses/MPL-2.0")),
 
-    libraryDependencies += "org.eclipse.lsp4j" % "org.eclipse.lsp4j" % "0.8.1", // Java implementation of language server protocol
+    // Java implementation of language server protocol.
+    // note that the classpath contains only a single lsp4j version: on a version conflict, sbt
+    // evicts all but the highest version. Since ViperServer (a transitive dependency via Gobra)
+    // declares lsp4j as well, keep this version in sync with ViperServer's — declaring a lower
+    // version here would silently be evicted in favor of ViperServer's:
+    libraryDependencies += "org.eclipse.lsp4j" % "org.eclipse.lsp4j" % "0.20.1",
 	  libraryDependencies += "com.typesafe.akka" %% "akka-actor" % "2.6.10",
 
 	  scalacOptions ++= Seq(

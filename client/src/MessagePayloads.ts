@@ -4,7 +4,7 @@
 //
 // Copyright (c) 2011-2020 ETH Zurich.
 
-import { Helper } from "./Helper";
+import { Helper } from "./Helper.js";
 import * as vscode from 'vscode';
 import { URI } from 'vscode-uri';
 

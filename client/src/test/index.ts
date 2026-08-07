@@ -18,31 +18,13 @@
 // BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT 
 // OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-import * as path from 'path';
-import * as Mocha from 'mocha';
 import { glob } from 'glob';
-import NYC = require("nyc");
+import Mocha from 'mocha';
+import * as path from 'path';
+
+const TESTS_ROOT = import.meta.dirname;
 
 export async function run(): Promise<void> {
-    const nyc: NYC = new NYC({
-        cwd: path.join(__dirname, "..", ".."),
-        instrument: true,
-        extension: [
-            ".ts",
-            ".tsx"
-        ],
-        exclude: [
-            "**/*.d.ts",
-            "**/.vscode-test/**"
-        ],
-        all: true,
-        hookRequire: true,
-        hookRunInContext: true,
-        hookRunInThisContext: true,
-    });
-    await nyc.createTempDirectory();
-    await nyc.wrap();
-
     // Create the mocha test
     const mocha = new Mocha({
         ui: 'tdd',
@@ -51,21 +33,16 @@ export async function run(): Promise<void> {
         color: true,
     });
 
-    const testsRoot = path.resolve(__dirname, '..');
-
-    const files: Array<string> = await glob(
-        "**/*.test.js",
-        {
-            cwd: testsRoot,
-        });
+    const files: Array<string> = await glob("*.test.js", { cwd: TESTS_ROOT });
 
     // Add files to the test suite
-    files.forEach(f => mocha.addFile(path.resolve(testsRoot, f)));
+    files.forEach(f => mocha.addFile(path.resolve(TESTS_ROOT, f)));
 
     const failures: number = await new Promise(resolve => mocha.run(resolve));
-    await nyc.writeCoverageFile()
+
+    mocha.dispose();
 
     if (failures > 0) {
-        throw new Error(`${failures} tests failed.`)
+        throw new Error(`${failures} tests failed.`);
     }
 }

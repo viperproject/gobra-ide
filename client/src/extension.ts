@@ -8,12 +8,18 @@ import * as vscode from 'vscode';
 import { URI, Utils } from 'vscode-uri';
 import * as fs from 'fs';
 
-import { State } from './ExtensionState';
-import { Verifier } from './VerificationService';
-import { FileData, VerifierConfig } from './MessagePayloads';
-import { Helper } from './Helper';
-import * as Notifier from './Notifier';
+import { State } from './ExtensionState.js';
+import { Verifier } from './VerificationService.js';
+import { FileData, VerifierConfig } from './MessagePayloads.js';
+import { Helper } from './Helper.js';
 import { Location } from 'vs-verification-toolbox';
+
+// Re-export internal modules so that tests can import them from the webpack bundle,
+// ensuring tests share the same module instances as the running extension.
+export { State } from './ExtensionState.js';
+export { Helper, Commands, ContributionCommands } from './Helper.js';
+export { Verifier } from './VerificationService.js';
+export { OverallVerificationResult } from './MessagePayloads.js';
 
 
 let fileSystemWatcher: vscode.FileSystemWatcher;
@@ -49,7 +55,7 @@ export function activate(context: vscode.ExtensionContext): Thenable<any> {
 			}
 			const verifierConfig = new VerifierConfig([fileData], [], z3Path.path, boogiePath.path);
 			Verifier.initialize(context, verifierConfig, fileUri);
-			Notifier.notifyExtensionActivation();
+			Helper.log("The extension is now active.");
 		}
 	}
 
@@ -62,7 +68,7 @@ export function activate(context: vscode.ExtensionContext): Thenable<any> {
 		if (fs.existsSync(gobraToolsPath)) {
 			Helper.log(`cleanInstall has been requested and gobra tools already exist --> delete them`);
 			// wipe gobraToolsPath if it exists:
-			fs.rmdirSync(gobraToolsPath, { recursive: true });
+			fs.rmSync(gobraToolsPath, { recursive: true });
 		} else {
 			Helper.log(`cleanInstall has been requested but gobra tools do not exist yet --> NOP`);
 		}
