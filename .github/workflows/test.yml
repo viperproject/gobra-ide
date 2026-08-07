@@ -261,16 +261,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Collect coverage
-        run: npx nyc report --reporter=lcov
-        working-directory: gobra-ide/client
-
-#      - name: Upload coverage to Codecov
-#        uses: codecov/codecov-action@v1
-#        with:
-#          token: ${{ secrets.CODECOV_TOKEN }}
-#          file: gobra-ide/client/coverage/lcov.info
-
       # make sure that the following actions (in particular the artifact upload) are only executed for a single matrix configuration
 
       - name: Clean 'dist' folder (only once)
