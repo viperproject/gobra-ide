@@ -13,7 +13,7 @@ import { URI } from 'vscode-uri';
 import { GitHubReleaseAsset, Location } from 'vs-verification-toolbox';
 import locate_java_home from '@viperproject/locate-java-home';
 import type { IJavaHomeInfo } from '@viperproject/locate-java-home/js/es5/lib/interfaces.js';
-import { VerifierConfig, OverallVerificationResult, FileData, GobraSettings, PlatformDependendPath, GobraDependencies, PreviewData, HighlightingPosition } from "./MessagePayloads.js";
+import { OverallVerificationResult, GobraSettings, PlatformDependendPath, GobraDependencies, HighlightingPosition } from "./MessagePayloads.js";
 
 
 export class Helper {
@@ -111,22 +111,6 @@ export class Helper {
     } else {
       return [];
     }
-  }
-
-  public static configToJson(config: VerifierConfig): string {
-    return JSON.stringify(config);
-  }
-
-  public static gobraSettingsToJson(settings: GobraSettings): string {
-    return JSON.stringify(settings);
-  }
-
-  public static fileDataToJson(fileData: FileData): string {
-    return JSON.stringify(fileData);
-  }
-
-  public static previewDataToJson(previewData: PreviewData): string {
-    return JSON.stringify(previewData);
   }
 
   public static jsonToOverallResult(json: string): OverallVerificationResult {
@@ -460,6 +444,14 @@ export class Helper {
 
 export class Commands {
   /**
+    * version of the communication protocol between this extension (client) and the Gobra server.
+    * The client sends the protocol version it implements in the LSP initialize request and the server
+    * rejects the request if the versions do not match. This version has to be bumped on every breaking
+    * change of the custom `gobraServer/*` messages (in sync with the server's counterpart in Server.scala).
+    */
+  public static protocolVersion = 2;
+
+  /**
     * Commands handled by Gobra-Server
     */
   public static verify = "gobraServer/verify";
@@ -486,6 +478,7 @@ export class Commands {
 
 // Defines the texts in statusbars ...
 export class Texts {
+  public static incompatibleServer = "The installed Gobra tools are incompatible with this version of Gobra IDE. Please update them by running the command 'Gobra: Update Gobra Tools'.";
   public static runningVerification = "Verification of ";
   public static helloGobra = "Hello from Gobra";
   public static flushCache = "Flush Cache";

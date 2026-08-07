@@ -61,8 +61,8 @@ export class EvaluationHelper {
     let settings = new EvaluationGobraSettings();
     config.gobraSettings = settings;
 
-    State.client.sendNotification(Commands.setOpenFileUri, fileUri.toString);
-    State.client.sendNotification(Commands.verify, Helper.configToJson(config));
+    State.client.sendNotification(Commands.setOpenFileUri, fileData);
+    State.client.sendNotification(Commands.verify, config);
 
     return new Promise(resolve => {
       State.client.onNotification(Commands.overallResult, () => {

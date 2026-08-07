@@ -79,7 +79,13 @@ export function activate(context: vscode.ExtensionContext): Thenable<any> {
 	// install gobra tools
 	return Verifier.updateGobraTools(context, false)
 		.then(startServer)
-		.then(initVerifier(fileUri));
+		.then(initVerifier(fileUri))
+		.catch(err => {
+			// notify listeners (in particular the extension tests) such that they do not wait
+			// indefinitely for an activation that will never happen:
+			Notifier.notifyExtensionActivationFailure(err instanceof Error ? err : new Error(`${err}`));
+			throw err;
+		});
 }
 
 export async function deactivate(): Promise<void> {

@@ -4,13 +4,13 @@
 //
 // Copyright (c) 2011-2020 ETH Zurich.
 
-import { LanguageClient, LanguageClientOptions, ServerOptions, StreamInfo } from 'vscode-languageclient/node.js';
+import { LanguageClient, LanguageClientOptions, ServerOptions, StreamInfo } from 'vscode-languageclient/node';
 import * as vscode from 'vscode';
 import * as net from 'net';
 import * as child_process from "child_process";
 import * as readline from 'readline';
 import { FileData, IsolationData, VerifierConfig } from "./MessagePayloads.js";
-import { Helper, FileSchemes } from "./Helper.js";
+import { Helper, FileSchemes, Commands, Texts } from "./Helper.js";
 import { IdeEvents } from "./IdeEvents.js";
 import { Verifier } from "./VerificationService.js";
 import { CodePreviewProvider } from "./CodePreviewProvider.js";
@@ -138,7 +138,7 @@ export class State {
 
 
   // creates the language client and starts the server
-  public static startLanguageServer(context: vscode.ExtensionContext, fileSystemWatcher: vscode.FileSystemWatcher, location: Location): Promise<void> {
+  public static async startLanguageServer(context: vscode.ExtensionContext, fileSystemWatcher: vscode.FileSystemWatcher, location: Location): Promise<void> {
 
     this.updatingGobraTools = false;
 
@@ -178,6 +178,10 @@ export class State {
       documentSelector: [{ scheme: 'file', language: 'gobra' }, { scheme: 'file', language: 'go' }],
       synchronize: {
           fileEvents: fileSystemWatcher
+      },
+      // the server rejects the initialize request if it implements a different protocol version:
+      initializationOptions: {
+        protocolVersion: Commands.protocolVersion
       }
     }
 
@@ -192,7 +196,18 @@ export class State {
 
     // Start the client together with the server.
     // In v9, start() returns a Promise that resolves when the client is ready.
-    return this.client.start();
+    // Note that starting fails if the server rejects the initialize request, e.g., because the
+    // server implements a different protocol version than this client:
+    await this.client.start();
+
+    // servers that predate the client-server version handshake accept the initialize request no
+    // matter what protocol version the client implements. Since such servers are incompatible,
+    // detect them based on `serverInfo`, which they never set:
+    if (this.client.initializeResult?.serverInfo == null) {
+      vscode.window.showErrorMessage(Texts.incompatibleServer);
+      await this.client.stop();
+      throw new Error(Texts.incompatibleServer);
+    }
   }
 
   // creates a server for the given server binary

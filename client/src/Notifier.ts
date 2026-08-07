@@ -14,18 +14,25 @@ import { Helper } from "./Helper.js";
  */
 
  let isExtensionActive = false;
+ let activationFailure: Error | null = null;
 
-type Listener = () => void;
+interface Listener {
+    resolve: () => void;
+    reject: (err: Error) => void;
+}
 
 const waitingForExtensionActivation: Listener[] = [];
 
 export function waitExtensionActivation(): Promise<void> {
-    return new Promise(resolve => {
+    return new Promise((resolve, reject) => {
         if (isExtensionActive) {
             // Resolve immediately
             resolve();
+        } else if (activationFailure != null) {
+            // Reject immediately
+            reject(activationFailure);
         } else {
-            waitingForExtensionActivation.push(resolve);
+            waitingForExtensionActivation.push({ resolve, reject });
         }
     });
 }
@@ -33,5 +40,11 @@ export function waitExtensionActivation(): Promise<void> {
 export function notifyExtensionActivation(): void {
     Helper.log("The extension is now active.");
     isExtensionActive = true;
-    waitingForExtensionActivation.forEach(listener => listener());
+    waitingForExtensionActivation.forEach(listener => listener.resolve());
+}
+
+export function notifyExtensionActivationFailure(err: Error): void {
+    Helper.log(`Activating the extension has failed: ${err}`);
+    activationFailure = err;
+    waitingForExtensionActivation.forEach(listener => listener.reject(err));
 }

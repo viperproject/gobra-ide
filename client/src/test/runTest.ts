@@ -95,6 +95,11 @@ async function main() {
 			}
 
 			const tmpWorkspace = tmp.dirSync({ unsafeCleanup: true });
+			// use a temporary directory for VSCode's user data as VSCode creates a unix domain
+			// socket in there, whose path is limited to 103 characters (at least on macOS). The
+			// default location within the repository can exceed this limit (e.g. for git worktrees
+			// in deeply nested folders):
+			const tmpUserDataDir = tmp.dirSync({ unsafeCleanup: true });
 			try {
 				// Prepare the workspace with the settings
 				const workspace_vscode_path = path.join(tmpWorkspace.name, ".vscode");
@@ -120,11 +125,12 @@ async function main() {
 					// note that passing environment variables seems to only work when invoking the tests via CLI
 					extensionTestsEnv: env,
 					// Disable any other extension
-					launchArgs: ["--disable-extensions", tmpWorkspace.name],
+					launchArgs: ["--disable-extensions", `--user-data-dir=${tmpUserDataDir.name}`, tmpWorkspace.name],
 				});
 			} finally {
 				try {
 					tmpWorkspace.removeCallback();
+					tmpUserDataDir.removeCallback();
 				} catch (e) {
 					console.warn(`cleaning temporary directory has failed with error ${e}`);
 				}

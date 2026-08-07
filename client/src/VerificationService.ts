@@ -254,7 +254,7 @@ export class Verifier {
       fileUris.forEach(fileUri => Verifier.verifyItem.progress(fileUri, 0));
 
       Helper.log(`sending verification request for ${fileUris}`);
-      State.client.sendNotification(Commands.verify, Helper.configToJson(State.verifierConfig));
+      State.client.sendNotification(Commands.verify, State.verifierConfig);
     } else {
       Helper.log(`Verification is already running for ${fileUris}`);
       if (!State.containsVerificationRequests(fileUris) && event != IdeEvents.Save) {
@@ -318,7 +318,7 @@ export class Verifier {
       if (editor) {
         editor.document.save().then((saved: boolean) => {
           Helper.log("sending goification request");
-          State.client.sendNotification(Commands.goifyFile, Helper.fileDataToJson(fileData));
+          State.client.sendNotification(Commands.goifyFile, fileData);
         })
       } else {
         Helper.log("saving document for goifying was not possible");
@@ -356,7 +356,7 @@ export class Verifier {
       if (editor) {
         editor.document.save().then((saved: boolean) => {
           Helper.log("sending gobrafication request");
-          State.client.sendNotification(Commands.gobrafyFile, Helper.fileDataToJson(fileData));
+          State.client.sendNotification(Commands.gobrafyFile, fileData);
         })
       } else {
         Helper.log("saving document for gobrafying was not possible");
@@ -388,7 +388,7 @@ export class Verifier {
     
     // State.updateFileData([fileUri]);
     const fileData = new FileData(fileUri);
-    State.client.sendNotification(Commands.changeFile, Helper.fileDataToJson(fileData));
+    State.client.sendNotification(Commands.changeFile, fileData);
   }
 
 
@@ -538,7 +538,7 @@ export class Verifier {
     const editor = vscode.window.activeTextEditor;
     if (editor) {
       editor.document.save().then((saved: boolean) => {
-        State.client.sendNotification(Commands.codePreview, Helper.previewDataToJson(new PreviewData(State.verifierConfig.fileData, false, true, selections)));
+        State.client.sendNotification(Commands.codePreview, new PreviewData(State.verifierConfig.fileData, false, true, selections));
       });
     } else {
       Helper.log("saving document for showing Viper Code Preview was not possible");
@@ -567,7 +567,7 @@ export class Verifier {
     const editor = vscode.window.activeTextEditor;
     if (editor) {
       editor.document.save().then((saved: boolean) => {
-        State.client.sendNotification(Commands.codePreview, Helper.previewDataToJson(new PreviewData(State.verifierConfig.fileData, true, false, selections)));
+        State.client.sendNotification(Commands.codePreview, new PreviewData(State.verifierConfig.fileData, true, false, selections));
       });
     } else {
       Helper.log("saving document for showing Internal Code Preview was not possible");
