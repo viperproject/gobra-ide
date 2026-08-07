@@ -20,8 +20,11 @@ lazy val gobraServer = (project in file("."))
     homepage := Some(url("https://github.com/viperproject/gobra-ide")),
     licenses := Seq("MPL-2.0 License" -> url("https://opensource.org/licenses/MPL-2.0")),
 
-    // Java implementation of language server protocol. Note that ViperServer depends on lsp4j 0.20.1
-    // such that this (older) version got evicted in the assembly anyways:
+    // Java implementation of language server protocol.
+    // note that the classpath contains only a single lsp4j version: on a version conflict, sbt
+    // evicts all but the highest version. Since ViperServer (a transitive dependency via Gobra)
+    // declares lsp4j as well, keep this version in sync with ViperServer's — declaring a lower
+    // version here would silently be evicted in favor of ViperServer's:
     libraryDependencies += "org.eclipse.lsp4j" % "org.eclipse.lsp4j" % "0.20.1",
 	  libraryDependencies += "com.typesafe.akka" %% "akka-actor" % "2.6.10",
 
