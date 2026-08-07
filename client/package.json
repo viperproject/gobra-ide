@@ -151,6 +151,11 @@
         "command": "gobra.showJavaPath",
         "title": "Show path to Java binary",
         "category": "Gobra"
+      },
+      {
+        "command": "gobra.showVersionInformation",
+        "title": "Show version information",
+        "category": "Gobra"
       }
     ],
     "menus": {
