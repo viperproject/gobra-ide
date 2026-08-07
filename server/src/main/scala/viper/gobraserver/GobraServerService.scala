@@ -110,11 +110,7 @@ class GobraServerService(config: ServerConfig)(implicit executor: GobraServerExe
   def didChangeWatchedFiles(@unused params: DidChangeWatchedFilesParams): Unit = {}
 
   @JsonNotification("gobraServer/verify")
-  def verify(inputConfig: VerifierConfig): Unit = {
-    // isolate is a newly introduced field. To be backwards compatible, we allow it to be absent in the payload.
-    // in this case, gson will simply set the corresponding field to null which is unexpected and thus get's replaced
-    // by a sensible default value:
-    val config = if (inputConfig.isolate == null) inputConfig.copy(isolate = Array.empty) else inputConfig
+  def verify(config: VerifierConfig): Unit = {
     val fileUris = config.fileData.map(_.fileUri).toVector
     VerifierState.updateVerificationInformation(fileUris, Left(0))
     GobraServer.preprocess(config)
