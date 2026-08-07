@@ -200,13 +200,18 @@ export class State {
     // server implements a different protocol version than this client:
     await this.client.start();
 
-    // servers that predate the client-server version handshake accept the initialize request no
-    // matter what protocol version the client implements. Since such servers are incompatible,
-    // detect them based on `serverInfo`, which they never set:
-    if (this.client.initializeResult?.serverInfo == null) {
-      vscode.window.showErrorMessage(Texts.incompatibleServer);
+    // check that the server implements the same protocol version as this client. While the server
+    // rejects the initialize request of clients implementing a different protocol version, this
+    // check catches servers that predate the version handshake (they accept the initialize request
+    // of any client and do not advertise a protocol version) as well as any future server that
+    // considers itself compatible with this client while this client does not:
+    const experimental: { protocolVersion?: number } | undefined = this.client.initializeResult?.capabilities?.experimental;
+    const serverProtocolVersion = experimental?.protocolVersion;
+    if (serverProtocolVersion !== Commands.protocolVersion) {
+      const msg = Texts.incompatibleServer(serverProtocolVersion);
+      vscode.window.showErrorMessage(msg);
       await this.client.stop();
-      throw new Error(Texts.incompatibleServer);
+      throw new Error(msg);
     }
   }
 

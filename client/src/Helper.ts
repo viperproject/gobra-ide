@@ -478,7 +478,13 @@ export class Commands {
 
 // Defines the texts in statusbars ...
 export class Texts {
-  public static incompatibleServer = "The installed Gobra tools are incompatible with this version of Gobra IDE. Please update them by running the command 'Gobra: Update Gobra Tools'.";
+  public static incompatibleServer(serverProtocolVersion: number | undefined): string {
+    // servers predating the client-server version handshake do not advertise a protocol version
+    // and implicitly implement version 1:
+    return `The installed Gobra tools (communication protocol version ${serverProtocolVersion ?? 1}) are incompatible ` +
+      `with this version of Gobra IDE (communication protocol version ${Commands.protocolVersion}). ` +
+      "Please update them by running the command 'Gobra: Update Gobra Tools'.";
+  }
   public static runningVerification = "Verification of ";
   public static helloGobra = "Hello from Gobra";
   public static flushCache = "Flush Cache";

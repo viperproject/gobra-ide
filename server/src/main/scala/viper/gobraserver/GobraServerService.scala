@@ -39,14 +39,18 @@ class GobraServerService(config: ServerConfig)(implicit executor: GobraServerExe
     val capabilities = new ServerCapabilities()
     // always send full text document for each notification:
     capabilities.setTextDocumentSync(TextDocumentSyncKind.Incremental)
+    // advertise the protocol version this server implements such that the client can in turn
+    // check it against the protocol version it expects. Servers predating the version handshake
+    // do not advertise any version:
+    val experimental = new JsonObject()
+    experimental.addProperty("protocolVersion", Server.protocolVersion)
+    capabilities.setExperimental(experimental)
 
     val options: List[String] = List("--logLevel", config.logLevel.levelStr)
     GobraServer.init(options)(executor)
     GobraServer.start()
 
     val result = new InitializeResult(capabilities)
-    // the client relies on `serverInfo` being present to detect servers that predate the version
-    // handshake (those never set it):
     result.setServerInfo(new ServerInfo(Server.name, Server.version))
     CompletableFuture.completedFuture(result)
   }
