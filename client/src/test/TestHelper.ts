@@ -25,9 +25,13 @@ export class TestHelper {
   public static async startExtension(initialFilePath: string): Promise<void> {
     // opening the file triggers the extension's activation (via its activation events):
     await TestHelper.openFile(initialFilePath);
-    const extension = vscode.extensions.getExtension("viper-admin.gobra-ide");
+    // derive the extension identifier from the extension's manifest (note that this file is
+    // executed as `dist/test/TestHelper.js`, i.e., the manifest is located two levels up):
+    const packageJson = require('../../package.json') as { publisher: string, name: string };
+    const packageId = `${packageJson.publisher}.${packageJson.name}`;
+    const extension = vscode.extensions.getExtension(packageId);
     if (extension == null) {
-      throw new Error("extension 'viper-admin.gobra-ide' was not found");
+      throw new Error(`extension '${packageId}' was not found`);
     }
     // `activate` returns the promise of the (possibly already in-flight) activation, i.e., it
     // resolves as soon as the extension's activation has completed and rejects if the activation
