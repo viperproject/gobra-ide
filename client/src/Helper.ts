@@ -411,6 +411,13 @@ export class Texts {
   public static helloGobra = "Hello from Gobra";
   public static flushCache = "Flush Cache";
   public static changedBuildVersion = "Changed the build version of Gobra Tools. Please restart the IDE.";
+  public static openSettings = "Open Settings";
+  public static legacyBuildVersion(configuredBuildVersion: string): string {
+    return `The configured build version '${configuredBuildVersion}' of the Gobra tools no longer exists ` +
+      "since the Gobra tools are now bundled with the extension. Gobra IDE uses the bundled tools instead. " +
+      "Please update the setting 'gobraSettings.buildVersion' to 'BuiltIn' or, in case you want to use " +
+      "custom Gobra tools, to 'External'.";
+  }
   public static javaLocation(path: string, version: string) {
     // note that VSCode (at least currently) strips new-line characters. Thus, make sure it is nonetheless somewhat readable
     return `Gobra uses java located at: \n\`${path}\`.\n\nThe java version is: \n\`${version}\`.`;
