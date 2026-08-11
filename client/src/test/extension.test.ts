@@ -32,7 +32,6 @@ const FAILING_POST_GO = "failing_post.go";
 const DECREASES = "decreases.gobra";
 const PKG_FILE_1 = "pkg/file1.gobra";
 
-const URL_CONVERSION_TIMEOUT_MS = 5000; // 5s
 const GOBRA_TOOL_UPDATE_TIMEOUT_MS = 4 * 60 * 1000; // 4min
 const GOBRA_VERIFICATION_TIMEOUT_MS = 1 * 60 * 1000; // 1min
 
@@ -169,41 +168,6 @@ suite("Extension", () => {
         assert.strictEqual(document.languageId, "go");
     });
 
-    test("Check conversion of Gobra Tool Provider URL - regular URL", async function() {
-        // as there shouldn't be any network request involved, we do not need to increase the default timeout
-        const url = "https://gobra-ide.s3.eu-central-1.amazonaws.com/stable/GobraToolsLinux.zip";
-        const parseResult = await Helper.parseGitHubAssetURL(url);
-        assert.strictEqual(parseResult.isGitHubAsset, false);
-        assert.strictEqual(await parseResult.getUrl(), url);
-    })
-
-    test("Check conversion of Gobra Tool Provider URL - latest GitHub asset", async function() {
-        this.timeout(URL_CONVERSION_TIMEOUT_MS);
-        const url = "github.com/viperproject/gobra-ide/releases/latest?asset-name=GobraToolsLinux.zip";
-        const parseResult = await Helper.parseGitHubAssetURL(url);
-        // this should return the actual URL to the asset
-        assert.strictEqual(parseResult.isGitHubAsset, true);
-        assert.notStrictEqual(await parseResult.getUrl(), url);
-    })
-
-    test("Check conversion of Gobra Tool Provider URL - latest pre-release GitHub asset", async function() {
-        this.timeout(URL_CONVERSION_TIMEOUT_MS);
-        const url = "github.com/viperproject/gobra-ide/releases/latest?asset-name=GobraToolsLinux.zip&include-prereleases";
-        const parseResult = await Helper.parseGitHubAssetURL(url);
-        // this should return the actual URL to the asset
-        assert.strictEqual(parseResult.isGitHubAsset, true);
-        assert.notStrictEqual(await parseResult.getUrl(), url);
-    })
-
-    test("Check conversion of Gobra Tool Provider URL - latest tagged GitHub asset", async function() {
-        this.timeout(URL_CONVERSION_TIMEOUT_MS);
-        const url = "github.com/viperproject/gobra-ide/releases/tags/v1.0-alpha.2?asset-name=GobraToolsLinux.zip";
-        const parseResult = await Helper.parseGitHubAssetURL(url);
-        // this should return the actual URL to the asset
-        assert.strictEqual(parseResult.isGitHubAsset, true);
-        assert.notStrictEqual(await parseResult.getUrl(), url);
-    })
-
     test("Verify simple correct program", async function() {
         this.timeout(GOBRA_VERIFICATION_TIMEOUT_MS);
         const document = await openAndVerifyFile(ASSERT_TRUE);
@@ -295,18 +259,6 @@ suite("Extension", () => {
         const document = await openAndVerifyPackage(PKG_FILE_1, true);
         const diagnostics = vscode.languages.getDiagnostics(document.uri);
         assert.strictEqual(diagnostics.length, 0);
-    });
-
-    test("Update Gobra tools", async function() {
-        // execute this test as the last one as the IDE has to be restarted afterwards
-        this.timeout(GOBRA_TOOL_UPDATE_TIMEOUT_MS);
-        log("start updating Gobra tools");
-        // the following command directly invokes the update function (without going via the VSCode ecosystem).
-        // this is in particular useful for debugging / reproducing / understanding an issue as the error / exception
-        // will be visible in the output and will not be swallowed by VSCode.
-        // await Verifier.updateGobraTools(State.context, true);
-        await vscode.commands.executeCommand("gobra.updateGobraTools");
-        log("done updating Gobra tools");
     });
 
 });

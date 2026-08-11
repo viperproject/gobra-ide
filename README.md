@@ -42,23 +42,17 @@ Note: `npm` / node has to be installed.
 ## Configuring Gobra Tools
 Gobra Tools collectively represent the client's dependecies.
 In particular, Gobra Tools consist of the server (called Gobra Server), Z3, and Boogie.
-Gobra-IDE supports three modes to fetch the Gobra Tools, which can be configured by setting `gobraSettings.buildVersion` in the extension's settings to `Stable` (default), `Nightly` or `Local`.
+The Gobra Tools are bundled with the extension, i.e., no additional installation step is necessary.
+The versions of Z3 and Boogie that get bundled are pinned in `client/z3-version` and `client/boogie-version`, and the bundled Gobra Server is built from the sources in this repository.
 
-### Build versions `Stable` and `Nightly`
-`Stable` and `Nightly` use the latest non-prerelease and latest release, resp., of [Gobra-IDE on GitHub](https://github.com/viperproject/gobra-ide/releases).
-More specifically, the platform-specific `GobraTools<Linux|Mac|Win>.zip` is downloaded, unzipped, and stored in the following directory in the case of `Stable` (otherwise, replace `Stable` by `Nightly` in the following paths).
-- Linux: `$HOME/.config/Code/User/globalStorage/viper-admin.gobra-ide/Stable/GobraTools`
-- macOS: `$HOME/Library/Application Support/Code/User/globalStorage/viper-admin.gobra-ide/Stable/GobraTools`
-- Windows: `%APPDATA%\Roaming\Code\User\globalStorage\viper-admin.gobra-ide\Stable\GobraTools`
+Gobra-IDE supports two modes to locate the Gobra Tools, which can be configured by setting `gobraSettings.buildVersion` in the extension's settings to `BuiltIn` (default) or `External`.
 
-Note that Gobra-IDE tries to download the Gobra Tools only if no Gobra Tools can be found locally in the respective folder and only after asking the user to download them.
-This ensures that the Gobra Tools are not unknowingly replaced by a newer version.
-To update the Gobra Tools for the currently configured build version, press Ctrl+Shift+P resp. Cmd+Shift+P and select "Gobra: Update Gobra Tools".
+### Build version `BuiltIn`
+`BuiltIn` uses the Gobra Tools that are bundled with the extension, which are located in the `dependencies/GobraTools` folder within the extension's installation directory.
 
-
-### Build version `Local`
-Alternatively, `Local` allows you to fully customize which dependencies the IDE is using.
-The following settings (and default values) are taken into account when using build version `Local`:
+### Build version `External`
+Alternatively, `External` allows you to fully customize which dependencies the IDE is using.
+The following settings (and default values) are taken into account when using build version `External`:
 ```
 "gobraDependencies.gobraToolsPaths": {
    "gobraToolsBasePath": {
@@ -85,22 +79,19 @@ The following settings (and default values) are taken into account when using bu
 ```
 `gobraDependencies.gobraToolsPaths.gobraToolsBasePath` configures the path that the IDE is using to locate the Gobra Tools. This path is used to substitute `$gobraTools$` in `gobraDependencies.gobraToolsPaths.z3Executable`, `gobraDependencies.gobraToolsPaths.boogieExecutable`, and `gobraDependencies.gobraToolsPaths.serverJar`.
 
-For example, if you want to use Boogie and Z3 from the latest `Nightly` release but use your own built server, you may use the following configuration.
-This configures Gobra-IDE to use the nightly GobraTools but overwrites the path to the server's JAR file.
+For example, if you want to use the bundled Boogie and Z3 but use your own built server, you may use the following configuration (adapt the base path to the extension's actual installation directory).
 ```
+"gobraSettings.buildVersion": "External",
 "gobraDependencies.gobraToolsPaths": {
    "gobraToolsBasePath": {
-      "windows": "%APPDATA%\\Roaming\\Code\\User\\globalStorage\\viper-admin.gobra-ide\\Nightly\\GobraTools",
-      "linux": "$HOME/.config/Code/User/globalStorage/viper-admin.gobra-ide/Nightly/GobraTools",
-      "mac": "$HOME/Library/Application Support/Code/User/globalStorage/viper-admin.gobra-ide/Nightly/GobraTools"
+      "mac": "$HOME/.vscode/extensions/viper-admin.gobra-ide-<version>-<platform>/dependencies/GobraTools"
    },
    "serverJar": {
-      "windows": <path to JAR>,
-      "linux": <path to JAR>,
       "mac": <path to JAR>
    }
 }
 ```
+Note that the extension and the Gobra Server check at startup that they implement the same communication protocol version. When using `External` tools, make sure that the server's version matches the extension's.
 
 
 #### Debugging paths used by Gobra-IDE
@@ -109,7 +100,7 @@ Before launching the server, Gobra-IDE first locates your Java installation, tri
 Typical output (shortened) looks as follows, where `< ... >` is used to annotate or omit parts of the output.
 
 ```
-Ensuring dependencies for build channel Stable < indicates which build version Gobra-IDE is using >
+Locating the Gobra tools for build version BuiltIn < indicates which build version Gobra-IDE is using >
 Checking Java...
 Searching for Java home...
 Using Java home {
@@ -127,7 +118,7 @@ openjdk version "23.0.1" 2024-10-15
 
 └──── End stderr ──────┘
 Checking Z3...
-Gobra IDE: Running '/Users/arquintlinard/Library/Application Support/Code/User/globalStorage/viper-admin.gobra-ide/Stable/GobraTools/z3/bin/z3 --version'
+Gobra IDE: Running '<extension installation directory>/dependencies/GobraTools/z3/bin/z3 --version'
 ┌──── Begin stdout ────┐
 Z3 version 4.8.6 - 64 bit
 

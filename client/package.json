@@ -34,6 +34,7 @@
   ],
   "main": "./dist/extension.js",
   "devDependencies": {
+    "@types/adm-zip": "^0.5.8",
     "@types/mocha": "^10.0.10",
     "@types/node": "^26.1.2",
     "@types/tmp": "^0.2.6",
@@ -42,6 +43,7 @@
     "@viperproject/locate-java-home": "^1.1.17",
     "@vscode/test-electron": "^3.1.0",
     "@vscode/vsce": "^3.9.2",
+    "adm-zip": "^0.6.0",
     "glob": "^13.0.6",
     "mocha": "^11.7.6",
     "npm-run-all": "^4.1.5",
@@ -49,6 +51,7 @@
     "rimraf": "^6.0.1",
     "tmp": "^0.2.7",
     "ts-loader": "^9.6.2",
+    "tsx": "^4.22.4",
     "typescript": "^6.0.3",
     "vs-verification-toolbox": "git+https://github.com/viperproject/vs-verification-toolbox.git",
     "vscode-languageclient": "^10.1.0",
@@ -61,15 +64,16 @@
     "webpack-production": "webpack --config webpack.config.js --mode production",
     "webpack-development": "webpack --config webpack.config.js --mode development",
     "webpack-development-watch": "webpack --config webpack.config.js --mode development --watch",
+    "download-dependencies": "tsx ./download-dependencies.ts",
     "tsc": "tsc",
-    "clean": "rimraf dist",
-    "vscode:prepublish": "npm-run-all --sequential clean webpack-production",
-    "compile": "npm-run-all --sequential clean webpack-development",
-    "watch": "npm-run-all --sequential clean webpack-development-watch",
-    "test-compile": "npm-run-all --sequential clean tsc webpack-development",
-    "pretest": "npm run test-compile",
-    "test": "node ./dist/test/runTest.js",
-    "package": "vsce package"
+    "clean": "rimraf dist dependencies",
+    "compile": "npm-run-all --sequential clean webpack-development download-dependencies",
+    "watch": "npm-run-all --sequential clean download-dependencies webpack-development-watch",
+    "run-test": "node ./dist/test/runTest.js",
+    "pre-test": "npm-run-all --sequential clean tsc webpack-development \"download-dependencies -- {1}\"",
+    "test": "npm-run-all --sequential pre-test run-test --",
+    "vsce-package": "vsce package",
+    "package": "npm-run-all --sequential clean webpack-production \"download-dependencies -- {1}\" \"vsce-package -- {@}\" --"
   },
   "activationEvents": [
     "onLanguage:gobra",
@@ -132,11 +136,6 @@
         "category": "Gobra"
       },
       {
-        "command": "gobra.updateGobraTools",
-        "title": "Update Gobra Tools",
-        "category": "Gobra"
-      },
-      {
         "command": "gobra.showViperCodePreview",
         "title": "Show Viper code preview",
         "category": "Gobra"
@@ -171,11 +170,6 @@
         },
         {
           "command": "gobra.verifyFile",
-          "when": "resourceLangId == gobra || resourceLangId == go",
-          "group": "Gobra"
-        },
-        {
-          "command": "gobra.updateGobraTools",
           "when": "resourceLangId == gobra || resourceLangId == go",
           "group": "Gobra"
         },
@@ -302,12 +296,11 @@
           "scope": "window",
           "type": "string",
           "enum": [
-            "Stable",
-            "Nightly",
-            "Local"
+            "BuiltIn",
+            "External"
           ],
-          "default": "Stable",
-          "description": "Select the build version of the Gobra Tools. The paths specified at 'gobraDependencies.gobraToolsPaths' will be used for build version 'Local' and ignored otherwise."
+          "default": "BuiltIn",
+          "description": "Select the build version of the Gobra Tools. 'BuiltIn' uses the Gobra Tools that are bundled with the extension. The paths specified at 'gobraDependencies.gobraToolsPaths' will be used for build version 'External' and ignored otherwise."
         },
         "gobraSettings.timeout": {
           "scope": "window",
@@ -381,22 +374,7 @@
               "mac": "$gobraTools$/server/server.jar"
             }
           },
-          "description": "Paths to the dependencies. They are only considered when the build version is set to 'Local'."
-        },
-        "gobraDependencies.gobraToolsProvider": {
-          "type": "object",
-          "default": {
-            "stable": {
-              "windows": "github.com/viperproject/gobra-ide/releases/latest?asset-name=GobraToolsWin.zip",
-              "linux": "github.com/viperproject/gobra-ide/releases/latest?asset-name=GobraToolsLinux.zip",
-              "mac": "github.com/viperproject/gobra-ide/releases/latest?asset-name=GobraToolsMac.zip"
-            },
-            "nightly": {
-              "windows": "github.com/viperproject/gobra-ide/releases/latest?asset-name=GobraToolsWin.zip&include-prereleases",
-              "linux": "github.com/viperproject/gobra-ide/releases/latest?asset-name=GobraToolsLinux.zip&include-prereleases",
-              "mac": "github.com/viperproject/gobra-ide/releases/latest?asset-name=GobraToolsMac.zip&include-prereleases"
-            }
-          }
+          "description": "Paths to the dependencies. They are only considered when the build version is set to 'External'."
         },
         "gobraServer.trace.server": {
           "scope": "window",
