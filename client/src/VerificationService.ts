@@ -43,7 +43,6 @@ export class Verifier {
     Helper.registerCommand(ContributionCommands.verifyFile, Verifier.manualVerifyFile, context);
     Helper.registerCommand(ContributionCommands.verifyPackage, Verifier.manualVerifyPackage, context);
     Helper.registerCommand(ContributionCommands.verifyMember, Verifier.manualVerifyMember, context);
-    Helper.registerCommand(ContributionCommands.updateGobraTools, () => Verifier.updateGobraTools(context, true), context);
     Helper.registerCommand(ContributionCommands.showViperCodePreview, Verifier.showViperCodePreview, context);
     Helper.registerCommand(ContributionCommands.showInternalCodePreview, Verifier.showInternalCodePreview, context);
     Helper.registerCommand(ContributionCommands.showJavaPath, () => Verifier.showJavaPath(), context);
