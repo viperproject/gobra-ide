@@ -8,13 +8,17 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { Location } from 'vs-verification-toolbox';
-import { BuildChannel, Helper } from './Helper.js';
+import { BuildChannel, Helper, Texts } from './Helper.js';
+
+/** build versions that existed before the Gobra tools were bundled with the extension */
+const legacyBuildVersions = ['Stable', 'Nightly', 'Local'];
 
 /**
   * Locates the Gobra tools for the configured build version. For `BuiltIn`, these are the tools
   * bundled with the extension; for `External`, the configured `gobraToolsBasePath` is used.
   */
 export async function locateGobraTools(context: vscode.ExtensionContext): Promise<Location> {
+  warnAboutLegacyBuildVersion();
   const selectedChannel = Helper.getBuildChannel();
   Helper.log(`Locating the Gobra tools for build version ${selectedChannel}`);
   let basePath: string;
@@ -36,6 +40,25 @@ export async function locateGobraTools(context: vscode.ExtensionContext): Promis
   const location = new Location(basePath);
   setPermissions(location);
   return location;
+}
+
+/**
+  * Warns users that still have one of the build versions configured that existed before the Gobra
+  * tools were bundled with the extension. Note that `Helper.getBuildChannel()` treats these legacy
+  * values as `BuiltIn`.
+  */
+function warnAboutLegacyBuildVersion(): void {
+  const configuredBuildVersion = vscode.workspace.getConfiguration('gobraSettings').get<string>('buildVersion');
+  if (configuredBuildVersion != null && legacyBuildVersions.includes(configuredBuildVersion)) {
+    Helper.log(`The configured build version '${configuredBuildVersion}' no longer exists -- 'BuiltIn' is used instead`);
+    // deliberately do not await the popup as it only resolves upon dismissal:
+    vscode.window.showWarningMessage(Texts.legacyBuildVersion(configuredBuildVersion), Texts.openSettings)
+      .then(async choice => {
+        if (choice === Texts.openSettings) {
+          await vscode.commands.executeCommand('workbench.action.openSettings', 'gobraSettings.buildVersion');
+        }
+      });
+  }
 }
 
 /**
