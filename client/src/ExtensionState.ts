@@ -25,8 +25,9 @@ export class State {
   public static viperPreviewProvider: CodePreviewProvider;
   public static internalPreviewProvider: CodePreviewProvider;
 
-  /** currently running verifications which are identified by the list of fileUris that are stringified*/
-  private static runningVerifications: Set<string>;
+  /** currently running verifications, mapping the stringified list of fileUris to the token
+    * source with which the corresponding `gobraServer/verify` request can be cancelled */
+  private static runningVerifications: Map<string, vscode.CancellationTokenSource>;
   // tracks the verification requests which were made when a verification was already running.
   private static verificationRequests: Map<string, IdeEvents>;
 
@@ -36,13 +37,18 @@ export class State {
   public static verifierConfig: VerifierConfig;
 
   public static isFileInvolvedInRunningVerification(fileUri: URI): Boolean {
-    for(let runningVerification of State.runningVerifications) {
-      const decodedFileUris = JSON.parse(runningVerification) as string[];
+    return State.getRunningVerificationInvolving(fileUri) != null;
+  }
+
+  /** returns the running verification involving `fileUri`, if any */
+  public static getRunningVerificationInvolving(fileUri: URI): { fileUris: URI[], tokenSource: vscode.CancellationTokenSource } | undefined {
+    for (const [encodedFileUris, tokenSource] of State.runningVerifications) {
+      const decodedFileUris = JSON.parse(encodedFileUris) as string[];
       if (decodedFileUris.some(f => f == fileUri.toString())) {
-        return true;
+        return { fileUris: decodedFileUris.map(uri => URI.parse(uri)), tokenSource };
       }
     }
-    return false;
+    return undefined;
   }
 
   private static encodeUris(fileUris: URI[]): string {
@@ -81,14 +87,16 @@ export class State {
     set.delete(State.encodeUri(fileUri));
   }
 
-  public static addRunningVerification(fileUris: URI[]) {
-    State.addUris(State.runningVerifications, fileUris);
+  public static addRunningVerification(fileUris: URI[], tokenSource: vscode.CancellationTokenSource) {
+    State.runningVerifications.set(State.encodeUris(fileUris), tokenSource);
   }
   public static containsRunningVerification(fileUris: URI[]): Boolean {
-    return State.containsUris(State.runningVerifications, fileUris);
+    return State.runningVerifications.has(State.encodeUris(fileUris));
   }
   public static removeRunningVerification(fileUris: URI[]) {
-    State.removeUris(State.runningVerifications, fileUris);
+    const encodedFileUris = State.encodeUris(fileUris);
+    State.runningVerifications.get(encodedFileUris)?.dispose();
+    State.runningVerifications.delete(encodedFileUris);
   }
 
   public static addRunningGoifications(fileUri: URI) {
@@ -139,7 +147,7 @@ export class State {
   // creates the language client and starts the server
   public static async startLanguageServer(context: vscode.ExtensionContext, fileSystemWatcher: vscode.FileSystemWatcher, location: Location): Promise<void> {
 
-    this.runningVerifications = new Set<string>();
+    this.runningVerifications = new Map<string, vscode.CancellationTokenSource>();
     this.verificationRequests = new Map<string, IdeEvents>();
 
     this.runningGoifications = new Set<string>();

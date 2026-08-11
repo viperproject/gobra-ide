@@ -10,6 +10,10 @@ import com.google.gson.Gson
 import viper.gobra.Gobra
 import viper.gobra.GobraFrontend
 import viper.gobra.reporting.{NotFoundError, VerifierError, VerifierResult}
+import org.eclipse.lsp4j.jsonrpc.ResponseErrorException
+import org.eclipse.lsp4j.jsonrpc.messages.{ResponseError, ResponseErrorCode}
+
+import java.util.concurrent.CancellationException
 import viper.gobra.util.{GobraExecutionContext, Violation}
 import viper.gobra.reporting.BackTranslator.BackTrackInfo
 import viper.silver.ast.Program
@@ -76,22 +80,41 @@ object GobraServer extends GobraFrontend {
     * that verification is done, which is especially useful if additional work is necessary after this future's
     * completion.
     */
-  private def serverExceptionHandling(verifierConfig: VerifierConfig, reporter: VerificationFinishNotifier, ast: Option[Program], resultFuture: Future[VerifierResult], ignoreVerificationSuccess: Boolean = false)(implicit executor: GobraExecutionContext): Future[VerifierResult] = {
+  private def serverExceptionHandling(verifierConfig: VerifierConfig, reporter: VerificationFinishNotifier, ast: Option[Program], job: VerificationJob, resultFuture: Future[VerifierResult], ignoreVerificationSuccess: Boolean = false)(implicit executor: GobraExecutionContext): Future[VerifierResult] = {
     val fileUris = verifierConfig.fileData.map(_.fileUri)
     val isolate = verifierConfig.isolate
 
     // do some post processing if verification has failed
     resultFuture.transformWith {
+      case Success(VerifierResult.Aborted) =>
+        // the verification has been aborted (Gobra reports this as a regular result). All
+        // bookkeeping has already happened when the verification was stopped -- just make sure
+        // that the request's response is settled:
+        _server.globalLogger.info(s"GobraServer: the verification of $fileUris has been aborted")
+        job.failWith(new CancellationException("the verification has been stopped"))
+        Future.successful(VerifierResult.Aborted)
       case Success(res) =>
         _server.globalLogger.info(s"GobraServer: Gobra handled request successfully: $res")
         if (!ignoreVerificationSuccess || res != VerifierResult.Success) {
           reporter.notifyOverallVerificationFinished(res, ast)
         }
         Future.successful(res)
+      case Failure(exception) if job.isAborted =>
+        // expected fallout of stopping the verification (e.g. the backend's job was interrupted).
+        // Neither restart the server nor bother the client:
+        _server.globalLogger.info(s"GobraServer: ignoring failure of the stopped verification of $fileUris: $exception")
+        job.failWith(new CancellationException("the verification has been stopped"))
+        Future.failed(exception)
       case Failure(exception) =>
         // restart Gobra Server and then update client state
         // ignore result of restart and inform the client:
+        val finishedNow = job.tryFinish() // false if the reporter has already reported a result
         restart().transformWith(_ => {
+          if (finishedNow) {
+            // note that `verificationRunning` was previously never decremented on this path:
+            VerifierState.verificationRunning = math.max(0, VerifierState.verificationRunning - 1)
+            VerifierState.changes = VerifierState.changes.filter(change => !fileUris.contains(change._1))
+          }
           exception match {
             case e: Violation.LogicException =>
               fileUris.foreach(VerifierState.removeDiagnostics)
@@ -100,6 +123,7 @@ object GobraServer extends GobraFrontend {
               VerifierState.updateVerificationInformation(fileUris.toVector, Right(overallResult))
 
               fileUris.foreach(fileUri => VerifierState.publishDiagnostics(fileUri, Some(_server.globalLogger)))
+              job.completeWith(overallResult)
 
             case e =>
               println("Exception occurred:")
@@ -110,13 +134,9 @@ object GobraServer extends GobraFrontend {
               // verification is running
               VerifierState.removeVerificationInformation(fileUris.toVector)
 
-              VerifierState.client match {
-                case Some(c) =>
-                  c.showMessage(new MessageParams(MessageType.Error, "An exception occurred during execution of Gobra: " + e))
-                  val encodedFileUris = gson.toJson(fileUris)
-                  c.verificationException(encodedFileUris)
-                case None =>
-              }
+              // the client displays the request's error response to the user:
+              job.failWith(new ResponseErrorException(new ResponseError(ResponseErrorCode.InternalError,
+                s"An exception occurred during execution of Gobra: $e", null)))
           }
           // forward original result
           Future.failed(exception)
@@ -125,23 +145,53 @@ object GobraServer extends GobraFrontend {
   }
 
   /**
+    * Stops the given verification: performs the client-state bookkeeping exactly once and cancels
+    * the Gobra verification, which aborts Gobra's compilation stages at the next stage boundary
+    * and interrupts a running backend verification. Stopping an already finished verification is
+    * a no-op.
+    */
+  def stopVerification(job: VerificationJob): Unit = {
+    if (job.tryAbort()) {
+      _server.globalLogger.info(s"GobraServer: stopping the verification of ${job.fileUris.mkString(", ")}")
+      VerifierState.verificationRunning = math.max(0, VerifierState.verificationRunning - 1)
+      VerifierState.changes = VerifierState.changes.filter(change => !job.fileUris.contains(change._1))
+      VerifierState.removeVerificationInformation(job.fileUris)
+      // note that `handle` is guaranteed to be cancelled even if it is only created after this
+      // point: `preprocess` cancels a freshly created handle of an already aborted job:
+      job.handle.foreach(_.cancel())
+      job.failWith(new CancellationException("the verification has been stopped"))
+    }
+  }
+
+  /**
     * Preprocess file and enqueue the Viper AST whenever it is created.
     */
-  def preprocess(verifierConfig: VerifierConfig)(implicit executor: GobraExecutionContext): Future[VerifierResult] = {
+  def preprocess(verifierConfig: VerifierConfig)(implicit executor: GobraExecutionContext): VerificationJob = {
     val fileUris = verifierConfig.fileData.map(_.fileUri)
+    val job = new VerificationJob(fileUris.toVector)
 
     VerifierState.verificationRunning += 1
     fileUris.foreach(VerifierState.removeDiagnostics)
 
     val startTime = System.currentTimeMillis()
 
-    val reporter = Helper.getReporter(verifierConfig, _server, startTime = startTime, stopAfterEncoding = !VerificationInOneStep)(executor)
+    val reporter = Helper.getReporter(verifierConfig, _server, startTime = startTime, stopAfterEncoding = !VerificationInOneStep, job = job)(executor)
     val fileModeConfig = Helper.getFileModeConfig(verifierConfig, _server, reporter, stopAfterEncoding = !VerificationInOneStep)
     val fut = fileModeConfig.config match {
-      case Right(config) => verify(config)
+      case Right(config) if config.packageInfoInputMap.keys.size == 1 =>
+        val pkgInfo = config.packageInfoInputMap.keys.head
+        val handle = verifier.verifyCancellable(pkgInfo, config)(executor)
+        job.handle = Some(handle)
+        // the verification might have been stopped before the handle was created -- cancel right away:
+        if (job.isAborted) {
+          handle.cancel()
+        }
+        handle.result
+      case Right(_) => successful(VerifierResult.Failure(Vector(NotFoundError("no or too many packages specified."))))
       case Left(errs) => successful(VerifierResult.Failure(errs))
     }
-    serverExceptionHandling(verifierConfig, reporter, None, fut, ignoreVerificationSuccess = !VerificationInOneStep)
+    serverExceptionHandling(verifierConfig, reporter, None, job, fut, ignoreVerificationSuccess = !VerificationInOneStep)
+    job
   }
 
   /**
@@ -163,7 +213,9 @@ object GobraServer extends GobraFrontend {
     */
   def verifyAst(verifierConfig: VerifierConfig, ast: Program, backtrack: BackTrackInfo, startTime: Long, completedProgress: Int)(implicit executor: GobraExecutionContext): Future[VerifierResult] = {
     require(!VerificationInOneStep)
-    val reporter = Helper.getReporter(verifierConfig, _server, startTime = startTime, stopAfterEncoding = false, completedProgress = completedProgress, ast = Some(ast))(executor)
+    // note that this two-step verification path does not support stopping -- the job only serves the bookkeeping:
+    val job = new VerificationJob(verifierConfig.fileData.map(_.fileUri).toVector)
+    val reporter = Helper.getReporter(verifierConfig, _server, startTime = startTime, stopAfterEncoding = false, job = job, completedProgress = completedProgress, ast = Some(ast))(executor)
     val fileModeConfig = Helper.getFileModeConfig(verifierConfig, _server, reporter, stopAfterEncoding = false)
     val fut = fileModeConfig.config match {
       case Right(config) =>
@@ -175,7 +227,7 @@ object GobraServer extends GobraFrontend {
         }
       case Left(errs) => successful(VerifierResult.Failure(errs))
     }
-    serverExceptionHandling(verifierConfig, reporter, Some(ast), fut)
+    serverExceptionHandling(verifierConfig, reporter, Some(ast), job, fut)
   }
 
   /**

@@ -149,6 +149,11 @@
         "command": "gobra.showJavaPath",
         "title": "Show path to Java binary",
         "category": "Gobra"
+      },
+      {
+        "command": "gobra.stopVerification",
+        "title": "Stop the running verification",
+        "category": "Gobra"
       }
     ],
     "menus": {
@@ -170,6 +175,11 @@
         },
         {
           "command": "gobra.verifyFile",
+          "when": "resourceLangId == gobra || resourceLangId == go",
+          "group": "Gobra"
+        },
+        {
+          "command": "gobra.stopVerification",
           "when": "resourceLangId == gobra || resourceLangId == go",
           "group": "Gobra"
         },
@@ -218,6 +228,12 @@
         "command": "gobra.verifyFile",
         "key": "f5",
         "mac": "f5",
+        "when": "resourceLangId == gobra || resourceLangId == go"
+      },
+      {
+        "command": "gobra.stopVerification",
+        "key": "shift+f5",
+        "mac": "shift+f5",
         "when": "resourceLangId == gobra || resourceLangId == go"
       }
     ],

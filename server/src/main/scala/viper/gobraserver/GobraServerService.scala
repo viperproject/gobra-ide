@@ -7,13 +7,14 @@
 package viper.gobraserver
 
 import com.google.gson.JsonObject
-import java.util.concurrent.CompletableFuture
+import java.util.concurrent.{CancellationException, CompletableFuture}
 import org.eclipse.lsp4j.jsonrpc.ResponseErrorException
 import org.eclipse.lsp4j.jsonrpc.messages.{ResponseError, ResponseErrorCode}
 import org.eclipse.lsp4j.jsonrpc.services.{JsonNotification, JsonRequest}
 import org.eclipse.lsp4j.{DidChangeTextDocumentParams, DidChangeWatchedFilesParams, DidCloseTextDocumentParams, DidOpenTextDocumentParams, DidSaveTextDocumentParams, InitializeParams, InitializeResult, MessageParams, MessageType, Range, ServerCapabilities, ServerInfo, TextDocumentSyncKind}
 
 import scala.jdk.CollectionConverters._
+import scala.util.{Failure, Success}
 import scala.annotation.unused
 import scala.util.Try
 
@@ -109,11 +110,25 @@ class GobraServerService(config: ServerConfig)(implicit executor: GobraServerExe
   @JsonNotification("workspace/didChangeWatchedFiles")
   def didChangeWatchedFiles(@unused params: DidChangeWatchedFilesParams): Unit = {}
 
-  @JsonNotification("gobraServer/verify")
-  def verify(config: VerifierConfig): Unit = {
+  @JsonRequest(value = "gobraServer/verify")
+  def verify(config: VerifierConfig): CompletableFuture[String] = {
     val fileUris = config.fileData.map(_.fileUri).toVector
     VerifierState.updateVerificationInformation(fileUris, Left(0))
-    GobraServer.preprocess(config)
+    val job = GobraServer.preprocess(config)(executor)
+
+    // settle the LSP response as soon as the verification produces an overall result:
+    val response = new CompletableFuture[String]()
+    job.resultFuture.onComplete {
+      case Success(json) => response.complete(json)
+      case Failure(e) => response.completeExceptionally(e)
+    }(executor)
+    // lsp4j cancels `response` when the client sends `$/cancelRequest` for this request and
+    // replies with `RequestCancelled`. Observing this cancellation stops the verification:
+    response.whenComplete((_: String, err: Throwable) => err match {
+      case _: CancellationException => GobraServer.stopVerification(job)
+      case _ => // the request completed regularly -- nothing to do
+    })
+    response
   }
 
   @JsonNotification("gobraServer/goifyFile")

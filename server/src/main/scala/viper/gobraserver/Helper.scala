@@ -50,11 +50,12 @@ object Helper {
     }
   }
 
-  def getReporter(config: VerifierConfig, server: ViperCoreServer, startTime: Long, stopAfterEncoding: Boolean, completedProgress: Int = 0, ast: Option[vpr.Program] = None)(executor: GobraExecutionContext): GobraReporter with VerificationFinishNotifier = {
+  def getReporter(config: VerifierConfig, server: ViperCoreServer, startTime: Long, stopAfterEncoding: Boolean, job: VerificationJob, completedProgress: Int = 0, ast: Option[vpr.Program] = None)(executor: GobraExecutionContext): GobraReporter with VerificationFinishNotifier = {
     // ensure consistent ordering such that e.g. caching works as expected:
     val sortedFileData = config.fileData.sortBy(_.fileUri).toVector
     GobraIdeReporter(
       startTime = startTime,
+      job = job,
       verifierConfig = config,
       fileData = sortedFileData,
       verificationFraction = defaultVerificationFraction,
