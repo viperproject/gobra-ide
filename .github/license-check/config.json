@@ -64,6 +64,8 @@
             "server/project/target/**",
             "server/target/**",
             "**/vscode-version",
+            "**/z3-version",
+            "**/boogie-version",
             "**/*.json",
             "**/README.md",
             "**/LICENSE"
