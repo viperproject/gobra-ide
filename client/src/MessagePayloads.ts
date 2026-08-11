@@ -108,6 +108,15 @@ export interface PlatformDependendPath {
   mac?: string;
 }
 
+export interface VersionInfo {
+  serverVersion: string;
+  serverCommit: string;
+  serverBranch: string;
+  gobraVersion: string;
+  gobraCommit: string;
+  gobraBranch: string;
+}
+
 export class OverallVerificationResult {
   fileUris: string[];
   success: boolean;

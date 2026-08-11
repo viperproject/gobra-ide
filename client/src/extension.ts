@@ -11,7 +11,7 @@ import * as fs from 'fs';
 import { State } from './ExtensionState';
 import { Verifier } from './VerificationService';
 import { FileData, VerifierConfig } from './MessagePayloads';
-import { Helper } from './Helper';
+import { ContributionCommands, Helper } from './Helper';
 import * as Notifier from './Notifier';
 import { Location } from 'vs-verification-toolbox';
 
@@ -67,6 +67,12 @@ export function activate(context: vscode.ExtensionContext): Thenable<any> {
 			Helper.log(`cleanInstall has been requested but gobra tools do not exist yet --> NOP`);
 		}
 	}
+
+	// register the command to update the Gobra tools before starting the server such that the
+	// command is available even if starting the server fails, e.g., because the installed Gobra
+	// tools are incompatible with this extension. Otherwise, users would have no way to recover
+	// by updating the Gobra tools from within the IDE:
+	Helper.registerCommand(ContributionCommands.updateGobraTools, () => Verifier.updateGobraTools(context, true), context);
 
 	// install gobra tools
 	return Verifier.updateGobraTools(context, false)

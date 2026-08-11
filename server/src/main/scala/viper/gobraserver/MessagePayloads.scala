@@ -62,6 +62,15 @@ case class PreviewData (
   selections: Array[Array[Position]]
 )
 
+case class VersionInfo (
+  serverVersion: String,
+  serverCommit: String,
+  serverBranch: String,
+  gobraVersion: String,
+  gobraCommit: String,
+  gobraBranch: String
+)
+
 case class HighlightingPosition(
   startIndex: Int,
   length: Int
