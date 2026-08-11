@@ -32,7 +32,7 @@ const FAILING_POST_GO = "failing_post.go";
 const DECREASES = "decreases.gobra";
 const PKG_FILE_1 = "pkg/file1.gobra";
 
-const GOBRA_TOOL_UPDATE_TIMEOUT_MS = 4 * 60 * 1000; // 4min
+const EXTENSION_STARTUP_TIMEOUT_MS = 4 * 60 * 1000; // 4min
 const GOBRA_VERIFICATION_TIMEOUT_MS = 1 * 60 * 1000; // 1min
 
 function log(msg: string) {
@@ -138,8 +138,8 @@ async function openAndVerifyPackage(fileName: string, multipleFilesInPackageExpe
 suite("Extension", () => {
 
     suiteSetup(async function() {
-        // set timeout to a large value such that extension can be started and Gobra tools installed:
-        this.timeout(GOBRA_TOOL_UPDATE_TIMEOUT_MS);
+        // set timeout to a large value such that the extension (including the Gobra server) can be started:
+        this.timeout(EXTENSION_STARTUP_TIMEOUT_MS);
         // Dynamically import from the webpack bundle (async, doesn't block the event loop)
         const ext = await import('../extension.js');
         State = ext.State;

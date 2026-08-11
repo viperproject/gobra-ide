@@ -91,15 +91,9 @@ export interface PathSettings {
   serverJar: PlatformDependendPath;
 }
 
-export interface ProviderSettings {
-  stable: PlatformDependendPath;
-  nightly: PlatformDependendPath;
-}
-
 export interface GobraDependencies {
   java: JavaSettings;
   gobraToolsPaths: PathSettings;
-  gobraToolsProvider: ProviderSettings;
 }
 
 export interface PlatformDependendPath {

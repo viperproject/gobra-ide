@@ -83,6 +83,12 @@ async function main() {
 			const workspace_settings_path = path.join(workspace_vscode_path, "settings.json");
 			fs.mkdirSync(workspace_vscode_path);
 			fs.copyFileSync(settings_path, workspace_settings_path);
+			// substitute the placeholder for the bundled Gobra tools (assembled by
+			// `download-dependencies.ts` as part of `pre-test`). This allows testing that the
+			// bundled Gobra tools also work when configured as build version 'External':
+			const builtinGobraToolsPath = path.join(PROJECT_ROOT, "dependencies", "GobraTools");
+			const settingsContent = fs.readFileSync(workspace_settings_path).toString();
+			fs.writeFileSync(workspace_settings_path, settingsContent.replaceAll("$builtinGobraTools$", builtinGobraToolsPath.replaceAll("\\", "\\\\")));
 
 			// get environment variables
 			const env: NodeJS.ProcessEnv = process.env;
