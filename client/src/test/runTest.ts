@@ -63,85 +63,50 @@ async function main() {
 	for (const settings_path of settings_paths) {
 		const settings_file = path.basename(settings_path);
 		console.info(`Testing settings ${settings_file}`);
-		const additionalSettings: Map<string, string>[] = [new Map()];
-		
-		for (const addSettings of additionalSettings) {
-			if (!firstIteration) {
-				// workaround for a weird "exit code 55" error that happens on
-				// macOS when starting a new vscode instance immediately after
-				// closing an old one. (by fpoli)
-				await new Promise(resolve => setTimeout(resolve, 5000));
-			}
-			firstIteration = false;
+		if (!firstIteration) {
+			// workaround for a weird "exit code 55" error that happens on
+			// macOS when starting a new vscode instance immediately after
+			// closing an old one. (by fpoli)
+			await new Promise(resolve => setTimeout(resolve, 5000));
+		}
+		firstIteration = false;
 
-			if (addSettings.size === 0) {
-				console.info(`Testing with settings '${settings_file}' and no additional settings`);
-			} else {
-				console.info(`Testing with settings '${settings_file}' and additional settings ${mapToString(addSettings)}...`);
-			}
+		const tmpWorkspace = tmp.dirSync({ unsafeCleanup: true });
+		// use a temporary directory for VSCode's user data as VSCode creates a unix domain
+		// socket in there, whose path is limited to 103 characters (at least on macOS). The
+		// default location within the repository can exceed this limit (e.g. for git worktrees
+		// in deeply nested folders):
+		const tmpUserDataDir = tmp.dirSync({ unsafeCleanup: true });
+		try {
+			// Prepare the workspace with the settings
+			const workspace_vscode_path = path.join(tmpWorkspace.name, ".vscode");
+			const workspace_settings_path = path.join(workspace_vscode_path, "settings.json");
+			fs.mkdirSync(workspace_vscode_path);
+			fs.copyFileSync(settings_path, workspace_settings_path);
 
-			const tmpWorkspace = tmp.dirSync({ unsafeCleanup: true });
-			// use a temporary directory for VSCode's user data as VSCode creates a unix domain
-			// socket in there, whose path is limited to 103 characters (at least on macOS). The
-			// default location within the repository can exceed this limit (e.g. for git worktrees
-			// in deeply nested folders):
-			const tmpUserDataDir = tmp.dirSync({ unsafeCleanup: true });
+			// get environment variables
+			const env: NodeJS.ProcessEnv = process.env;
+
+			// Run the tests in the workspace
+			await runTests({
+				version: vscode_version,
+				extensionDevelopmentPath,
+				extensionTestsPath,
+				// note that passing environment variables seems to only work when invoking the tests via CLI
+				extensionTestsEnv: env,
+				// Disable any other extension
+				launchArgs: ["--disable-extensions", `--user-data-dir=${tmpUserDataDir.name}`, tmpWorkspace.name],
+			});
+		} finally {
 			try {
-				// Prepare the workspace with the settings
-				const workspace_vscode_path = path.join(tmpWorkspace.name, ".vscode");
-				const workspace_settings_path = path.join(workspace_vscode_path, "settings.json");
-				fs.mkdirSync(workspace_vscode_path);
-				fs.copyFileSync(settings_path, workspace_settings_path);
-				// modify settings file:
-				addOptionsToSettingsFile(workspace_settings_path, addSettings);
-
-				// get environment variables
-				const env: NodeJS.ProcessEnv = process.env;
-				
-				// Run the tests in the workspace
-				await runTests({
-					version: vscode_version,
-					extensionDevelopmentPath,
-					extensionTestsPath,
-					// note that passing environment variables seems to only work when invoking the tests via CLI
-					extensionTestsEnv: env,
-					// Disable any other extension
-					launchArgs: ["--disable-extensions", `--user-data-dir=${tmpUserDataDir.name}`, tmpWorkspace.name],
-				});
-			} finally {
-				try {
-					tmpWorkspace.removeCallback();
-					tmpUserDataDir.removeCallback();
-				} catch (e) {
-					console.warn(`cleaning temporary directory has failed with error ${e}`);
-				}
+				tmpWorkspace.removeCallback();
+				tmpUserDataDir.removeCallback();
+			} catch (e) {
+				console.warn(`cleaning temporary directory has failed with error ${e}`);
 			}
 		}
 	}
 }
-
-function addOptionsToSettingsFile(filepath: string, additionalOptions: Map<string, string>) {
-	if (additionalOptions.size == 0) {
-		return;	
-	}
-
-	const fileContent = fs.readFileSync(filepath).toString();
-	try {
-		const json = JSON.parse(fileContent);
-		additionalOptions.forEach((value, key) => json[key] = value);
-		const newContent = JSON.stringify(json);
-		fs.writeFileSync(filepath, newContent);
-	} catch(e) {
-		console.error(`parsing settings ${filepath} has failed`, e);
-	}
-}
-
-function mapToString<K, V>(map: Map<K, V>) {
-	const entries = map.entries();
-	return Array
-	  .from(entries, ([k, v]) => `\n  ${k}: ${v}`)
-	  .join("") + "\n";
-  }
 
 main().catch((err) => {
 	console.error(`main function has ended with an error: ${err}`);
