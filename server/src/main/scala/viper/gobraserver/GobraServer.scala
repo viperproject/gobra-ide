@@ -254,6 +254,13 @@ object GobraServer extends GobraFrontend {
 
 
   def stop(): Future[Unit] = {
+    // the server might have never been initialized, e.g., because it rejected the initialize
+    // request of an incompatible client. In this case, there is nothing to stop. Note that this
+    // case is not just hypothetical: incompatible clients stop the server, e.g., when updating
+    // the Gobra tools, and responding with an error would abort such an update:
+    if (_server == null) {
+      return Future.successful(())
+    }
     _server.stop().map(_ => ())(_executor)
   }
 
