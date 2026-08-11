@@ -66,6 +66,8 @@ jobs:
           echo "Silicon: commit $(git -C gobra-ide/server/gobra/viperserver/silicon rev-parse HEAD)" >> versions.txt
           echo "Carbon: commit $(git -C gobra-ide/server/gobra/viperserver/carbon rev-parse HEAD)" >> versions.txt
           echo "Silver: commit ${{ env.SILICON_SILVER_REF }}" >> versions.txt
+          echo "Z3: version $(cat gobra-ide/client/z3-version)" >> versions.txt
+          echo "Boogie: release $(cat gobra-ide/client/boogie-version)" >> versions.txt
         # first line overwrites versions.txt in case it already exists, all other append to the file
       - name: Upload version file
         uses: actions/upload-artifact@v7
@@ -106,62 +108,6 @@ jobs:
         working-directory: gobra-ide/server
 
 
-  create-gobra-tools:
-    name: create-gobra-tools - ${{ matrix.gobra-tools-platform }}
-    needs: build-and-test-server
-    strategy:
-      # tests should not be stopped when they fail on one of the OSes:
-      fail-fast: false
-      matrix:
-        viper-tools-platform: ["ViperToolsWin", "ViperToolsLinux", "ViperToolsMac"]
-        include:
-          - viper-tools-platform: "ViperToolsWin"
-            gobra-tools-platform: "GobraToolsWin"
-          - viper-tools-platform: "ViperToolsLinux"
-            gobra-tools-platform: "GobraToolsLinux"
-          - viper-tools-platform: "ViperToolsMac"
-            gobra-tools-platform: "GobraToolsMac"
-    runs-on: ubuntu-latest
-    steps:
-      - name: Install prerequisites
-        run: sudo apt-get install zip unzip
-
-      - name: Download Gobra server artifact
-        uses: actions/download-artifact@v8
-        with:
-          name: server.jar
-
-      - name: Download Viper Tools
-        run: wget --no-verbose https://viper.ethz.ch/downloads/${{ matrix.viper-tools-platform }}.zip --output-document=${{ matrix.viper-tools-platform }}.zip
-      - name: Unzip Viper Tools
-        run: unzip ${{ matrix.viper-tools-platform }}.zip -d ${{ matrix.viper-tools-platform }}
-
-      - name: Create a Gobra Tools folder
-        run: mkdir -p ${{ matrix.gobra-tools-platform }}
-
-      - name: Copy boogie from ViperTools to Gobra Tools
-        run: cp -R ${{ matrix.viper-tools-platform }}/boogie ${{ matrix.gobra-tools-platform }}/boogie/
-
-      - name: Copy z3 from ViperTools to Gobra Tools
-        run: cp -R ${{ matrix.viper-tools-platform }}/z3 ${{ matrix.gobra-tools-platform }}/z3/
-
-      - name: Copy Gobra server artifact to Gobra Tools
-        run: mkdir -p ${{ matrix.gobra-tools-platform }}/server && cp server.jar ${{ matrix.gobra-tools-platform }}/server/server.jar
-
-      - name: Create folder to store Gobra Tools platform zip files
-        run: mkdir deploy
-        # note that we change into the tool folder to zip it. This avoids including the parent folder in the zip
-      - name: Zip Gobra Tools
-        run: zip -r ../deploy/${{ matrix.gobra-tools-platform }}.zip ./*
-        working-directory: ${{ matrix.gobra-tools-platform }}
-
-      - name: Upload Gobra Tools
-        uses: actions/upload-artifact@v7
-        with:
-          name: ${{ matrix.gobra-tools-platform }}.zip
-          path: deploy/${{ matrix.gobra-tools-platform }}.zip
-
-
   prepare-matrix:
     runs-on: ubuntu-latest
     steps:
@@ -182,20 +128,28 @@ jobs:
 
 
   build-and-test-client:
-    name: build-and-test-client - ${{ matrix.os }}, ${{ matrix.config-file }}
-    needs: [prepare-matrix, create-gobra-tools]
+    name: build-and-test-client - ${{ matrix.target }}, ${{ matrix.config-file }}
+    needs: [prepare-matrix, build-and-test-server]
     strategy:
       # tests should not be stopped when they fail on one of the OSes:
       fail-fast: false
       matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
+        target: ["darwin-x64", "darwin-arm64", "linux-x64", "win32-x64"]
         config-file: ${{ fromJson(needs.prepare-matrix.outputs.matrix).config-file }}
         include:
-          - os: macos-latest
+          - target: "darwin-x64"
+            # GitHub's latest macOS runners are ARM-based, i.e., we cannot test the darwin-x64
+            # extension anyway and use Ubuntu for building it:
+            os: ubuntu-latest
             gobra-tools-zip-file: "GobraToolsMac.zip"
-          - os: ubuntu-latest
+          - target: "darwin-arm64"
+            os: macos-latest
+            gobra-tools-zip-file: "GobraToolsMacARM.zip"
+          - target: "linux-x64"
+            os: ubuntu-latest
             gobra-tools-zip-file: "GobraToolsLinux.zip"
-          - os: windows-latest
+          - target: "win32-x64"
+            os: windows-latest
             gobra-tools-zip-file: "GobraToolsWin.zip"
     runs-on: ${{ matrix.os }}
     steps:
@@ -205,17 +159,12 @@ jobs:
           path: gobra-ide
           # we do not need any submodules here as we only test the client
 
-      - name: Download Gobra tools
+      # the Gobra server is placed at the location at which `download-dependencies.ts` expects it:
+      - name: Download Gobra server artifact
         uses: actions/download-artifact@v8
-        id: tools-download
         with:
-          name: ${{matrix.gobra-tools-zip-file}}
-          path: local
-          # note that download-path is the parent folder, i.e. `local` and not the download zip file
-
-      - name: Unzip Gobra tools
-        run: 7z x ${{matrix.gobra-tools-zip-file}} -oGobraTools
-        working-directory: local
+          name: server.jar
+          path: gobra-ide/server/target/scala-2.13
 
       - name: Install Node.js
         uses: actions/setup-node@v7
@@ -247,53 +196,72 @@ jobs:
       - run: npm ci --cache .npm --prefer-offline
         working-directory: gobra-ide/client
 
+      # note that the extension for darwin-x64 cannot be tested since it is built on an Ubuntu runner (see above):
+
       - name: Run tests (headless - non-ubuntu)
         if: "!startsWith(matrix.os, 'ubuntu')"
-        run: npm test --full-trace -- --gobraTools "${{steps.tools-download.outputs.download-path}}/GobraTools" --configFile "${{matrix.config-file}}"
+        run: npm run test --full-trace -- --target=${{ matrix.target }} --configFile "${{ matrix.config-file }}"
         working-directory: gobra-ide/client
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run tests (headless - ubuntu only)
-        if: startsWith(matrix.os, 'ubuntu')
-        run: xvfb-run -a npm test --full-trace -- --gobraTools "${{steps.tools-download.outputs.download-path}}/GobraTools" --configFile "${{matrix.config-file}}"
+        if: startsWith(matrix.os, 'ubuntu') && matrix.target != 'darwin-x64'
+        run: xvfb-run -a npm run test --full-trace -- --target=${{ matrix.target }} --configFile "${{ matrix.config-file }}"
         working-directory: gobra-ide/client
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # make sure that the following actions (in particular the artifact upload) are only executed for a single matrix configuration
+      # make sure that the following actions (in particular the artifact uploads) are only executed once per target
 
-      - name: Clean 'dist' folder (only once)
-        if: startsWith(matrix.os, 'ubuntu') && endsWith(matrix.config-file, 'local.json')
-        run: npm run clean
-        working-directory: gobra-ide/client
-
-      # `npm run package` resp. `@vscode/vsce` complains that it cannot find 
+      # `npm run package` resp. `@vscode/vsce` complains that it cannot find
       # locate-java-home and vs-verification-toolbox dependencies (the two non-npm dependencies).
       # this seems related to https://github.com/npm/cli/issues/791
       # the current workaround is to `run npm install` first:
-      - name: Run 'npm install' as a workaround to later being able to package Gobra-IDE (only once)
-        if: startsWith(matrix.os, 'ubuntu') && endsWith(matrix.config-file, 'local.json')
+      - name: Run 'npm install' as a workaround to later being able to package Gobra-IDE (only once per target)
+        if: endsWith(matrix.config-file, 'builtin.json')
         run: npm install
         working-directory: gobra-ide/client
 
-      - name: List all files that will be packaged (only once)
-        if: startsWith(matrix.os, 'ubuntu') && endsWith(matrix.config-file, 'local.json')
+      - name: Package Gobra-IDE extension (only once per target)
+        if: endsWith(matrix.config-file, 'builtin.json')
+        # note that baseContentUrl has to be manually provided as @vscode/vsce does not know that it is run in the client subfolder:
+        run: npm run package -- --target=${{ matrix.target }} --baseContentUrl https://github.com/viperproject/gobra-ide/raw/master/client --out=gobra-ide-${{ matrix.target }}.vsix
+        working-directory: gobra-ide/client
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # we have to list the files after packaging because packaging first downloads the dependencies
+      - name: List all files that got packaged (only once per target)
+        if: endsWith(matrix.config-file, 'builtin.json')
         run: npx @vscode/vsce ls
         working-directory: gobra-ide/client
 
-      - name: Package Gobra-IDE extension (only once)
-        if: startsWith(matrix.os, 'ubuntu') && endsWith(matrix.config-file, 'local.json')
-        # note that baseContentUrl has to be manually provided as @vscode/vsce does not know that it is run in the client subfolder:
-        run: npm run package -- --baseContentUrl https://github.com/viperproject/gobra-ide/raw/master/client --out gobra-ide.vsix
-        working-directory: gobra-ide/client
-
-      - name: Upload packaged Gobra-IDE (only once)
-        if: startsWith(matrix.os, 'ubuntu') && endsWith(matrix.config-file, 'local.json')
+      - name: Upload packaged Gobra-IDE (only once per target)
+        if: endsWith(matrix.config-file, 'builtin.json')
         uses: actions/upload-artifact@v7
         with:
-          name: gobra-ide.vsix
-          path: gobra-ide/client/gobra-ide.vsix
+          name: gobra-ide-${{ matrix.target }}.vsix
+          path: gobra-ide/client/gobra-ide-${{ matrix.target }}.vsix
+
+      # the Gobra tools assembled during packaging are additionally attached to releases as zip files.
+      # note that we change into the tool folder to zip it. This avoids including the parent folder in the zip
+      - name: Zip Gobra Tools (only once per target - non-windows)
+        if: endsWith(matrix.config-file, 'builtin.json') && !startsWith(matrix.os, 'windows')
+        run: zip -r ../../${{ matrix.gobra-tools-zip-file }} ./*
+        working-directory: gobra-ide/client/dependencies/GobraTools
+
+      - name: Zip Gobra Tools (only once per target - windows)
+        if: endsWith(matrix.config-file, 'builtin.json') && startsWith(matrix.os, 'windows')
+        run: 7z a ..\..\${{ matrix.gobra-tools-zip-file }} .\*
+        working-directory: gobra-ide/client/dependencies/GobraTools
+
+      - name: Upload Gobra Tools (only once per target)
+        if: endsWith(matrix.config-file, 'builtin.json')
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.gobra-tools-zip-file }}
+          path: gobra-ide/client/${{ matrix.gobra-tools-zip-file }}
 
 
   create-nightly-release:
@@ -302,26 +270,18 @@ jobs:
     needs: build-and-test-client
     runs-on: ubuntu-latest
     steps:
-      - name: Download Gobra Tools for Windows
+      - name: Download Gobra Tools
         uses: actions/download-artifact@v8
         with:
-          name: GobraToolsWin.zip
-          path: deploy
-      - name: Download Gobra Tools for Linux
-        uses: actions/download-artifact@v8
-        with:
-          name: GobraToolsLinux.zip
-          path: deploy
-      - name: Download Gobra Tools for macOS
-        uses: actions/download-artifact@v8
-        with:
-          name: GobraToolsMac.zip
+          pattern: GobraTools*.zip
+          merge-multiple: true
           path: deploy
 
       - name: Download packaged Gobra IDE
         uses: actions/download-artifact@v8
         with:
-          name: gobra-ide.vsix
+          pattern: gobra-ide-*.vsix
+          merge-multiple: true
           path: gobra-ide/client
 
       - name: Download version file
@@ -365,7 +325,7 @@ jobs:
           asset_name: GobraToolsLinux.zip
           asset_content_type: application/zip
 
-      - name: Upload Gobra tools for macOS
+      - name: Upload Gobra tools for macOS Intel
         uses: actions/upload-release-asset@v1.0.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -375,14 +335,54 @@ jobs:
           asset_name: GobraToolsMac.zip
           asset_content_type: application/zip
 
-      - name: Upload packaged Gobra IDE
+      - name: Upload Gobra tools for macOS ARM
         uses: actions/upload-release-asset@v1.0.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: gobra-ide/client/gobra-ide.vsix
-          asset_name: gobra-ide.vsix
+          asset_path: deploy/GobraToolsMacARM.zip
+          asset_name: GobraToolsMacARM.zip
+          asset_content_type: application/zip
+
+      - name: Upload packaged Gobra IDE for Windows
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: gobra-ide/client/gobra-ide-win32-x64.vsix
+          asset_name: gobra-ide-win32-x64.vsix
+          asset_content_type: application/octet-stream
+
+      - name: Upload packaged Gobra IDE for Linux
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: gobra-ide/client/gobra-ide-linux-x64.vsix
+          asset_name: gobra-ide-linux-x64.vsix
+          asset_content_type: application/octet-stream
+
+      - name: Upload packaged Gobra IDE for macOS Intel
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: gobra-ide/client/gobra-ide-darwin-x64.vsix
+          asset_name: gobra-ide-darwin-x64.vsix
+          asset_content_type: application/octet-stream
+
+      - name: Upload packaged Gobra IDE for macOS ARM
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: gobra-ide/client/gobra-ide-darwin-arm64.vsix
+          asset_name: gobra-ide-darwin-arm64.vsix
           asset_content_type: application/octet-stream
 
   create-stable-release:
@@ -398,26 +398,18 @@ jobs:
           path: gobra-ide
           # we do not need any submodules here as we only test the client
 
-      - name: Download Gobra Tools for Windows
+      - name: Download Gobra Tools
         uses: actions/download-artifact@v8
         with:
-          name: GobraToolsWin.zip
-          path: deploy
-      - name: Download Gobra Tools for Linux
-        uses: actions/download-artifact@v8
-        with:
-          name: GobraToolsLinux.zip
-          path: deploy
-      - name: Download Gobra Tools for macOS
-        uses: actions/download-artifact@v8
-        with:
-          name: GobraToolsMac.zip
+          pattern: GobraTools*.zip
+          merge-multiple: true
           path: deploy
 
       - name: Download packaged Gobra IDE
         uses: actions/download-artifact@v8
         with:
-          name: gobra-ide.vsix
+          pattern: gobra-ide-*.vsix
+          merge-multiple: true
           path: gobra-ide/client
 
       - name: Download version file
@@ -458,7 +450,7 @@ jobs:
           asset_name: GobraToolsLinux.zip
           asset_content_type: application/zip
 
-      - name: Upload Gobra tools for macOS
+      - name: Upload Gobra tools for macOS Intel
         uses: actions/upload-release-asset@v1.0.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -468,14 +460,54 @@ jobs:
           asset_name: GobraToolsMac.zip
           asset_content_type: application/zip
 
-      - name: Upload packaged Gobra IDE
+      - name: Upload Gobra tools for macOS ARM
         uses: actions/upload-release-asset@v1.0.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: gobra-ide/client/gobra-ide.vsix
-          asset_name: gobra-ide.vsix
+          asset_path: deploy/GobraToolsMacARM.zip
+          asset_name: GobraToolsMacARM.zip
+          asset_content_type: application/zip
+
+      - name: Upload packaged Gobra IDE for Windows
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: gobra-ide/client/gobra-ide-win32-x64.vsix
+          asset_name: gobra-ide-win32-x64.vsix
+          asset_content_type: application/octet-stream
+
+      - name: Upload packaged Gobra IDE for Linux
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: gobra-ide/client/gobra-ide-linux-x64.vsix
+          asset_name: gobra-ide-linux-x64.vsix
+          asset_content_type: application/octet-stream
+
+      - name: Upload packaged Gobra IDE for macOS Intel
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: gobra-ide/client/gobra-ide-darwin-x64.vsix
+          asset_name: gobra-ide-darwin-x64.vsix
+          asset_content_type: application/octet-stream
+
+      - name: Upload packaged Gobra IDE for macOS ARM
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: gobra-ide/client/gobra-ide-darwin-arm64.vsix
+          asset_name: gobra-ide-darwin-arm64.vsix
           asset_content_type: application/octet-stream
 
       # compare version in client/package.json with last published version on
@@ -499,20 +531,74 @@ jobs:
           echo "LAST_PUBLISHED_VERSION=$LAST_PUBLISHED_VERSION" >> $GITHUB_ENV
           echo "CURRENT_VERSION=$CURRENT_VERSION" >> $GITHUB_ENV
 
-      - name: Publish the extension to Visual Studio Marketplace
+      - name: Publish the extension to Visual Studio Marketplace for Windows
         uses: HaaLeo/publish-vscode-extension@v2
         if: env.CURRENT_VERSION != env.LAST_PUBLISHED_VERSION
         with:
           pat: ${{ secrets.VSCE_TOKEN }}
           registryUrl: https://marketplace.visualstudio.com
-          extensionFile: gobra-ide/client/gobra-ide.vsix
+          extensionFile: gobra-ide/client/gobra-ide-win32-x64.vsix
           packagePath: ''
 
-      - name: Publish the extension to Open VSX Registry
+      - name: Publish the extension to Visual Studio Marketplace for Linux
+        uses: HaaLeo/publish-vscode-extension@v2
+        if: env.CURRENT_VERSION != env.LAST_PUBLISHED_VERSION
+        with:
+          pat: ${{ secrets.VSCE_TOKEN }}
+          registryUrl: https://marketplace.visualstudio.com
+          extensionFile: gobra-ide/client/gobra-ide-linux-x64.vsix
+          packagePath: ''
+
+      - name: Publish the extension to Visual Studio Marketplace for macOS Intel
+        uses: HaaLeo/publish-vscode-extension@v2
+        if: env.CURRENT_VERSION != env.LAST_PUBLISHED_VERSION
+        with:
+          pat: ${{ secrets.VSCE_TOKEN }}
+          registryUrl: https://marketplace.visualstudio.com
+          extensionFile: gobra-ide/client/gobra-ide-darwin-x64.vsix
+          packagePath: ''
+
+      - name: Publish the extension to Visual Studio Marketplace for macOS ARM
+        uses: HaaLeo/publish-vscode-extension@v2
+        if: env.CURRENT_VERSION != env.LAST_PUBLISHED_VERSION
+        with:
+          pat: ${{ secrets.VSCE_TOKEN }}
+          registryUrl: https://marketplace.visualstudio.com
+          extensionFile: gobra-ide/client/gobra-ide-darwin-arm64.vsix
+          packagePath: ''
+
+      - name: Publish the extension to Open VSX Registry for Windows
         uses: HaaLeo/publish-vscode-extension@v2
         if: env.CURRENT_VERSION != env.LAST_PUBLISHED_VERSION
         with:
           pat: ${{ secrets.OPEN_VSX_TOKEN }}
           registryUrl: https://open-vsx.org
-          extensionFile: gobra-ide/client/gobra-ide.vsix
+          extensionFile: gobra-ide/client/gobra-ide-win32-x64.vsix
+          packagePath: ''
+
+      - name: Publish the extension to Open VSX Registry for Linux
+        uses: HaaLeo/publish-vscode-extension@v2
+        if: env.CURRENT_VERSION != env.LAST_PUBLISHED_VERSION
+        with:
+          pat: ${{ secrets.OPEN_VSX_TOKEN }}
+          registryUrl: https://open-vsx.org
+          extensionFile: gobra-ide/client/gobra-ide-linux-x64.vsix
+          packagePath: ''
+
+      - name: Publish the extension to Open VSX Registry for macOS Intel
+        uses: HaaLeo/publish-vscode-extension@v2
+        if: env.CURRENT_VERSION != env.LAST_PUBLISHED_VERSION
+        with:
+          pat: ${{ secrets.OPEN_VSX_TOKEN }}
+          registryUrl: https://open-vsx.org
+          extensionFile: gobra-ide/client/gobra-ide-darwin-x64.vsix
+          packagePath: ''
+
+      - name: Publish the extension to Open VSX Registry for macOS ARM
+        uses: HaaLeo/publish-vscode-extension@v2
+        if: env.CURRENT_VERSION != env.LAST_PUBLISHED_VERSION
+        with:
+          pat: ${{ secrets.OPEN_VSX_TOKEN }}
+          registryUrl: https://open-vsx.org
+          extensionFile: gobra-ide/client/gobra-ide-darwin-arm64.vsix
           packagePath: ''

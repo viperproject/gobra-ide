@@ -12,7 +12,7 @@ import { State } from "../ExtensionState.js";
 import { URI } from 'vscode-uri';
 import * as fs from 'fs';
 import { glob } from 'glob';
-import { Verifier } from '../VerificationService.js';
+import { locateGobraTools } from '../GobraTools.js';
 
 const PROJECT_ROOT = path.join(import.meta.dirname, "..", "..");
 const DATA_ROOT = path.join(PROJECT_ROOT, "src", "evaluate", "data");
@@ -46,7 +46,7 @@ export class EvaluationHelper {
   }
 
   public static async verify(fileUri: URI): Promise<void> {
-    const location = await Verifier.updateGobraTools(State.context, false);
+    const location = await locateGobraTools(State.context);
     const fileData = new FileData(fileUri);
     const z3Path = Helper.getZ3Path(location);
     const boogiePath = Helper.getBoogiePath(location);

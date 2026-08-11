@@ -10,7 +10,7 @@ import * as os from 'os';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { URI } from 'vscode-uri';
-import { GitHubReleaseAsset, Location } from 'vs-verification-toolbox';
+import { Location } from 'vs-verification-toolbox';
 import locate_java_home from '@viperproject/locate-java-home';
 import type { IJavaHomeInfo } from '@viperproject/locate-java-home/js/es5/lib/interfaces.js';
 import { OverallVerificationResult, GobraSettings, PlatformDependendPath, GobraDependencies, HighlightingPosition } from "./MessagePayloads.js";
@@ -28,12 +28,10 @@ export class Helper {
 
   public static getBuildChannel(): BuildChannel {
     const buildVersion = vscode.workspace.getConfiguration("gobraSettings").get("buildVersion");
-    if (buildVersion === "Nightly") {
-      return BuildChannel.Nightly;
-    } else if (buildVersion === "Local") {
-      return BuildChannel.Local;
+    if (buildVersion === "External") {
+      return BuildChannel.External;
     }
-    return BuildChannel.Stable;
+    return BuildChannel.BuiltIn;
   }
 
   public static getLogLevel(): string {
@@ -211,90 +209,13 @@ export class Helper {
     return configuredArgString;
   }
   
-  /**
-    * Gets Gobra Tools Provider URL as stored in the settings.
-    * Note that the returned URL might be invalid or correspond to one of the "special" URLs as specified in the README (e.g. to download a GitHub release asset)
-    */
-  public static getGobraToolsProvider(nightly: boolean = false): string {
-    const gobraToolsProvider = Helper.getGobraDependencies().gobraToolsProvider;
-    return Helper.getPlatformPath(nightly ? gobraToolsProvider.nightly : gobraToolsProvider.stable);
-  }
-
-  /**
-   * Takes an url as input and checks whether it's a special URL to a GitHub release asset.
-   * This function returns an object that indicates with the `isGitHubAsset` flag whether it is a GitHub asset or not. In addition, the `getUrl` function can
-   * be called to lazily construct the URL for downloading the asset.
-   */
-  public static parseGitHubAssetURL(url: string): {isGitHubAsset: boolean, getUrl: () => Promise<string>} {
-    const token = this.getGitHubToken();
-    const latestRe = /^github.com\/([^/]+)\/([^/]+)\/releases\/latest\?asset-name=([^/?&]+)(&include-prereleases|)$/;
-    const tagRe = /^github.com\/([^/]+)\/([^/]+)\/releases\/tags\/([^/?]+)\?asset-name=([^/?&]+)$/;
-    const latestReMatches = url.match(latestRe);
-    if (latestReMatches != null) {
-      // match was found
-      const owner = latestReMatches[1];
-      const repo = latestReMatches[2];
-      const assetName = latestReMatches[3];
-      const includePrereleases = latestReMatches[4] === "&include-prereleases";
-      const resolveGitHubUrl = () => GitHubReleaseAsset.getLatestAssetUrl(owner, repo, assetName, includePrereleases, token)
-        .catch(Helper.rethrow(`Retrieving asset URL of latest GitHub release has failed `
-          + `(owner: '${owner}', repo: '${repo}', asset-name: '${assetName}', include-prereleases: ${includePrereleases})`));
-      return {
-        isGitHubAsset: true,
-        getUrl: resolveGitHubUrl,
-      };
-    }
-    const tagReMatches = url.match(tagRe);
-    if (tagReMatches != null) {
-      // match was found
-      const owner = tagReMatches[1];
-      const repo = tagReMatches[2];
-      const tag = tagReMatches[3];
-      const assetName = tagReMatches[4];
-      const resolveGitHubUrl = () => GitHubReleaseAsset.getTaggedAssetUrl(owner, repo, assetName, tag, token)
-        .catch(Helper.rethrow(`Retrieving asset URL of a tagged GitHub release has failed `
-            + `(owner: '${owner}', repo: '${repo}', tag: '${tag}', asset-name: '${assetName}')`));
-      return {
-        isGitHubAsset: true,
-        getUrl: resolveGitHubUrl,
-      };
-    }
-    // no match, return unmodified input URL:
-    return {
-      isGitHubAsset: false,
-      getUrl: () => Promise.resolve(url),
-    };
-  }
-
-  public static getGitHubToken(): string | undefined {
-    return process.env["GITHUB_TOKEN"];
-  }
-
-  /**
-   * Returns true if `getGobraToolsPath` should be wiped after activating the extension to ensure a clean system state.
-   */
-  public static cleanInstall(): boolean {
-    const value = process.env["GOBRA_IDE_CLEAN_INSTALL"];
-    return value != null && 
-      (value == "1" || value.toUpperCase() == "TRUE");
-  }
-
-  /**
-   * Returns true if Gobra-IDE runs in a non-interactive environment and confirmations should automatically be accepted.
-   */
-  public static assumeYes(): boolean {
-    const value = process.env["GOBRA_IDE_ASSUME_YES"];
-    return value != null && 
-      (value == "1" || value.toUpperCase() == "TRUE");
-  }
-
   public static getLocalGobraToolsPath(): ResolvedPath {
     const gobraToolsBasePath = Helper.getGobraDependencies().gobraToolsPaths.gobraToolsBasePath;
     return Helper.extractEnvVars(Helper.getPlatformPath(gobraToolsBasePath));
   }
 
   public static getServerJarPath(location: Location): ResolvedPath {
-    if (Helper.getBuildChannel() == BuildChannel.Local) {
+    if (Helper.getBuildChannel() == BuildChannel.External) {
       const serverJarPaths = Helper.getGobraDependencies().gobraToolsPaths.serverJar;
       return Helper.extractEnvVars(Helper.getPlatformPath(serverJarPaths).replace("$gobraTools$", location.basePath));
     } else {
@@ -304,7 +225,7 @@ export class Helper {
   }
 
   public static getBoogiePath(location: Location): ResolvedPath {
-    if (Helper.getBuildChannel() == BuildChannel.Local) {
+    if (Helper.getBuildChannel() == BuildChannel.External) {
       const boogiePaths = Helper.getGobraDependencies().gobraToolsPaths.boogieExecutable;
       return Helper.extractEnvVars(Helper.getPlatformPath(boogiePaths).replace("$gobraTools$", location.basePath));
     } else {
@@ -315,7 +236,7 @@ export class Helper {
   }
 
   public static getZ3Path(location: Location): ResolvedPath {
-    if (Helper.getBuildChannel() == BuildChannel.Local) {
+    if (Helper.getBuildChannel() == BuildChannel.External) {
       const z3Paths = Helper.getGobraDependencies().gobraToolsPaths.z3Executable;
       return Helper.extractEnvVars(Helper.getPlatformPath(z3Paths).replace("$gobraTools$", location.basePath));
     } else {
@@ -481,21 +402,14 @@ export class Texts {
   public static incompatibleServer(serverProtocolVersion: number | undefined): string {
     // servers predating the client-server version handshake do not advertise a protocol version
     // and implicitly implement version 1:
-    return `The installed Gobra tools (communication protocol version ${serverProtocolVersion ?? 1}) are incompatible ` +
+    return `The Gobra tools (communication protocol version ${serverProtocolVersion ?? 1}) are incompatible ` +
       `with this version of Gobra IDE (communication protocol version ${Commands.protocolVersion}). ` +
-      "Please update them by running the command 'Gobra: Update Gobra Tools'.";
+      "When using the build version 'External', update the configured Gobra tools. Otherwise, the extension's " +
+      "installation seems corrupted -- please reinstall the extension.";
   }
   public static runningVerification = "Verification of ";
   public static helloGobra = "Hello from Gobra";
   public static flushCache = "Flush Cache";
-  public static installingGobraToolsConfirmationMessage = "Gobra-IDE requires Gobra and additional tools. Do you want to install them?";
-  public static installingGobraToolsConfirmationYesButton = "Yes";
-  public static installingGobraToolsConfirmationNoButton = "No";
-  public static gobraToolsInstallationDenied = "Installation of Gobra and required tools has been denied. Restart Visual Studio Code and allow their installation.";
-  public static updatingGobraTools = "Updating Gobra Tools";
-  public static ensuringGobraTools = "Ensuring Gobra Tools";
-  public static successfulUpdatingGobraTools = "Successfully updated Gobra Tools. Please restart the IDE.";
-  public static successfulEnsuringGobraTools = "Successfully ensured Gobra Tools.";
   public static changedBuildVersion = "Changed the build version of Gobra Tools. Please restart the IDE.";
   public static javaLocation(path: string, version: string) {
     // note that VSCode (at least currently) strips new-line characters. Thus, make sure it is nonetheless somewhat readable
@@ -524,7 +438,6 @@ export class ContributionCommands {
   public static verifyFile = "gobra.verifyFile";
   public static verifyPackage = "gobra.verifyPackage";
   public static verifyMember = "gobra.verifyMember";
-  public static updateGobraTools = "gobra.updateGobraTools";
   public static showViperCodePreview = "gobra.showViperCodePreview";
   public static showInternalCodePreview = "gobra.showInternalCodePreview";
   public static showJavaPath = "gobra.showJavaPath";
@@ -554,9 +467,8 @@ export interface Output {
 }
 
 export enum BuildChannel {
-  Stable = "Stable",
-  Nightly = "Nightly",
-  Local = "Local"
+  BuiltIn = "BuiltIn",
+  External = "External"
 }
 
 export interface ResolvedPath {

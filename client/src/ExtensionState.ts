@@ -21,7 +21,6 @@ import { URI } from 'vscode-uri';
 export class State {
   public static client: LanguageClient;
   public static context: vscode.ExtensionContext;
-  public static updatingGobraTools: boolean;
 
   public static viperPreviewProvider: CodePreviewProvider;
   public static internalPreviewProvider: CodePreviewProvider;
@@ -139,8 +138,6 @@ export class State {
 
   // creates the language client and starts the server
   public static async startLanguageServer(context: vscode.ExtensionContext, fileSystemWatcher: vscode.FileSystemWatcher, location: Location): Promise<void> {
-
-    this.updatingGobraTools = false;
 
     this.runningVerifications = new Set<string>();
     this.verificationRequests = new Map<string, IdeEvents>();

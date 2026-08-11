@@ -30,10 +30,6 @@ const DATA_ROOT = path.join(PROJECT_ROOT, "src", "test", "data");
 
 async function main() {
 	const argv = await yargs(process.argv.slice(2))
-		.option('gobraTools', {
-			description: 'Path to the Gobra Tools that should be used as gobraToolsBasePath instead of the one specified in the settings (only for build version "Local")',
-            type: 'string',
-		})
 		.option('configFile', {
 			description: `Path (absolute or relative to ${PROJECT_ROOT}) to the config file that should be used for testing. If none is provided, the tests default to all config files in ${path.join(DATA_ROOT, "settings")}.`,
             type: 'string',
@@ -67,17 +63,7 @@ async function main() {
 	for (const settings_path of settings_paths) {
 		const settings_file = path.basename(settings_path);
 		console.info(`Testing settings ${settings_file}`);
-		let additionalSettings: Map<string, string>[];
-		if (argv.gobraTools) {
-			const gobraToolsSettings = new Map([
-				["gobraDependencies.gobraToolsPaths.gobraToolsBasePath.windows", argv.gobraTools],
-				["gobraDependencies.gobraToolsPaths.gobraToolsBasePath.linux", argv.gobraTools],
-				["gobraDependencies.gobraToolsPaths.gobraToolsBasePath.mac", argv.gobraTools]]
-			);
-			additionalSettings = [gobraToolsSettings];
-		} else {
-			additionalSettings = [new Map()];
-		}
+		const additionalSettings: Map<string, string>[] = [new Map()];
 		
 		for (const addSettings of additionalSettings) {
 			if (!firstIteration) {
@@ -111,11 +97,6 @@ async function main() {
 
 				// get environment variables
 				const env: NodeJS.ProcessEnv = process.env;
-				// add additional environment variable to
-				// - auto accept confirmation messages of Gobra-IDE
-				// - wipe global storage path to force install Gobra Tools after each activation
-				env.GOBRA_IDE_ASSUME_YES = "1";
-				env.GOBRA_IDE_CLEAN_INSTALL = "1";
 				
 				// Run the tests in the workspace
 				await runTests({

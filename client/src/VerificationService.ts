@@ -13,7 +13,6 @@ import * as path from 'path';
 import { VerifierConfig, OverallVerificationResult, PreviewData, FileData, IsolationData } from "./MessagePayloads.js";
 import { IdeEvents } from "./IdeEvents.js";
 
-import { Dependency, withProgressInWindow, Location, DependencyInstaller, RemoteZipExtractor, GitHubZipExtractor, LocalReference, ConfirmResult, Success } from 'vs-verification-toolbox';
 import { URI } from "vscode-uri";
 
 export class Verifier {
@@ -42,7 +41,6 @@ export class Verifier {
     Helper.registerCommand(ContributionCommands.verifyFile, Verifier.manualVerifyFile, context);
     Helper.registerCommand(ContributionCommands.verifyPackage, Verifier.manualVerifyPackage, context);
     Helper.registerCommand(ContributionCommands.verifyMember, Verifier.manualVerifyMember, context);
-    Helper.registerCommand(ContributionCommands.updateGobraTools, () => Verifier.updateGobraTools(context, true), context);
     Helper.registerCommand(ContributionCommands.showViperCodePreview, Verifier.showViperCodePreview, context);
     Helper.registerCommand(ContributionCommands.showInternalCodePreview, Verifier.showInternalCodePreview, context);
     Helper.registerCommand(ContributionCommands.showJavaPath, () => Verifier.showJavaPath(), context);
@@ -215,13 +213,6 @@ export class Verifier {
   public static async verifyFiles(fileUris: URI[], event: IdeEvents, isolationData: IsolationData[] = []): Promise<void> {
     State.removeVerificationRequests(fileUris);
 
-    // return when the gobra tools are currently being updated.
-    if (State.updatingGobraTools) {
-      const errMsg = `Gobra Tools are currently updating -- verification aborted`;
-      Helper.log(errMsg);
-      return Promise.reject(new Error(errMsg));
-    }
-    
     // only verify if it is a gobra file or a go file where the verification was manually invoked.
     const nonGobraAndNonGoFiles = fileUris.filter(fileUri => !Verifier.isGoOrGobraPath(fileUri.fsPath));
     const hasGoFiles = fileUris.some(fileUri => fileUri.fsPath.endsWith(".go"));
@@ -391,129 +382,6 @@ export class Verifier {
     State.client.sendNotification(Commands.changeFile, fileData);
   }
 
-
-  /**
-    * Update GobraTools by downloading them if necessary. 
-    */
-  public static async updateGobraTools(context: vscode.ExtensionContext, shouldUpdate: boolean, notificationText?: string): Promise<Location> {
-    async function confirm(): Promise<ConfirmResult> {
-      if (shouldUpdate || Helper.assumeYes()) {
-        // do not ask user
-        return ConfirmResult.Continue;
-      } else {
-        const confirmation = await vscode.window.showInformationMessage(
-          Texts.installingGobraToolsConfirmationMessage,
-          Texts.installingGobraToolsConfirmationYesButton,
-          Texts.installingGobraToolsConfirmationNoButton);
-        if (confirmation === Texts.installingGobraToolsConfirmationYesButton) {
-          return ConfirmResult.Continue;
-        } else {
-          // user has dismissed message without confirming
-          return ConfirmResult.Cancel;
-        }
-      }
-    }
-
-    /** confirms the update and shuts down Gobra Server if it is running */
-    async function confirmAndStopServer(): Promise<ConfirmResult> {
-      const confirmResult = await confirm();
-      await State.disposeServer();
-      return confirmResult;
-    }
-    
-    State.updatingGobraTools = true;
-    const selectedChannel = Helper.getBuildChannel();
-    const dependency = await this.getDependency(context);
-    Helper.log(`Ensuring dependencies for build channel ${selectedChannel}`);
-    const { result: installationResult, didReportProgress } = await withProgressInWindow(
-      shouldUpdate ? Texts.updatingGobraTools : Texts.ensuringGobraTools,
-      listener => dependency.install(selectedChannel, shouldUpdate, listener, confirmAndStopServer)
-    ).catch(Helper.rethrow(`Downloading and unzipping the Gobra Tools has failed`));
-
-    if (!(installationResult instanceof Success)) {
-      throw new Error(Texts.gobraToolsInstallationDenied);
-    }
-
-    const location = installationResult.value;
-    if (Helper.isLinux || Helper.isMac) {
-      const z3Path = Helper.getZ3Path(location);
-      const boogiePath = Helper.getBoogiePath(location);
-      if (z3Path.error != null) {
-        throw new Error(z3Path.error);
-      }
-      if (boogiePath.error != null) {
-        throw new Error(boogiePath.error);
-      }
-      fs.chmodSync(z3Path.path, '755');
-      fs.chmodSync(boogiePath.path, '755');
-    }
-
-    if (didReportProgress) {
-      if (notificationText) {
-        vscode.window.showInformationMessage(notificationText);
-      } else if (shouldUpdate) {
-        vscode.window.showInformationMessage(Texts.successfulUpdatingGobraTools);
-      } else {
-        vscode.window.showInformationMessage(Texts.successfulEnsuringGobraTools);
-      }
-    }
-
-    return location;
-  }
-
-  private static async getDependency(context: vscode.ExtensionContext): Promise<Dependency<BuildChannel>> {
-    const buildChannelStrings = Object.keys(BuildChannel);
-    const buildChannels = buildChannelStrings.map(c =>
-      // Convert string to enum. See https://stackoverflow.com/a/17381004/2491528
-      BuildChannel[c as keyof typeof BuildChannel]);
-        
-    // note that `installDestination` is only used if tools actually have to be downloaded and installed there, i.e. it is 
-    // not used for build channel "Local":
-    const installDestination = context.globalStorageUri.fsPath;
-    const installers = await Promise.all(buildChannels
-      .map<Promise<[BuildChannel, DependencyInstaller]>>(async c => 
-        [c, await this.getDependencyInstaller(context, c)])
-      );
-    return new Dependency<BuildChannel>(
-      installDestination,
-      ...installers
-    );
-  }
-
-  private static getDependencyInstaller(context: vscode.ExtensionContext, buildChannel: BuildChannel): Promise<DependencyInstaller> {
-    if (buildChannel == BuildChannel.Local) {
-        return this.getLocalDependencyInstaller();
-    } else {
-        return this.getRemoteDependencyInstaller(context, buildChannel);
-    }
-  }
-
-  private static async getLocalDependencyInstaller(): Promise<DependencyInstaller> {
-    const toolsPath = Helper.getLocalGobraToolsPath();
-    // do not check here whether path actually exist because this build version might not even be used
-    return new LocalReference(toolsPath.path);
-  }
-
-  private static get buildChannelSubfolderName(): string {
-    return "GobraTools";
-  }
-
-  private static async getRemoteDependencyInstaller(context: vscode.ExtensionContext, buildChannel: BuildChannel): Promise<DependencyInstaller> {
-    const gobraToolsRawProviderUrl = Helper.getGobraToolsProvider(buildChannel === BuildChannel.Nightly);
-    // note that `gobraToolsProvider` might be one of the "special" URLs as specified in the README (i.e. to a GitHub releases asset):
-    const gobraToolsProvider = Helper.parseGitHubAssetURL(gobraToolsRawProviderUrl);
-    
-    const folderName = this.buildChannelSubfolderName; // folder name to which ZIP will be unzipped to
-    if (gobraToolsProvider.isGitHubAsset) {
-      // provider is a GitHub release
-      const token = Helper.getGitHubToken();
-      return new GitHubZipExtractor(gobraToolsProvider.getUrl, folderName, token);
-    } else {
-      // provider is a regular resource on the Internet
-      const url = await gobraToolsProvider.getUrl();
-      return new RemoteZipExtractor(url, folderName);
-    }
-}
 
 
   /**
