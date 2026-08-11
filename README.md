@@ -136,17 +136,20 @@ Run `npx github:viperproject/check-license-header#v1 check --config .github/lice
 
 ## Release Management
 A nightly release is created daily at 7:00 UTC.
-Stable releases should be created as follows (manually triggered nightly releases can be created similarly as well):
+Stable releases and pre-releases should be created as follows (manually triggered nightly releases can be created similarly as well):
 1. Open [test workflow on GitHub.com](https://github.com/viperproject/gobra-ide/actions?query=workflow%3Atest)
 2. Click on "Run workflow"
-3. Choose `master` branch, type `stable` (`nightly` for manually creating a nightly release), a tag name (e.g. `v1.0-beta.1`), and a release name (this will become the release's title).
+3. Choose the branch, type `stable` or `pre-release` (`nightly` for manually creating a nightly release), a tag name (e.g. `v1.0-beta.1`), and a release name (this will become the release's title).
 
 Type `stable` will create a draft release with the chosen tag name (the tag itself will be created when publishing the release) and release name.
-The release body will consist of the commit hashes of the depending repositories.
-In addition, the release assets will be created and attached to the release.
-Please wait until the workflow has completed before publishing the release because Gobra IDE will use the assets of the latest published release.
+The release body will consist of the commit hashes and versions of the dependencies.
+In addition, the release assets (the platform-specific extensions and Gobra tools) will be created and attached to the release.
+Once the workflow has completed, the extension is published to the Visual Studio Marketplace and the Open VSX Registry if the version in `client/package.json` differs from the latest published one.
 
-In case the type `nightly` was selected, the same steps will be performed as done for the periodic nightly releases.
+Type `pre-release` behaves like `stable` but publishes the extension to the marketplaces as a pre-release version, which users have to opt into ("Switch to Pre-Release Version").
+Note that the marketplaces do not support semver pre-release suffixes and always serve users the highest version number of the respective channel: stable releases should use an even minor version (e.g. `3.0.x`, `3.2.x`) and pre-releases an odd one (e.g. `3.1.x`, `3.3.x`).
+
+In case the type `nightly` was selected, a GitHub pre-release is created (no marketplace publishing).
 Note that in this case the tag name and release name will be ignored.
 
 Alternatively, the manual triggering of the workflow can be done via command line:
