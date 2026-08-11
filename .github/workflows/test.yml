@@ -14,14 +14,19 @@ on:
   workflow_dispatch: # allow to manually trigger this workflow
     inputs:
       type:
-        description: 'Specifies whether a stable or nightly release should be triggered. Has to be "stable" or "nightly".'
+        description: 'Specifies whether a stable release, a pre-release, or a nightly release should be created. Note that "stable" and "pre-release" are published to the marketplaces (as regular resp. pre-release version) and thus, "stable" should use an even and "pre-release" an odd minor version.'
         required: true
         default: 'stable'
+        type: choice
+        options:
+          - stable
+          - pre-release
+          - nightly
       tag_name:
-        description: 'Tag name for stable release. Ignored if a nightly release will be created.'
+        description: 'Tag name for the stable release or pre-release. Ignored if a nightly release will be created.'
         required: true
       release_name:
-        description: 'Release title for stable release. Ignored if a nightly release will be created.'
+        description: 'Release title for the stable release or pre-release. Ignored if a nightly release will be created.'
         required: true
   schedule:
     - cron: '0 7 * * *' # run every day at 07:00 UTC
@@ -224,9 +229,16 @@ jobs:
         working-directory: gobra-ide/client
 
       - name: Package Gobra-IDE extension (only once per target)
-        if: endsWith(matrix.config-file, 'builtin.json')
+        if: endsWith(matrix.config-file, 'builtin.json') && github.event.inputs.type != 'pre-release'
         # note that baseContentUrl has to be manually provided as @vscode/vsce does not know that it is run in the client subfolder:
         run: npm run package -- --target=${{ matrix.target }} --baseContentUrl https://github.com/viperproject/gobra-ide/raw/master/client --out=gobra-ide-${{ matrix.target }}.vsix
+        working-directory: gobra-ide/client
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Package Gobra-IDE extension (only once per target - pre-release only)
+        if: endsWith(matrix.config-file, 'builtin.json') && github.event.inputs.type == 'pre-release'
+        run: npm run package -- --target=${{ matrix.target }} --pre-release --baseContentUrl https://github.com/viperproject/gobra-ide/raw/master/client --out=gobra-ide-${{ matrix.target }}.vsix
         working-directory: gobra-ide/client
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -385,9 +397,11 @@ jobs:
           asset_name: gobra-ide-darwin-arm64.vsix
           asset_content_type: application/octet-stream
 
-  create-stable-release:
-    # this job creates a stable draft-release and set Gobra tools as artifacts
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.type == 'stable'
+  create-release:
+    # this job creates a stable draft-release or a pre-release, and sets Gobra tools as artifacts.
+    # stable releases are additionally published to the marketplaces as regular versions once the
+    # draft-release is published, resp. pre-releases immediately as pre-release versions:
+    if: github.event_name == 'workflow_dispatch' && (github.event.inputs.type == 'stable' || github.event.inputs.type == 'pre-release')
     needs: build-and-test-client
     runs-on: ubuntu-latest
     steps:
@@ -417,7 +431,9 @@ jobs:
         with:
           name: versions.txt
 
-      - name: Create stable draft-release
+      # note that stable releases are created as drafts (such that they can be reviewed and published
+      # manually) while pre-releases are immediately published (as GitHub pre-releases):
+      - name: Create release
         id: create_release
         uses: actions/create-release@v1
         env:
@@ -427,8 +443,8 @@ jobs:
           tag_name: ${{ github.event.inputs.tag_name }}
           release_name: ${{ github.event.inputs.release_name }}
           body_path: versions.txt
-          draft: true
-          prerelease: false
+          draft: ${{ github.event.inputs.type == 'stable' }}
+          prerelease: ${{ github.event.inputs.type == 'pre-release' }}
 
       - name: Upload Gobra tools for Windows
         uses: actions/upload-release-asset@v1.0.2
@@ -537,6 +553,7 @@ jobs:
         with:
           pat: ${{ secrets.VSCE_TOKEN }}
           registryUrl: https://marketplace.visualstudio.com
+          preRelease: ${{ github.event.inputs.type == 'pre-release' }}
           extensionFile: gobra-ide/client/gobra-ide-win32-x64.vsix
           packagePath: ''
 
@@ -546,6 +563,7 @@ jobs:
         with:
           pat: ${{ secrets.VSCE_TOKEN }}
           registryUrl: https://marketplace.visualstudio.com
+          preRelease: ${{ github.event.inputs.type == 'pre-release' }}
           extensionFile: gobra-ide/client/gobra-ide-linux-x64.vsix
           packagePath: ''
 
@@ -555,6 +573,7 @@ jobs:
         with:
           pat: ${{ secrets.VSCE_TOKEN }}
           registryUrl: https://marketplace.visualstudio.com
+          preRelease: ${{ github.event.inputs.type == 'pre-release' }}
           extensionFile: gobra-ide/client/gobra-ide-darwin-x64.vsix
           packagePath: ''
 
@@ -564,6 +583,7 @@ jobs:
         with:
           pat: ${{ secrets.VSCE_TOKEN }}
           registryUrl: https://marketplace.visualstudio.com
+          preRelease: ${{ github.event.inputs.type == 'pre-release' }}
           extensionFile: gobra-ide/client/gobra-ide-darwin-arm64.vsix
           packagePath: ''
 
@@ -573,6 +593,7 @@ jobs:
         with:
           pat: ${{ secrets.OPEN_VSX_TOKEN }}
           registryUrl: https://open-vsx.org
+          preRelease: ${{ github.event.inputs.type == 'pre-release' }}
           extensionFile: gobra-ide/client/gobra-ide-win32-x64.vsix
           packagePath: ''
 
@@ -582,6 +603,7 @@ jobs:
         with:
           pat: ${{ secrets.OPEN_VSX_TOKEN }}
           registryUrl: https://open-vsx.org
+          preRelease: ${{ github.event.inputs.type == 'pre-release' }}
           extensionFile: gobra-ide/client/gobra-ide-linux-x64.vsix
           packagePath: ''
 
@@ -591,6 +613,7 @@ jobs:
         with:
           pat: ${{ secrets.OPEN_VSX_TOKEN }}
           registryUrl: https://open-vsx.org
+          preRelease: ${{ github.event.inputs.type == 'pre-release' }}
           extensionFile: gobra-ide/client/gobra-ide-darwin-x64.vsix
           packagePath: ''
 
@@ -600,5 +623,6 @@ jobs:
         with:
           pat: ${{ secrets.OPEN_VSX_TOKEN }}
           registryUrl: https://open-vsx.org
+          preRelease: ${{ github.event.inputs.type == 'pre-release' }}
           extensionFile: gobra-ide/client/gobra-ide-darwin-arm64.vsix
           packagePath: ''
