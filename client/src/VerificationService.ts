@@ -418,7 +418,14 @@ export class Verifier {
     /** confirms the update and shuts down Gobra Server if it is running */
     async function confirmAndStopServer(): Promise<ConfirmResult> {
       const confirmResult = await confirm();
-      await State.disposeServer();
+      // stopping the server may fail, e.g., when the installed Gobra tools are incompatible with
+      // this extension version. Especially in such situations, updating the Gobra tools has to
+      // remain possible. Thus, failures are logged but otherwise ignored:
+      try {
+        await State.disposeServer();
+      } catch (e) {
+        Helper.log(`stopping the Gobra server has failed -- the Gobra tools will be updated nonetheless (${e})`);
+      }
       return confirmResult;
     }
     
