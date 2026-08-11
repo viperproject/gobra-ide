@@ -78,6 +78,9 @@ export interface GobraSettings {
   includeDirs: string[];
 }
 
+// note that the following settings-related types (up to and including `PlatformDependendPath`)
+// are NOT message payloads: they only type the client-side `vscode.workspace.getConfiguration`
+// accesses and have no counterpart in the server's MessagePayloads.scala:
 export interface JavaSettings {
   javaBinary: string;
   cwd: string;
