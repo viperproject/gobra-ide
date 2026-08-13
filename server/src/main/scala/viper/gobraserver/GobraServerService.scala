@@ -188,7 +188,3 @@ class GobraServerService(config: ServerConfig)(implicit executor: GobraServerExe
     VerifierState.setClient(client)
   }
 }
-
-
-
-

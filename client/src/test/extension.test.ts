@@ -278,7 +278,7 @@ suite("Extension", () => {
         const diagnostics = vscode.languages.getDiagnostics(document.uri);
         assert.strictEqual(diagnostics.length, 0);
     });
-    
+
     test("Show version information", async function() {
         const popupText = await vscode.commands.executeCommand<string>(ContributionCommands.showVersionInformation);
         const extensionVersion: string = State.context.extension.packageJSON.version;

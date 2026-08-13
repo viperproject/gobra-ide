@@ -11,7 +11,7 @@ import { StopButton } from "./StopButton.js";
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { VerifierConfig, OverallVerificationResult, PreviewData, FileData, IsolationData } from "./MessagePayloads.js";
+import { VerifierConfig, OverallVerificationResult, PreviewData, FileData, IsolationData, VerificationStatus } from "./MessagePayloads.js";
 import { IdeEvents } from "./IdeEvents.js";
 
 import { URI } from "vscode-uri";
@@ -436,7 +436,6 @@ export class Verifier {
   }
 
 
-
   /**
     * Shows the preview of the selected code in the translated Viper code.
     */
@@ -567,7 +566,14 @@ export class Verifier {
 
   /** renders an overall verification result in the status bar and as member decorations */
   private static renderOverallResult(overallResult: OverallVerificationResult): void {
-    if (overallResult.success && overallResult.members.length === 0) {
+    // note that `status` is unset for servers that do not report it yet, which then falls through to
+    // the `success` based cases below
+    const isNeutralStatus = overallResult.status === VerificationStatus.Aborted ||
+      overallResult.status === VerificationStatus.Skipped;
+    if (isNeutralStatus) {
+      // nothing has been verified but this is not a verification failure either
+      Verifier.verifyItem.setProperties(overallResult.message, Color.white);
+    } else if (overallResult.success && overallResult.members.length === 0) {
       Verifier.verifyItem.setProperties(overallResult.message, Color.green);
     } else if (overallResult.success) {
       // program has only been partially verified

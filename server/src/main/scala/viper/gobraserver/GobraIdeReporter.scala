@@ -21,6 +21,12 @@ import scala.collection.mutable
 trait VerificationFinishNotifier {
   /** informs clients of GobraServer that verification is done */
   def notifyOverallVerificationFinished(res: VerifierResult, ast: Option[vpr.Program]): Unit
+
+  /** returns whether the verification of a generated Viper AST has been submitted as a separate job.
+    * That job reports the overall verification result, i.e., the result of the job that has generated
+    * the Viper AST must not be reported to the client.
+    */
+  def hasSubmittedAstJob: Boolean
 }
 
 /**
@@ -136,7 +142,8 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
   }
 
   private def updateDiagnostics(result: VerifierResult): Unit = result match {
-    case VerifierResult.Success => // ignore
+    // none of these results carries errors that could be turned into diagnostics:
+    case VerifierResult.Success | VerifierResult.Aborted | VerifierResult.Skipped => // ignore
     case VerifierResult.Failure(errs) =>
       val newErrors = errs.filterNot(reportedErrors)
       reportedErrors ++= newErrors
@@ -169,6 +176,10 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
       VerifierState.addDiagnosticsCache(file.fileUri, sortedErrors, diagnostics)
     }
   }
+
+  /** set as soon as the verification of the generated Viper AST has been submitted as a separate job */
+  private var submittedAstJob: Boolean = false
+  override def hasSubmittedAstJob: Boolean = submittedAstJob
 
   def notifyOverallVerificationFinished(result: VerifierResult, ast: Option[vpr.Program]) : Unit = {
     if (result == VerifierResult.Aborted) {
@@ -235,6 +246,7 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
         if (submitAstJob) {
           // this is the old behavior where we split the generation of the Viper AST from its verification
           // submit the Viper AST's verification to the thread pool:
+          submittedAstJob = true
           VerifierState.submitVerificationJob(ast(), backtrack(), startTime, progress.round.toInt, verifierConfig)(executor)
         }
 

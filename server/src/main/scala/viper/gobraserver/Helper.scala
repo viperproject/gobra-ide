@@ -107,6 +107,11 @@ object Helper {
   def convertIsolationData(data: Array[IsolationData]): List[(Path, List[Int])] =
     data.map(isolationDatum => (uri2Path(isolationDatum.fileUri), isolationDatum.lineNrs.toList)).toList
 
+  /**
+    * Config for goifying a file. Goification is performed by the reporter while type-checking, i.e., all
+    * subsequent steps are disabled. Hence, Gobra stops at the desugaring step and reports
+    * `VerifierResult.Skipped` if and only if the goification has been successful.
+    */
   def goifyConfigFromTask(fileData: FileData): Either[Vector[VerifierError], Config] = {
     val reporter = FileWriterReporter(goify = true)
 
@@ -122,6 +127,12 @@ object Helper {
     } yield config
   }
 
+  /**
+    * Config for previewing the internal or Viper representation of a file. The preview is produced by the
+    * reporter while desugaring resp. encoding, i.e., all subsequent steps are disabled. Hence, Gobra stops
+    * at the encoding resp. verification step and reports `VerifierResult.Skipped` if and only if the
+    * preview has been produced successfully.
+    */
   def previewConfigFromTask(fileData: Vector[FileData], internalPreview: Boolean, viperPreview: Boolean, selections: List[Range]): Either[Vector[VerifierError], Config] = {
     val reporter = PreviewReporter(
       internalPreview = internalPreview,
@@ -181,20 +192,43 @@ object Helper {
   }
 
   def getOverallVerificationResult(fileUris: Array[String], isolate: Array[IsolationData], ast: Option[vpr.Program], result: VerifierResult, elapsedTime: Long): OverallVerificationResult = {
+    val duration = s"${elapsedTime/1000}.${(elapsedTime%1000)/10}s"
     result match {
       case VerifierResult.Success =>
         OverallVerificationResult(
           fileUris = fileUris,
           success = true,
-          message = s"Verification succeeded in ${elapsedTime/1000}.${(elapsedTime%1000)/10}s",
-          getVerifiedMemberInfo(isolate, ast, success = true)
+          message = s"Verification succeeded in $duration",
+          getVerifiedMemberInfo(isolate, ast, success = true),
+          status = VerificationStatus.Success
         )
       case VerifierResult.Failure(errors) =>
         OverallVerificationResult(
           fileUris = fileUris,
           success = false,
-          message = s"Verification failed in ${elapsedTime / 1000}.${(elapsedTime%1000)/10}s with: ${errors.head.id}",
-          getVerifiedMemberInfo(isolate, ast, success = false)
+          message = s"Verification failed in $duration with: ${errors.head.id}",
+          getVerifiedMemberInfo(isolate, ast, success = false),
+          status = VerificationStatus.Failure
+        )
+      // no members are reported for the following results because nothing has been verified:
+      case VerifierResult.Aborted =>
+        OverallVerificationResult(
+          fileUris = fileUris,
+          success = false,
+          message = s"Verification aborted after $duration",
+          members = Array.empty,
+          status = VerificationStatus.Aborted
+        )
+      // Gobra skips the verification if it is disabled by the `parseOnly` setting or by the
+      // `noVerify` in-file configuration option of one of the verified files. This is an expected
+      // outcome and in particular not a verification failure:
+      case VerifierResult.Skipped =>
+        OverallVerificationResult(
+          fileUris = fileUris,
+          success = true,
+          message = s"Verification skipped after $duration",
+          members = Array.empty,
+          status = VerificationStatus.Skipped
         )
     }
   }
@@ -204,7 +238,8 @@ object Helper {
       fileUris = fileUris,
       success = false,
       message = e.getMessage,
-      getVerifiedMemberInfo(isolate, ast, success = false)
+      getVerifiedMemberInfo(isolate, ast, success = false),
+      status = VerificationStatus.Failure
     )
   }
 

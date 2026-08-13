@@ -41,11 +41,26 @@ case class VerifierConfig (
   boogieExecutable: String
 )
 
+/** the possible outcomes of a verification, mirrored by `VerificationStatus` on the client side */
+object VerificationStatus {
+  val Success = "success"
+  val Failure = "failure"
+  /** the verification has been aborted before completing */
+  val Aborted = "aborted"
+  /** the verification has not been performed, e.g., because the `parseOnly` setting is enabled */
+  val Skipped = "skipped"
+}
+
 case class OverallVerificationResult(
   fileUris: Array[String],
+  // legacy field that remains the sole source of truth for clients that do not know `status` yet.
+  // It is unset only if Gobra has found errors or if the outcome is unknown because the verification
+  // has been cut short. In particular, it is set for a skipped verification because a verification
+  // that has not been performed cannot have found any errors:
   success: Boolean,
   message: String,
-  members: Array[MemberInformation] // information about verified members. Empty if entire program has been verified
+  members: Array[MemberInformation], // information about verified members. Empty if entire program has been verified
+  status: String // one of `VerificationStatus`' values
 )
 
 case class MemberInformation(
