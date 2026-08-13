@@ -72,11 +72,10 @@ object GobraServer extends GobraFrontend {
   }
 
   /** handles completion of `resultFuture` especially if the future fails (as opposed to a verification failure).
-    * `ignoreVerificationSuccess` instructs this handler to ignore verification success by not notifying clients
-    * that verification is done, which is especially useful if additional work is necessary after this future's
-    * completion.
+    * Clients are not notified that verification is done if `reporter` has submitted the verification of the
+    * generated Viper AST as a separate job because that job reports the overall result instead.
     */
-  private def serverExceptionHandling(verifierConfig: VerifierConfig, reporter: VerificationFinishNotifier, ast: Option[Program], resultFuture: Future[VerifierResult], ignoreVerificationSuccess: Boolean = false)(implicit executor: GobraExecutionContext): Future[VerifierResult] = {
+  private def serverExceptionHandling(verifierConfig: VerifierConfig, reporter: VerificationFinishNotifier, ast: Option[Program], resultFuture: Future[VerifierResult])(implicit executor: GobraExecutionContext): Future[VerifierResult] = {
     val fileUris = verifierConfig.fileData.map(_.fileUri)
     val isolate = verifierConfig.isolate
 
@@ -84,7 +83,11 @@ object GobraServer extends GobraFrontend {
     resultFuture.transformWith {
       case Success(res) =>
         _server.globalLogger.info(s"GobraServer: Gobra handled request successfully: $res")
-        if (!ignoreVerificationSuccess || res != VerifierResult.Success) {
+        // note that we cannot derive from `res` whether a separate job has been submitted: Gobra reports
+        // `VerifierResult.Skipped` whenever the config disables a step of its pipeline, which is the case
+        // both when we stop after the encoding (a job has been submitted) and when, e.g., the `parseOnly`
+        // setting is enabled (no Viper AST has been generated, i.e., no job has been submitted):
+        if (!reporter.hasSubmittedAstJob) {
           reporter.notifyOverallVerificationFinished(res, ast)
         }
         Future.successful(res)
@@ -141,7 +144,7 @@ object GobraServer extends GobraFrontend {
       case Right(config) => verify(config)
       case Left(errs) => successful(VerifierResult.Failure(errs))
     }
-    serverExceptionHandling(verifierConfig, reporter, None, fut, ignoreVerificationSuccess = !VerificationInOneStep)
+    serverExceptionHandling(verifierConfig, reporter, None, fut)
   }
 
   /**
@@ -191,7 +194,9 @@ object GobraServer extends GobraFrontend {
 
     val resultFut = eitherResult.fold(errs => VerifierResult.Failure(errs), identity)
     resultFut.onComplete(res => (res, VerifierState.client) match {
-      case (Success(VerifierResult.Success), Some(c)) =>
+      // the config disables all steps after type-checking, i.e., `Skipped` (and not `Success`) is the
+      // result that Gobra reports for a successful goification, see `Helper.goifyConfigFromTask`:
+      case (Success(VerifierResult.Skipped), Some(c)) =>
         c.finishedGoifying(fileUri, success = true)
       case (_, Some(c)) =>
         c.finishedGoifying(fileUri, success = false)
@@ -243,6 +248,9 @@ object GobraServer extends GobraFrontend {
   /**
     * Get preview of Code which then gets displayed on the client side.
     * Currently the internal representation and the viper encoding can be previewed.
+    * The preview is sent to the client by the reporter. The returned result merely indicates whether
+    * producing the preview was successful, in which case it is `VerifierResult.Skipped` (and not
+    * `Success`) because the config disables the verification, see `Helper.previewConfigFromTask`.
     */
   def codePreview(fileData: Array[FileData], internalPreview: Boolean, viperPreview: Boolean, selections: List[Range])(implicit executor: GobraExecutionContext): Future[VerifierResult] = {
     val eitherResult = for {
