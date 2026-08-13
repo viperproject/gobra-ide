@@ -10,7 +10,7 @@ import { ProgressBar } from "./ProgressBar";
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { VerifierConfig, OverallVerificationResult, PreviewData, FileData, IsolationData } from "./MessagePayloads";
+import { VerifierConfig, OverallVerificationResult, PreviewData, FileData, IsolationData, VerificationStatus } from "./MessagePayloads";
 import { IdeEvents } from "./IdeEvents";
 
 import { Dependency, withProgressInWindow, Location, DependencyInstaller, RemoteZipExtractor, GitHubZipExtractor, LocalReference, ConfirmResult, Success } from 'vs-verification-toolbox';
@@ -651,7 +651,14 @@ export class Verifier {
     const fileUris = overallResult.fileUris.map(uri => URI.parse(uri));
     State.removeRunningVerification(fileUris);
 
-    if (overallResult.success && overallResult.members.length === 0) {
+    // note that `status` is unset for servers that do not report it yet, which then falls through to
+    // the `success` based cases below
+    const isNeutralStatus = overallResult.status === VerificationStatus.Aborted ||
+      overallResult.status === VerificationStatus.Skipped;
+    if (isNeutralStatus) {
+      // nothing has been verified but this is not a verification failure either
+      Verifier.verifyItem.setProperties(overallResult.message, Color.white);
+    } else if (overallResult.success && overallResult.members.length === 0) {
       Verifier.verifyItem.setProperties(overallResult.message, Color.green);
     } else if (overallResult.success) {
       // program has only been partially verified

@@ -10,3 +10,4 @@ evaluationFiles/
 .vscode-test/
 logger.log
 tmp/
+dependencies/
