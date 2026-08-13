@@ -6,7 +6,6 @@
 
 package viper.gobraserver
 
-import com.google.gson.Gson
 import viper.gobra.Gobra
 import viper.gobra.GobraFrontend
 import viper.gobra.reporting.{NotFoundError, VerifierError, VerifierResult}
@@ -46,7 +45,6 @@ object GobraServer extends GobraFrontend {
   private var _options: List[String] = List()
   private var _executor: GobraServerExecutionContext = _
   private var _server: ViperCoreServer = _
-  private lazy val gson: Gson = new Gson()
 
   def init(options: List[String])(executor: GobraServerExecutionContext): Unit = {
     _options = options

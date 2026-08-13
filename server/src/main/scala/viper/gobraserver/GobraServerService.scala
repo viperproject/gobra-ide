@@ -6,12 +6,14 @@
 
 package viper.gobraserver
 
-import com.google.gson.JsonObject
+import com.google.gson.{Gson, JsonObject}
 import java.util.concurrent.{CancellationException, CompletableFuture}
 import org.eclipse.lsp4j.jsonrpc.ResponseErrorException
 import org.eclipse.lsp4j.jsonrpc.messages.{ResponseError, ResponseErrorCode}
 import org.eclipse.lsp4j.jsonrpc.services.{JsonNotification, JsonRequest}
 import org.eclipse.lsp4j.{DidChangeTextDocumentParams, DidChangeWatchedFilesParams, DidCloseTextDocumentParams, DidOpenTextDocumentParams, DidSaveTextDocumentParams, InitializeParams, InitializeResult, MessageParams, MessageType, Range, ServerCapabilities, ServerInfo, TextDocumentSyncKind}
+
+import viper.gobra.{BuildInfo => GobraBuildInfo}
 
 import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Success}
@@ -19,6 +21,8 @@ import scala.annotation.unused
 import scala.util.Try
 
 class GobraServerService(config: ServerConfig)(implicit executor: GobraServerExecutionContext) extends IdeLanguageClientAware {
+  // used to serialize the version information payload:
+  private val gson: Gson = new Gson()
 
   @JsonRequest(value = "initialize")
   def initialize(params: InitializeParams): CompletableFuture[InitializeResult] = {
@@ -158,6 +162,19 @@ class GobraServerService(config: ServerConfig)(implicit executor: GobraServerExe
       case Some(c) => c.showMessage(new MessageParams(MessageType.Info, "Successfully flushed ViperServer Cache."))
       case None =>
     }
+  }
+
+  @JsonRequest("gobraServer/getVersionInfo")
+  def getVersionInfo(): CompletableFuture[String] = {
+    val versionInfo = VersionInfo(
+      serverVersion = BuildInfo.projectVersion,
+      serverCommit = BuildInfo.gitRevision,
+      serverBranch = BuildInfo.gitBranch,
+      gobraVersion = GobraBuildInfo.projectVersion,
+      gobraCommit = GobraBuildInfo.gitRevision,
+      gobraBranch = GobraBuildInfo.gitBranch
+    )
+    CompletableFuture.completedFuture(gson.toJson(versionInfo))
   }
 
   @JsonNotification("gobraServer/codePreview")

@@ -14,7 +14,7 @@ import { Location } from 'vs-verification-toolbox';
 import { LSPErrorCodes, ResponseError } from 'vscode-languageclient';
 import locate_java_home from '@viperproject/locate-java-home';
 import type { IJavaHomeInfo } from '@viperproject/locate-java-home/js/es5/lib/interfaces.js';
-import { OverallVerificationResult, GobraSettings, PlatformDependendPath, GobraDependencies, HighlightingPosition } from "./MessagePayloads.js";
+import { OverallVerificationResult, GobraSettings, PlatformDependendPath, GobraDependencies, HighlightingPosition, VersionInfo } from "./MessagePayloads.js";
 
 
 export class Helper {
@@ -129,6 +129,10 @@ export class Helper {
   }
 
   public static jsonToHighlightingPositions(json: string): HighlightingPosition[] {
+    return JSON.parse(json);
+  }
+
+  public static jsonToVersionInfo(json: string): VersionInfo {
     return JSON.parse(json);
   }
 
@@ -395,6 +399,7 @@ export class Commands {
   public static gobrafyFile = "gobraServer/gobrafyFile";
   public static setOpenFileUri = "gobraServer/setOpenFileUri";
   public static codePreview = "gobraServer/codePreview";
+  public static getVersionInfo = "gobraServer/getVersionInfo";
 
   /**
     * Commands handled by Client (VSCode)
@@ -436,6 +441,32 @@ export class Texts {
     // note that VSCode (at least currently) strips new-line characters. Thus, make sure it is nonetheless somewhat readable
     return `Gobra uses java located at: \n\`${path}\`.\n\nThe java version is: \n\`${version}\`.`;
   }
+  public static copyVersionInformation = "Copy";
+  private static formatCommit(commit: string, branch: string): string {
+    // suppress uninformative branches: "HEAD" (detached-HEAD CI builds) and "<branch>" (built without git):
+    const irrelevantBranches = ["master", "HEAD", "<branch>"];
+    return `${commit}${irrelevantBranches.includes(branch) ? "" : `@${branch}`}`;
+  }
+  /** returns one line per component; join with ' — ' for popups (VSCode strips newlines) and with '\n' for the clipboard */
+  public static versionInfoLines(extensionVersion: string, info: VersionInfo): string[] {
+    return [
+      `Gobra IDE extension: ${extensionVersion}`,
+      `Gobra IDE server: ${info.serverVersion} (${Texts.formatCommit(info.serverCommit, info.serverBranch)})`,
+      `Gobra: ${info.gobraVersion} (${Texts.formatCommit(info.gobraCommit, info.gobraBranch)})`,
+    ];
+  }
+  public static versionInfoUnsupportedServer(extensionVersion: string): string[] {
+    return [
+      `Gobra IDE extension: ${extensionVersion}`,
+      `The Gobra server does not support version reporting yet — when using the build version 'External', update the configured Gobra tools`,
+    ];
+  }
+  public static versionInfoServerUnavailable(extensionVersion: string): string[] {
+    return [
+      `Gobra IDE extension: ${extensionVersion}`,
+      `Gobra server is not running — version information about the server is unavailable`,
+    ];
+  }
 }
 
 export class Color {
@@ -463,6 +494,7 @@ export class ContributionCommands {
   public static showInternalCodePreview = "gobra.showInternalCodePreview";
   public static showJavaPath = "gobra.showJavaPath";
   public static stopVerification = "gobra.stopVerification";
+  public static showVersionInformation = "gobra.showVersionInformation";
 }
 
 

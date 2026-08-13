@@ -15,6 +15,7 @@ import { VerifierConfig, OverallVerificationResult, PreviewData, FileData, Isola
 import { IdeEvents } from "./IdeEvents.js";
 
 import { URI } from "vscode-uri";
+import { ResponseError, ErrorCodes } from "vscode-languageclient";
 
 export class Verifier {
   public static verifyItem: ProgressBar;
@@ -49,6 +50,7 @@ export class Verifier {
     Helper.registerCommand(ContributionCommands.showInternalCodePreview, Verifier.showInternalCodePreview, context);
     Helper.registerCommand(ContributionCommands.showJavaPath, () => Verifier.showJavaPath(), context);
     Helper.registerCommand(ContributionCommands.stopVerification, () => Verifier.stopVerification(), context);
+    Helper.registerCommand(ContributionCommands.showVersionInformation, () => Verifier.showVersionInformation(), context);
 
     /**
       * Register Notification handlers for Gobra-Server notifications.
@@ -501,6 +503,41 @@ export class Verifier {
     const javaVersion = await Helper.spawn(javaPath, ["-version"]);
     // at leat on macOS, stdout is empty and the version is in stderr. Thus, simply concatenate them:
     await vscode.window.showInformationMessage(Texts.javaLocation(javaPath, javaVersion.stdout.concat(javaVersion.stderr)));
+  }
+
+  /**
+   * Displays an information popup with the extension's version and the commits
+   * the Gobra server and Gobra were built from.
+   * Returns the popup text (used by the extension tests).
+   */
+  public static async showVersionInformation(): Promise<string> {
+    const extensionVersion: string = State.context.extension.packageJSON.version;
+    let lines: string[];
+    try {
+      // `sendRequest` throws synchronously if the client is not in the `Running`
+      // state (e.g. the server crashed and restarts were exhausted); as this
+      // function is async, the throw surfaces as a rejection caught below:
+      const versionInfoJson = await State.client.sendRequest<string>(Commands.getVersionInfo);
+      lines = Texts.versionInfoLines(extensionVersion, Helper.jsonToVersionInfo(versionInfoJson));
+    } catch (e) {
+      Helper.log(`retrieving version information from Gobra server failed: ${e}`);
+      if (e instanceof ResponseError && e.code === ErrorCodes.MethodNotFound) {
+        // the installed server predates the `gobraServer/getVersionInfo` request:
+        lines = Texts.versionInfoUnsupportedServer(extensionVersion);
+      } else {
+        lines = Texts.versionInfoServerUnavailable(extensionVersion);
+      }
+    }
+    const popupText = lines.join(" — ");
+    // deliberately do NOT await the popup: its promise only resolves upon dismissal,
+    // which would block callers (in particular the extension tests):
+    vscode.window.showInformationMessage(popupText, Texts.copyVersionInformation)
+      .then(async choice => {
+        if (choice === Texts.copyVersionInformation) {
+          await vscode.env.clipboard.writeText(lines.join("\n"));
+        }
+      });
+    return popupText;
   }
 
   /**

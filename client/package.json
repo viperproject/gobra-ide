@@ -154,6 +154,11 @@
         "command": "gobra.stopVerification",
         "title": "Stop the running verification",
         "category": "Gobra"
+      },
+      {
+        "command": "gobra.showVersionInformation",
+        "title": "Show version information",
+        "category": "Gobra"
       }
     ],
     "menus": {
