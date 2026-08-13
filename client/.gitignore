@@ -14,3 +14,4 @@ tmp/
 .nyc_output/
 target/
 test.log
+dependencies/

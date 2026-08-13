@@ -114,17 +114,30 @@ export interface VersionInfo {
   gobraBranch: string;
 }
 
+/** the possible outcomes of a verification, mirrored by `VerificationStatus` on the server side */
+export enum VerificationStatus {
+  Success = "success",
+  Failure = "failure",
+  /** the verification has been aborted before completing */
+  Aborted = "aborted",
+  /** the verification has not been performed, e.g., because the `parseOnly` setting is enabled */
+  Skipped = "skipped",
+}
+
 export class OverallVerificationResult {
   fileUris: string[];
   success: boolean;
   message: string;
   members: MemberInformation[];
+  /** unset if the server does not report the status yet, in which case only `success` is available */
+  status?: VerificationStatus;
 
-  constructor(fileUris: string[], success: boolean, message: string, members: MemberInformation[]) {
+  constructor(fileUris: string[], success: boolean, message: string, members: MemberInformation[], status?: VerificationStatus) {
     this.fileUris = fileUris;
     this.success = success;
     this.message = message;
     this.members = members;
+    this.status = status;
   }
 }
 

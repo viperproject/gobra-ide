@@ -13,7 +13,7 @@ import { URI } from 'vscode-uri';
 import { Location } from 'vs-verification-toolbox';
 import locate_java_home from '@viperproject/locate-java-home';
 import type { IJavaHomeInfo } from '@viperproject/locate-java-home/js/es5/lib/interfaces.js';
-import { OverallVerificationResult, GobraSettings, PlatformDependendPath, GobraDependencies, HighlightingPosition } from "./MessagePayloads.js";
+import { OverallVerificationResult, GobraSettings, PlatformDependendPath, GobraDependencies, HighlightingPosition, VersionInfo } from "./MessagePayloads.js";
 
 
 export class Helper {

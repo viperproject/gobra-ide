@@ -6,6 +6,12 @@
     "lib": [
 			"es2022"
 		],
+    /* TypeScript 6 no longer includes the packages in `node_modules/@types` automatically, i.e.
+       `@types/node` has to be listed explicitly to get the Node.js globals and built-in modules.
+       Note that packages that are imported by name (such as `@types/vscode`) are still resolved. */
+    "types": [
+			"node"
+		],
     "outDir": "./dist",
     "rootDir": "src",
     "sourceMap": true,
