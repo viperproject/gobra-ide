@@ -27,8 +27,8 @@ object Server {
   val protocolVersion: Int = 2
 
   val version: String = {
-    val buildRevision = BuildInfo.git("revision")
-    val buildBranch = BuildInfo.git("branch")
+    val buildRevision = BuildInfo.gitRevision
+    val buildBranch = BuildInfo.gitBranch
     val buildVersion = s"$buildRevision${if (buildBranch == "master") "" else s"@$buildBranch"}"
 
     s"${BuildInfo.projectVersion} ($buildVersion)"
