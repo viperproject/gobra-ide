@@ -254,6 +254,24 @@ suite("Extension", () => {
         assert.ok(newErrorDiagnostics.length >= 1);
     });
 
+    test("Stopping a verification leaves the extension usable", async function() {
+        this.timeout(GOBRA_VERIFICATION_TIMEOUT_MS);
+        await closeAllFiles();
+        await openFile(DECREASES); // comparatively slow file such that the stop likely lands mid-verification
+        // start a verification and immediately stop it. Depending on the timing, the stop lands
+        // before the request is sent, mid-verification, or after completion -- all must be fine:
+        const verification = vscode.commands.executeCommand(ContributionCommands.verify);
+        await vscode.commands.executeCommand(ContributionCommands.stopVerification);
+        await Promise.resolve(verification).then(
+            () => log("the stop landed before the start or after completion"),
+            (e) => log(`the verification settled after stopping: ${e}`));
+        // regardless of the interleaving, a subsequent verification must complete normally:
+        const document = await openAndVerifyFile(ASSERT_TRUE);
+        const errorDiagnostics = vscode.languages.getDiagnostics(document.uri)
+            .filter(diag => diag.severity === vscode.DiagnosticSeverity.Error);
+        assert.strictEqual(errorDiagnostics.length, 0);
+    });
+
     test("Verifying a package consisting of two files succeeds", async function() {
         this.timeout(GOBRA_VERIFICATION_TIMEOUT_MS);
         const document = await openAndVerifyPackage(PKG_FILE_1, true);

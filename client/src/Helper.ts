@@ -11,6 +11,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { URI } from 'vscode-uri';
 import { Location } from 'vs-verification-toolbox';
+import { LSPErrorCodes, ResponseError } from 'vscode-languageclient';
 import locate_java_home from '@viperproject/locate-java-home';
 import type { IJavaHomeInfo } from '@viperproject/locate-java-home/js/es5/lib/interfaces.js';
 import { OverallVerificationResult, GobraSettings, PlatformDependendPath, GobraDependencies, HighlightingPosition, VersionInfo } from "./MessagePayloads.js";
@@ -113,6 +114,18 @@ export class Helper {
 
   public static jsonToOverallResult(json: string): OverallVerificationResult {
     return JSON.parse(json);
+  }
+
+  /**
+    * Returns whether the given rejection of an LSP request corresponds to the request having been
+    * cancelled: either the server replied with `RequestCancelled` or the connection was torn down
+    * while the cancelled request was still pending.
+    */
+  public static isRequestCancelledError(e: unknown): boolean {
+    return (e instanceof ResponseError && e.code === LSPErrorCodes.RequestCancelled)
+      // the language client rejects with vscode-jsonrpc's `CancellationError` (name 'Cancelled')
+      // when the connection is torn down while the cancelled request is still pending:
+      || (e instanceof Error && e.name === "Cancelled");
   }
 
   public static jsonToHighlightingPositions(json: string): HighlightingPosition[] {
@@ -374,7 +387,7 @@ export class Commands {
     * rejects the request if the versions do not match. This version has to be bumped on every breaking
     * change of the custom `gobraServer/*` messages (in sync with the server's counterpart in Server.scala).
     */
-  public static protocolVersion = 2;
+  public static protocolVersion = 3;
 
   /**
     * Commands handled by Gobra-Server
@@ -394,8 +407,6 @@ export class Commands {
   public static overallResult = "gobraServer/overallResult";
   public static noVerificationInformation = "gobraServer/noVerificationInformation";
   public static verificationProgress = "gobraServer/verificationProgress";
-  public static finishedVerification = "gobraServer/finishedVerification";
-  public static verificationException = "gobraServer/verificationException";
   public static finishedGoifying = "gobraServer/finishedGoifying";
   public static finishedGobrafying = "gobraServer/finishedGobrafying";
   public static finishedViperCodePreview = "gobraServer/finishedViperCodePreview";
@@ -416,6 +427,9 @@ export class Texts {
   public static helloGobra = "Hello from Gobra";
   public static flushCache = "Flush Cache";
   public static changedBuildVersion = "Changed the build version of Gobra Tools. Please restart the IDE.";
+  public static stopVerification = "$(x) Stop";
+  public static stopVerificationTooltip = "Stop verifying the file or package shown in the status bar";
+  public static verificationStopped = "Verification stopped";
   public static openSettings = "Open Settings";
   public static legacyBuildVersion(configuredBuildVersion: string): string {
     return `The configured build version '${configuredBuildVersion}' of the Gobra tools no longer exists ` +
@@ -444,7 +458,7 @@ export class Texts {
   public static versionInfoUnsupportedServer(extensionVersion: string): string[] {
     return [
       `Gobra IDE extension: ${extensionVersion}`,
-      `The installed Gobra server does not support version reporting yet — consider running 'Gobra: Update Gobra Tools'`,
+      `The Gobra server does not support version reporting yet — when using the build version 'External', update the configured Gobra tools`,
     ];
   }
   public static versionInfoServerUnavailable(extensionVersion: string): string[] {
@@ -479,6 +493,7 @@ export class ContributionCommands {
   public static showViperCodePreview = "gobra.showViperCodePreview";
   public static showInternalCodePreview = "gobra.showInternalCodePreview";
   public static showJavaPath = "gobra.showJavaPath";
+  public static stopVerification = "gobra.stopVerification";
   public static showVersionInformation = "gobra.showVersionInformation";
 }
 

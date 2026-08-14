@@ -7,6 +7,7 @@
 import { State } from "./ExtensionState.js";
 import { Helper, Commands, ContributionCommands, Texts, Color, PreviewUris, BuildChannel } from "./Helper.js";
 import { ProgressBar } from "./ProgressBar.js";
+import { StopButton } from "./StopButton.js";
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -18,6 +19,7 @@ import { ResponseError, ErrorCodes } from "vscode-languageclient";
 
 export class Verifier {
   public static verifyItem: ProgressBar;
+  public static stopItem: StopButton;
   private static verifiedMemberSuccessDecoratorType: vscode.TextEditorDecorationType;
   private static verifiedMemberFailureDecoratorType: vscode.TextEditorDecorationType;
 
@@ -28,6 +30,8 @@ export class Verifier {
 
     // Initialize Verification Button in Statusbar
     Verifier.verifyItem = new ProgressBar(Texts.helloGobra, 10);
+    Verifier.stopItem = new StopButton(11);
+    context.subscriptions.push(Verifier.stopItem.item);
 
     Verifier.verifiedMemberSuccessDecoratorType = vscode.window.createTextEditorDecorationType({backgroundColor: 'rgba(144,238,144,0.2)', isWholeLine: true});
     Verifier.verifiedMemberFailureDecoratorType = vscode.window.createTextEditorDecorationType({backgroundColor: 'rgba(238,144,144,0.2)', isWholeLine: true});
@@ -45,6 +49,7 @@ export class Verifier {
     Helper.registerCommand(ContributionCommands.showViperCodePreview, Verifier.showViperCodePreview, context);
     Helper.registerCommand(ContributionCommands.showInternalCodePreview, Verifier.showInternalCodePreview, context);
     Helper.registerCommand(ContributionCommands.showJavaPath, () => Verifier.showJavaPath(), context);
+    Helper.registerCommand(ContributionCommands.stopVerification, () => Verifier.stopVerification(), context);
     Helper.registerCommand(ContributionCommands.showVersionInformation, () => Verifier.showVersionInformation(), context);
 
     /**
@@ -53,7 +58,6 @@ export class Verifier {
     State.client.onNotification(Commands.overallResult, Verifier.handleOverallResultNotification)
     State.client.onNotification(Commands.verificationProgress, Verifier.handleVerificationProgressNotification);
     State.client.onNotification(Commands.noVerificationInformation, Verifier.handleNoVerificationInformationNotification);
-    State.client.onNotification(Commands.verificationException, Verifier.handleVerificationExceptionNotification);
 
     State.client.onNotification(Commands.finishedGoifying, Verifier.handleFinishedGoifyingNotification);
     State.client.onNotification(Commands.finishedGobrafying, Verifier.handleFinishedGobrafyingNotification);
@@ -64,6 +68,7 @@ export class Verifier {
       * Register VSCode Event listeners.
       */
     State.context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(editor => {
+      Verifier.updateStopButtonVisibility();
       if (editor && editor.document.uri.toString() === PreviewUris.viper.toString()) {
         State.viperPreviewProvider.setDecorations(PreviewUris.viper);
       } else if (editor && editor.document.uri.toString() == PreviewUris.internal.toString()) {
@@ -242,12 +247,34 @@ export class Verifier {
     }
     
     if (!State.containsRunningVerification(fileUris)) {
-      
-      State.addRunningVerification(fileUris);
+      const tokenSource = new vscode.CancellationTokenSource();
+      State.addRunningVerification(fileUris, tokenSource);
       fileUris.forEach(fileUri => Verifier.verifyItem.progress(fileUri, 0));
+      Verifier.updateStopButtonVisibility();
 
       Helper.log(`sending verification request for ${fileUris}`);
-      State.client.sendNotification(Commands.verify, State.verifierConfig);
+      try {
+        // the request's promise resolves with the overall result when the verification has
+        // finished. Cancelling the token makes the language client send `$/cancelRequest` upon
+        // which the server stops the verification and rejects this request with `RequestCancelled`:
+        const jsonOverallResult = await State.client.sendRequest<string>(Commands.verify, State.verifierConfig, tokenSource.token);
+        Verifier.renderOverallResult(Helper.jsonToOverallResult(jsonOverallResult));
+      } catch (e) {
+        if (Helper.isRequestCancelledError(e)) {
+          Helper.log(`the verification of ${fileUris} has been stopped`);
+          Verifier.verifyItem.setProperties(Texts.verificationStopped, Color.white);
+        } else {
+          Helper.log(`the verification of ${fileUris} has failed: ${e}`);
+          Verifier.verifyItem.setProperties(Texts.helloGobra, Color.white);
+          vscode.window.showErrorMessage(`${e instanceof Error ? e.message : e}`);
+        }
+      } finally {
+        // runs on every outcome (result, stop, failure, connection drop) such that the client's
+        // state never wedges and queued verification requests still fire:
+        State.removeRunningVerification(fileUris);
+        Verifier.updateStopButtonVisibility();
+        Verifier.reverifyFiles(fileUris);
+      }
     } else {
       Helper.log(`Verification is already running for ${fileUris}`);
       if (!State.containsVerificationRequests(fileUris) && event != IdeEvents.Save) {
@@ -269,6 +296,30 @@ export class Verifier {
         }
       }));
     await Promise.all(savePromises);
+  }
+
+  /**
+    * Stops the running verification involving the file shown in the active editor (i.e. the
+    * verification whose progress the status bar shows). Other running verifications are untouched.
+    */
+  public static stopVerification(): void {
+    const fileUri = Helper.getCurrentlyOpenFileUri();
+    const running = fileUri != null ? State.getRunningVerificationInvolving(fileUri) : undefined;
+    if (running == null) {
+      Helper.log(`there is no running verification involving the active file to stop`);
+      return;
+    }
+    Helper.log(`stopping the verification of ${running.fileUris}`);
+    // an explicit stop must not immediately re-trigger previously queued requests for these files:
+    State.removeVerificationRequests(running.fileUris);
+    // cancelling the token settles the corresponding request in `verifyFiles`:
+    running.tokenSource.cancel();
+  }
+
+  private static updateStopButtonVisibility(): void {
+    const fileUri = Helper.getCurrentlyOpenFileUri();
+    const visible = fileUri != null && State.isFileInvolvedInRunningVerification(fileUri) === true;
+    Verifier.stopItem.setVisible(visible);
   }
 
   /**
@@ -507,11 +558,14 @@ export class Verifier {
 
   // this function is non-private such that we can invoke it in our unit tests
   static handleOverallResultNotification(jsonOverallResult: string): void {
-    let overallResult: OverallVerificationResult = Helper.jsonToOverallResult(jsonOverallResult);
+    // note that this notification is a passive state-sync: the verification lifecycle (running
+    // verifications, queued requests, the stop button) is owned by the request promise in
+    // `verifyFiles`:
+    Verifier.renderOverallResult(Helper.jsonToOverallResult(jsonOverallResult));
+  }
 
-    const fileUris = overallResult.fileUris.map(uri => URI.parse(uri));
-    State.removeRunningVerification(fileUris);
-
+  /** renders an overall verification result in the status bar and as member decorations */
+  private static renderOverallResult(overallResult: OverallVerificationResult): void {
     // note that `status` is unset for servers that do not report it yet, which then falls through to
     // the `success` based cases below
     const isNeutralStatus = overallResult.status === VerificationStatus.Aborted ||
@@ -545,30 +599,17 @@ export class Verifier {
       textEditor.setDecorations(Verifier.verifiedMemberSuccessDecoratorType, successRanges);
       textEditor.setDecorations(Verifier.verifiedMemberFailureDecoratorType, failureRanges);
     }
-
-    Verifier.reverifyFiles(fileUris);
   }
 
   private static handleVerificationProgressNotification(fileUriString: string, progress: number): void {
     Helper.log(`progress ${fileUriString}: ${progress}`);
     const fileUri = URI.parse(fileUriString);
+    if (!State.isFileInvolvedInRunningVerification(fileUri)) {
+      // e.g. late progress of a stopped verification must not overwrite the status bar:
+      return;
+    }
     Verifier.verifyItem.progress(fileUri, progress);
   }
-
-
-  private static handleVerificationExceptionNotification(encodedFileUris: string): void {
-    const fileUriStrings = JSON.parse(encodedFileUris) as string[];
-    Helper.log(`handleVerificationExceptionNotification: ${fileUriStrings}`);
-    const fileUris = fileUriStrings.map(uri => URI.parse(uri));
-    State.removeRunningVerification(fileUris);
-
-    Verifier.verifyItem.setProperties(Texts.helloGobra, Color.white);
-    
-    Verifier.reverifyFiles(fileUris);
-  }
-
-  
-
 
   private static handleFinishedGoifyingNotification(fileUriString: string, success: boolean): void {
     const origFileUri = URI.parse(fileUriString);

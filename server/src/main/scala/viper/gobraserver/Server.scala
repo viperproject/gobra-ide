@@ -24,7 +24,7 @@ object Server {
     * rejects the request if the versions do not match. This version has to be bumped on every breaking
     * change of the custom `gobraServer` messages (in sync with the client's counterpart in Helper.ts).
     */
-  val protocolVersion: Int = 2
+  val protocolVersion: Int = 3
 
   val version: String = {
     val buildRevision = BuildInfo.gitRevision
