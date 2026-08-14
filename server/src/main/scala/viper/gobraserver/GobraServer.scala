@@ -100,16 +100,13 @@ object GobraServer extends GobraFrontend {
           reporter.notifyOverallVerificationFinished(res, ast)
         }
         Future.successful(res)
-      case Failure(exception) if job.isAborted =>
-        // expected fallout of stopping the verification (e.g. the backend's job was interrupted).
-        // Neither restart the server nor bother the client:
-        _server.globalLogger.info(s"GobraServer: ignoring failure of the stopped verification of $fileUris: $exception")
-        job.failWith(new CancellationException("the verification has been stopped"))
-        Future.failed(exception)
       case Failure(exception) =>
+        // note that stopping a verification does not cause a failure: Gobra reports an aborted
+        // verification as a regular result (handled above). Hence, a failure is unexpected even if
+        // the verification has been stopped in the meantime.
         // restart Gobra Server and then update client state
         // ignore result of restart and inform the client:
-        val finishedNow = job.tryFinish() // false if the reporter has already reported a result
+        val finishedNow = job.tryFinish() // false if the reporter has already reported a result, or if the verification has been stopped
         restart().transformWith(_ => {
           if (finishedNow) {
             // note that `verificationRunning` was previously never decremented on this path:
