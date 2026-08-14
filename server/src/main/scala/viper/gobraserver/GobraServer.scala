@@ -17,7 +17,7 @@ import viper.gobra.util.{GobraExecutionContext, Violation}
 import viper.gobra.reporting.BackTranslator.BackTrackInfo
 import viper.silver.ast.Program
 import viper.server.core.ViperCoreServer
-import org.eclipse.lsp4j.{MessageParams, MessageType, Range}
+import org.eclipse.lsp4j.Range
 import scalaz.EitherT
 import scalaz.Scalaz.futureInstance
 import viper.gobra.frontend.{Config, Gobrafier, Parser}

@@ -299,9 +299,6 @@ export class Verifier {
   }
 
   /**
-    * Verifies the files if it is in the verification requests queue.
-    */
-  /**
     * Stops the running verification involving the file shown in the active editor (i.e. the
     * verification whose progress the status bar shows). Other running verifications are untouched.
     */
@@ -325,6 +322,9 @@ export class Verifier {
     Verifier.stopItem.setVisible(visible);
   }
 
+  /**
+    * Verifies the files if it is in the verification requests queue.
+    */
   private static reverifyFiles(fileUris: URI[]): void {
     const event = State.getVerificationRequestsEvent(fileUris);
     if (event && Helper.isAutoVerify()) {
@@ -610,9 +610,6 @@ export class Verifier {
     }
     Verifier.verifyItem.progress(fileUri, progress);
   }
-
-  
-
 
   private static handleFinishedGoifyingNotification(fileUriString: string, success: boolean): void {
     const origFileUri = URI.parse(fileUriString);
