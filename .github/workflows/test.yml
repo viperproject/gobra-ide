@@ -27,9 +27,9 @@ on:
     - cron: '0 7 * * *' # run every day at 07:00 UTC
 
 env:
-  # the Z3 version that is part of the Gobra Tools. We use the version against which Gobra is tested
-  # (see Gobra's `workflow-container/Dockerfile`):
-  Z3_VERSION: "4.16.0"
+  # the Viper-IDE release whose Viper Tools provide Z3 and Boogie for the Gobra Tools. This should be
+  # the Viper release that Gobra uses such that we ship the Z3 version against which Gobra is tested:
+  VIPER_TOOLS_RELEASE: "v.26.08-release"
 
 
 jobs:
@@ -71,7 +71,7 @@ jobs:
           echo "Silicon: commit $(git -C gobra-ide/server/gobra/viperserver/silicon rev-parse HEAD)" >> versions.txt
           echo "Carbon: commit $(git -C gobra-ide/server/gobra/viperserver/carbon rev-parse HEAD)" >> versions.txt
           echo "Silver: commit ${{ env.SILICON_SILVER_REF }}" >> versions.txt
-          echo "Z3: version ${{ env.Z3_VERSION }}" >> versions.txt
+          echo "Viper Tools (Z3 and Boogie): release ${{ env.VIPER_TOOLS_RELEASE }}" >> versions.txt
         # first line overwrites versions.txt in case it already exists, all other append to the file
       - name: Upload version file
         uses: actions/upload-artifact@v7
@@ -120,23 +120,13 @@ jobs:
       fail-fast: false
       matrix:
         viper-tools-platform: ["ViperToolsWin", "ViperToolsLinux", "ViperToolsMac"]
-        # Z3's release assets are named after the platform on which they have been built. Since this
-        # platform changes between Z3 releases, `z3-platform` has to be adapted whenever `Z3_VERSION`
-        # changes:
         include:
           - viper-tools-platform: "ViperToolsWin"
             gobra-tools-platform: "GobraToolsWin"
-            z3-platform: "x64-win"
-            z3-binary: "z3.exe"
           - viper-tools-platform: "ViperToolsLinux"
             gobra-tools-platform: "GobraToolsLinux"
-            z3-platform: "x64-glibc-2.39"
-            z3-binary: "z3"
           - viper-tools-platform: "ViperToolsMac"
             gobra-tools-platform: "GobraToolsMac"
-            # the Mac Gobra Tools are used on Intel and Apple silicon Macs, hence the x64 build:
-            z3-platform: "x64-osx-15.7.3"
-            z3-binary: "z3"
     runs-on: ubuntu-latest
     steps:
       - name: Install prerequisites
@@ -148,7 +138,7 @@ jobs:
           name: server.jar
 
       - name: Download Viper Tools
-        run: wget --no-verbose https://viper.ethz.ch/downloads/${{ matrix.viper-tools-platform }}.zip --output-document=${{ matrix.viper-tools-platform }}.zip
+        run: wget --no-verbose https://github.com/viperproject/viper-ide/releases/download/${{ env.VIPER_TOOLS_RELEASE }}/${{ matrix.viper-tools-platform }}.zip --output-document=${{ matrix.viper-tools-platform }}.zip
       - name: Unzip Viper Tools
         run: unzip ${{ matrix.viper-tools-platform }}.zip -d ${{ matrix.viper-tools-platform }}
 
@@ -158,17 +148,8 @@ jobs:
       - name: Copy boogie from ViperTools to Gobra Tools
         run: cp -R ${{ matrix.viper-tools-platform }}/boogie ${{ matrix.gobra-tools-platform }}/boogie/
 
-      - name: Download Z3
-        run: wget --no-verbose https://github.com/Z3Prover/z3/releases/download/z3-${{ env.Z3_VERSION }}/z3-${{ env.Z3_VERSION }}-${{ matrix.z3-platform }}.zip --output-document=z3.zip
-      - name: Unzip Z3
-        run: unzip z3.zip -d z3
-
-      - name: Copy z3 to Gobra Tools
-        # the zip contains a single folder holding, among other files, `LICENSE.txt` and `bin/z3` resp. `bin/z3.exe`:
-        run: |
-          mkdir -p ${{ matrix.gobra-tools-platform }}/z3/bin
-          cp z3/z3-${{ env.Z3_VERSION }}-${{ matrix.z3-platform }}/LICENSE.txt ${{ matrix.gobra-tools-platform }}/z3/
-          cp z3/z3-${{ env.Z3_VERSION }}-${{ matrix.z3-platform }}/bin/${{ matrix.z3-binary }} ${{ matrix.gobra-tools-platform }}/z3/bin/
+      - name: Copy z3 from ViperTools to Gobra Tools
+        run: cp -R ${{ matrix.viper-tools-platform }}/z3 ${{ matrix.gobra-tools-platform }}/z3/
 
       - name: Copy Gobra server artifact to Gobra Tools
         run: mkdir -p ${{ matrix.gobra-tools-platform }}/server && cp server.jar ${{ matrix.gobra-tools-platform }}/server/server.jar
