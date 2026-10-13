@@ -52,6 +52,7 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
                             printVpr: Boolean = false,
                             submitAstJob: Boolean = true,
                             cacheDiagnostics: Boolean = false,
+                            job: VerificationJob,
                             logger: Logger)(executor: GobraExecutionContext) extends GobraReporter with VerificationFinishNotifier {
 
   require(fileData.nonEmpty)
@@ -180,13 +181,15 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
   private var submittedAstJob: Boolean = false
   override def hasSubmittedAstJob: Boolean = submittedAstJob
 
-  private var isFinished: Boolean = false
-
   def notifyOverallVerificationFinished(result: VerifierResult, ast: Option[vpr.Program]) : Unit = {
-    if (isFinished) {
+    if (result == VerifierResult.Aborted) {
+      // aborted verifications perform their bookkeeping when they get stopped:
+      job.failWith(new java.util.concurrent.CancellationException("the verification has been stopped"))
       return
     }
-    isFinished = true
+    if (!job.tryFinish()) {
+      return
+    }
 
     updateDiagnostics(result)
 
@@ -197,12 +200,18 @@ case class GobraIdeReporter(name: String = "gobraide_reporter",
     val endTime = System.currentTimeMillis()
     val overallResult = Helper.getOverallVerificationResult(fileUris.toArray, verifierConfig.isolate, ast, result, endTime - startTime)
     VerifierState.updateVerificationInformation(fileUris, Right(overallResult))
+    // settle the response of the corresponding `gobraServer/verify` request:
+    job.completeWith(overallResult)
   }
 
   /**
     * Function handling the reports arriving from the verification.
     */
   override def report(msg: GobraMessage): Unit = {
+    if (job.isAborted) {
+      // do not report any progress or results for stopped verifications:
+      return
+    }
     logger.trace(s"GobraIdeReport has received message $msg")
     msg match {
       case CopyrightReport(text) => println(text)

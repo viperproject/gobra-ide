@@ -1,17 +1,23 @@
 {
   "compilerOptions": {
-    "module": "commonjs",
-    "target": "es6",
+    "module": "es2022",
+    "moduleResolution": "bundler",
+    "target": "es2022",
     "lib": [
-			"es6"
+			"es2022"
+		],
+    /* TypeScript 6 no longer includes the packages in `node_modules/@types` automatically, i.e.
+       `@types/node` has to be listed explicitly to get the Node.js globals and built-in modules.
+       Note that packages that are imported by name (such as `@types/vscode`) are still resolved. */
+    "types": [
+			"node"
 		],
     "outDir": "./dist",
     "rootDir": "src",
     "sourceMap": true,
     "strict": true,
-		"typeRoots": [
-			"typings"
-		],
+    "skipLibCheck": true,
+    "esModuleInterop": true,
     /* Additional Checks */
 		"noImplicitReturns": true, /* Report error when not all code paths in function return a value. */
 		"noFallthroughCasesInSwitch": true, /* Report errors for fallthrough cases in switch statement. */

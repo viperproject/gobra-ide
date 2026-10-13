@@ -642,6 +642,15 @@ object HighlightingPrettyPrinter extends HighlightingPrettyPrinterBase with Brac
         text("goto") <+> target
       case LocalVarDeclStmt(decl) =>
         text("var") <+> showVar(decl)
+      case Quasihavoc(lhs, exp) =>
+        text("quasihavoc") <+>
+          lhs.map(c => show(c) <+> "==>" <> space).getOrElse(nil) <>
+          show(exp)
+      case Quasihavocall(vars, lhs, exp) =>
+        text("quasihavocall") <+>
+          ssep(vars map show, char(',') <> space) <+> "::" <+>
+          lhs.map(c => show(c) <+> "==>" <> space).getOrElse(nil) <>
+          show(exp)
       case e: ExtensionStmt => e.prettyPrint
       case null => uninitialized
     }

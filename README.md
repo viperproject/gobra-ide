@@ -42,27 +42,20 @@ Note: `npm` / node has to be installed.
 ## Configuring Gobra Tools
 Gobra Tools collectively represent the client's dependecies.
 In particular, Gobra Tools consist of the server (called Gobra Server), Z3, and Boogie.
-The Gobra Tools contain Z3 and Boogie from the Viper Tools of the Viper release pinned in `client/viper-tools-version`.
-This should be the Viper release that Gobra uses such that the Gobra Tools contain the Z3 version against which Gobra is tested.
-Note that this Z3 requires macOS 15 or newer resp. a Linux distribution with glibc 2.38 or newer (e.g. Ubuntu 24.04).
-On older systems, use the build version `Local` (see below) with a Z3 executable that runs on your system.
-Gobra-IDE supports three modes to fetch the Gobra Tools, which can be configured by setting `gobraSettings.buildVersion` in the extension's settings to `Stable` (default), `Nightly` or `Local`.
+The Gobra Tools are bundled with the extension, i.e., no additional installation step is necessary.
+The versions of Z3 and Boogie that get bundled are pinned in `client/z3-version` and `client/boogie-version`, and the bundled Gobra Server is built from the sources in this repository.
+We bundle the Z3 version against which Gobra is tested.
+Note that the bundled Z3 requires macOS 15 or newer resp. a Linux distribution with glibc 2.38 or newer (e.g. Ubuntu 24.04).
+On older systems, use the build version `External` (see below) with a Z3 executable that runs on your system.
 
-### Build versions `Stable` and `Nightly`
-`Stable` and `Nightly` use the latest non-prerelease and latest release, resp., of [Gobra-IDE on GitHub](https://github.com/viperproject/gobra-ide/releases).
-More specifically, the platform-specific `GobraTools<Linux|Mac|Win>.zip` is downloaded, unzipped, and stored in the following directory in the case of `Stable` (otherwise, replace `Stable` by `Nightly` in the following paths).
-- Linux: `$HOME/.config/Code/User/globalStorage/viper-admin.gobra-ide/Stable/GobraTools`
-- macOS: `$HOME/Library/Application Support/Code/User/globalStorage/viper-admin.gobra-ide/Stable/GobraTools`
-- Windows: `%APPDATA%\Roaming\Code\User\globalStorage\viper-admin.gobra-ide\Stable\GobraTools`
+Gobra-IDE supports two modes to locate the Gobra Tools, which can be configured by setting `gobraSettings.buildVersion` in the extension's settings to `BuiltIn` (default) or `External`.
 
-Note that Gobra-IDE tries to download the Gobra Tools only if no Gobra Tools can be found locally in the respective folder and only after asking the user to download them.
-This ensures that the Gobra Tools are not unknowingly replaced by a newer version.
-To update the Gobra Tools for the currently configured build version, press Ctrl+Shift+P resp. Cmd+Shift+P and select "Gobra: Update Gobra Tools".
+### Build version `BuiltIn`
+`BuiltIn` uses the Gobra Tools that are bundled with the extension, which are located in the `dependencies/GobraTools` folder within the extension's installation directory.
 
-
-### Build version `Local`
-Alternatively, `Local` allows you to fully customize which dependencies the IDE is using.
-The following settings (and default values) are taken into account when using build version `Local`:
+### Build version `External`
+Alternatively, `External` allows you to fully customize which dependencies the IDE is using.
+The following settings (and default values) are taken into account when using build version `External`:
 ```
 "gobraDependencies.gobraToolsPaths": {
    "gobraToolsBasePath": {
@@ -89,22 +82,19 @@ The following settings (and default values) are taken into account when using bu
 ```
 `gobraDependencies.gobraToolsPaths.gobraToolsBasePath` configures the path that the IDE is using to locate the Gobra Tools. This path is used to substitute `$gobraTools$` in `gobraDependencies.gobraToolsPaths.z3Executable`, `gobraDependencies.gobraToolsPaths.boogieExecutable`, and `gobraDependencies.gobraToolsPaths.serverJar`.
 
-For example, if you want to use Boogie and Z3 from the latest `Nightly` release but use your own built server, you may use the following configuration.
-This configures Gobra-IDE to use the nightly GobraTools but overwrites the path to the server's JAR file.
+For example, if you want to use the bundled Boogie and Z3 but use your own built server, you may use the following configuration (adapt the base path to the extension's actual installation directory).
 ```
+"gobraSettings.buildVersion": "External",
 "gobraDependencies.gobraToolsPaths": {
    "gobraToolsBasePath": {
-      "windows": "%APPDATA%\\Roaming\\Code\\User\\globalStorage\\viper-admin.gobra-ide\\Nightly\\GobraTools",
-      "linux": "$HOME/.config/Code/User/globalStorage/viper-admin.gobra-ide/Nightly/GobraTools",
-      "mac": "$HOME/Library/Application Support/Code/User/globalStorage/viper-admin.gobra-ide/Nightly/GobraTools"
+      "mac": "$HOME/.vscode/extensions/viper-admin.gobra-ide-<version>-<platform>/dependencies/GobraTools"
    },
    "serverJar": {
-      "windows": <path to JAR>,
-      "linux": <path to JAR>,
       "mac": <path to JAR>
    }
 }
 ```
+Note that the extension and the Gobra Server check at startup that they implement the same communication protocol version. When using `External` tools, make sure that the server's version matches the extension's.
 
 
 #### Debugging paths used by Gobra-IDE
@@ -113,7 +103,7 @@ Before launching the server, Gobra-IDE first locates your Java installation, tri
 Typical output (shortened) looks as follows, where `< ... >` is used to annotate or omit parts of the output.
 
 ```
-Ensuring dependencies for build channel Stable < indicates which build version Gobra-IDE is using >
+Locating the Gobra tools for build version BuiltIn < indicates which build version Gobra-IDE is using >
 Checking Java...
 Searching for Java home...
 Using Java home {
@@ -131,7 +121,7 @@ openjdk version "23.0.1" 2024-10-15
 
 └──── End stderr ──────┘
 Checking Z3...
-Gobra IDE: Running '/Users/arquintlinard/Library/Application Support/Code/User/globalStorage/viper-admin.gobra-ide/Stable/GobraTools/z3/bin/z3 --version'
+Gobra IDE: Running '<extension installation directory>/dependencies/GobraTools/z3/bin/z3 --version'
 ┌──── Begin stdout ────┐
 Z3 version 4.16.0 - 64 bit
 
@@ -149,17 +139,21 @@ Run `npx github:viperproject/check-license-header#v1 check --config .github/lice
 
 ## Release Management
 A nightly release is created daily at 7:00 UTC.
-Stable releases should be created as follows (manually triggered nightly releases can be created similarly as well):
+Stable releases and pre-releases should be created as follows (manually triggered nightly releases can be created similarly as well):
 1. Open [test workflow on GitHub.com](https://github.com/viperproject/gobra-ide/actions?query=workflow%3Atest)
 2. Click on "Run workflow"
-3. Choose `master` branch, type `stable` (`nightly` for manually creating a nightly release), a tag name (e.g. `v1.0-beta.1`), and a release name (this will become the release's title).
+3. Choose the branch, type `stable` or `pre-release` (`nightly` for manually creating a nightly release), a tag name (e.g. `v1.0-beta.1`), and a release name (this will become the release's title). Mind the version convention below when choosing the type.
 
 Type `stable` will create a draft release with the chosen tag name (the tag itself will be created when publishing the release) and release name.
-The release body will consist of the commit hashes of the depending repositories.
-In addition, the release assets will be created and attached to the release.
-Please wait until the workflow has completed before publishing the release because Gobra IDE will use the assets of the latest published release.
+The release body will consist of the commit hashes and versions of the dependencies.
+In addition, the release assets (the platform-specific extensions and Gobra tools) will be created and attached to the release.
+Once the workflow has completed, the extension is published to the Visual Studio Marketplace and the Open VSX Registry if the version in `client/package.json` differs from the latest published one.
 
-In case the type `nightly` was selected, the same steps will be performed as done for the periodic nightly releases.
+Type `pre-release` behaves like `stable` but publishes the extension to the marketplaces as a pre-release version, which users have to opt into ("Switch to Pre-Release Version").
+**Version convention: pre-releases must use an odd minor version (e.g. `3.1.x`, `3.3.x`) and stable releases an even one (e.g. `3.0.x`, `3.2.x`).**
+This is necessary because the marketplaces do not support semver pre-release suffixes and always serve users the highest version number of the respective channel.
+
+In case the type `nightly` was selected, a GitHub pre-release is created (no marketplace publishing).
 Note that in this case the tag name and release name will be ignored.
 
 Alternatively, the manual triggering of the workflow can be done via command line:

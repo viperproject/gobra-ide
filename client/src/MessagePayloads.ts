@@ -4,7 +4,7 @@
 //
 // Copyright (c) 2011-2020 ETH Zurich.
 
-import { Helper } from "./Helper";
+import { Helper } from "./Helper.js";
 import * as vscode from 'vscode';
 import { URI } from 'vscode-uri';
 
@@ -78,6 +78,9 @@ export interface GobraSettings {
   includeDirs: string[];
 }
 
+// note that the following settings-related types (up to and including `PlatformDependendPath`)
+// are NOT message payloads: they only type the client-side `vscode.workspace.getConfiguration`
+// accesses and have no counterpart in the server's MessagePayloads.scala:
 export interface JavaSettings {
   javaBinary: string;
   cwd: string;
@@ -91,15 +94,9 @@ export interface PathSettings {
   serverJar: PlatformDependendPath;
 }
 
-export interface ProviderSettings {
-  stable: PlatformDependendPath;
-  nightly: PlatformDependendPath;
-}
-
 export interface GobraDependencies {
   java: JavaSettings;
   gobraToolsPaths: PathSettings;
-  gobraToolsProvider: ProviderSettings;
 }
 
 export interface PlatformDependendPath {

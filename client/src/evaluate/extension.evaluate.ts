@@ -6,12 +6,15 @@
 
 import { after } from 'mocha';
 import * as fs from 'fs';
-import * as vscode from 'vscode';
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
+const vscode = require('vscode') as typeof import('vscode');
+import performanceNow from 'performance-now';
 
-import { TestHelper } from "../test/TestHelper";
-import { EvaluationHelper } from "../evaluate/EvaluationHelper";
+import { TestHelper } from "../test/TestHelper.js";
+import { EvaluationHelper } from "../evaluate/EvaluationHelper.js";
 
-import { Verifier } from '../VerificationService';
+import { Verifier } from '../VerificationService.js';
 
 suite('Evaluation Suite', () => {
   after(() => {
@@ -19,7 +22,7 @@ suite('Evaluation Suite', () => {
   });
 
   test('Evaluate Single Verification', async () => {
-    const now = require("performance-now");
+    const now = performanceNow;
 
     let writeStream = fs.createWriteStream(EvaluationHelper.evaluationResultsFile);
 

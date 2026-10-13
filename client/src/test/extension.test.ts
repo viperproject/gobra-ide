@@ -4,18 +4,26 @@
 //
 // Copyright (c) 2011-2020 ETH Zurich.
 
-import * as assert from 'assert';
-import * as vscode from 'vscode';
+import assert from 'assert';
+import { createRequire } from 'node:module';
+import type { DiagnosticChangeEvent, TextDocument, Uri as VscodeUri } from 'vscode';
+const require = createRequire(import.meta.url);
+const vscode = require('vscode') as typeof import('vscode');
 import * as path from 'path';
 import { URI } from 'vscode-uri';
-import { State } from '../ExtensionState';
-import { Commands, ContributionCommands, Helper } from '../Helper';
-import { TestHelper } from './TestHelper';
-import { OverallVerificationResult } from '../MessagePayloads';
-import { Verifier } from '../VerificationService';
+import { TestHelper } from './TestHelper.js';
 import { readdir } from 'fs/promises';
 
-const PROJECT_ROOT = path.join(__dirname, "..", "..");
+// Dynamically import from the webpack bundle to share module instances
+// with the extension without blocking the event loop during module loading.
+let State: typeof import('../extension.js')['State'];
+let Commands: typeof import('../extension.js')['Commands'];
+let ContributionCommands: typeof import('../extension.js')['ContributionCommands'];
+let Helper: typeof import('../extension.js')['Helper'];
+let Verifier: typeof import('../extension.js')['Verifier'];
+type OverallVerificationResult = import('../MessagePayloads.js').OverallVerificationResult;
+
+const PROJECT_ROOT = path.join(import.meta.dirname, "..", "..");
 const DATA_ROOT = path.join(PROJECT_ROOT, "src", "test", "data");
 const ASSERT_TRUE = "assert_true.gobra";
 const ASSERT_FALSE = "assert_false.gobra";
@@ -24,8 +32,7 @@ const FAILING_POST_GO = "failing_post.go";
 const DECREASES = "decreases.gobra";
 const PKG_FILE_1 = "pkg/file1.gobra";
 
-const URL_CONVERSION_TIMEOUT_MS = 5000; // 5s
-const GOBRA_TOOL_UPDATE_TIMEOUT_MS = 4 * 60 * 1000; // 4min
+const EXTENSION_STARTUP_TIMEOUT_MS = 4 * 60 * 1000; // 4min
 const GOBRA_VERIFICATION_TIMEOUT_MS = 1 * 60 * 1000; // 1min
 
 function log(msg: string) {
@@ -40,7 +47,7 @@ async function getGobraFilesInDataPath(): Promise<string[]> {
     function getExtension(filename: string): string | undefined {
         return filename.split('.').pop();
     }
-    
+
     const filenames = await readdir(DATA_ROOT);
     return filenames
         .filter(filename => {
@@ -60,7 +67,7 @@ async function closeAllFiles(): Promise<void> {
  *
  * @param fileName
  */
-async function openFile(fileName: string): Promise<vscode.TextDocument> {
+async function openFile(fileName: string): Promise<TextDocument> {
     const filePath = getTestDataPath(fileName);
     log(`Open ${filePath}`);
     return TestHelper.openFile(filePath);
@@ -70,7 +77,7 @@ async function openFile(fileName: string): Promise<vscode.TextDocument> {
  * @param expectSingleFile if true, verification result messages about multiple files are ignored
  * @param expectMultipleFiles if true, verification result messages about a single file are ignored
  */
-async function openAndVerify(fileName: string, command: string, expectSingleFile: boolean = false, expectMultipleFiles: boolean = false): Promise<vscode.TextDocument> {
+async function openAndVerify(fileName: string, command: string, expectSingleFile: boolean = false, expectMultipleFiles: boolean = false): Promise<TextDocument> {
     await closeAllFiles();
     const executed = new Promise<void>((resolve) => {
         // the following handler only listens to `overallResult` notifications
@@ -80,9 +87,9 @@ async function openAndVerify(fileName: string, command: string, expectSingleFile
             // since we overwrite the notification handler, we have to manually forward the notification:
             Verifier.handleOverallResultNotification(jsonOverallResult);
             const overallResult: OverallVerificationResult = Helper.jsonToOverallResult(jsonOverallResult);
-            const fileUris = overallResult.fileUris.map(uri => URI.parse(uri));
+            const fileUris = overallResult.fileUris.map((uri: string) => URI.parse(uri));
             const expectedFileUri = URI.file(getTestDataPath(fileName));
-            if (fileUris.some(fileUri => fileUri.toString() === expectedFileUri.toString()) &&
+            if (fileUris.some((fileUri: URI) => fileUri.toString() === expectedFileUri.toString()) &&
                 (expectSingleFile ? fileUris.length === 1 : true) &&
                 (expectMultipleFiles ? fileUris.length > 1 : true)) {
                 resolve();
@@ -91,10 +98,10 @@ async function openAndVerify(fileName: string, command: string, expectSingleFile
         State.client.onNotification(Commands.overallResult, handler)
     });
     const diagnosticsReceived = new Promise<void>((resolve) => {
-        function handler(e: vscode.DiagnosticChangeEvent) {
+        function handler(e: DiagnosticChangeEvent) {
             log(`diagnostics changed for ${e.uris}`);
             const expectedFileUri = URI.file(getTestDataPath(fileName));
-            if (e.uris.some(fileUri => fileUri.toString() === expectedFileUri.toString())) {
+            if (e.uris.some((fileUri: VscodeUri) => fileUri.toString() === expectedFileUri.toString())) {
                 resolve();
             }
         }
@@ -113,26 +120,34 @@ async function openAndVerify(fileName: string, command: string, expectSingleFile
     return document;
 }
 
-function openAndVerifyFile(fileName: string): Promise<vscode.TextDocument> {
+function openAndVerifyFile(fileName: string): Promise<TextDocument> {
     return openAndVerify(fileName, ContributionCommands.verifyFile, true);
 }
 
 /**
- * @param multipleFilesInPackageExpected: expresses whether we expect a verification result message 
+ * @param multipleFilesInPackageExpected: expresses whether we expect a verification result message
  *                                        referring to two or more files. Other verification result
  *                                        messages are ignored. This is particularly useful if the
  *                                        same file is verifying in non-package mode (e.g., triggered by
  *                                        opening this file)
  */
-async function openAndVerifyPackage(fileName: string, multipleFilesInPackageExpected: boolean): Promise<vscode.TextDocument> {
+async function openAndVerifyPackage(fileName: string, multipleFilesInPackageExpected: boolean): Promise<TextDocument> {
     return openAndVerify(fileName, ContributionCommands.verifyPackage, false, multipleFilesInPackageExpected);
 }
 
 suite("Extension", () => {
 
     suiteSetup(async function() {
-        // set timeout to a large value such that extension can be started and Gobra tools installed:
-        this.timeout(GOBRA_TOOL_UPDATE_TIMEOUT_MS);
+        // set timeout to a large value such that the extension (including the Gobra server) can be started:
+        this.timeout(EXTENSION_STARTUP_TIMEOUT_MS);
+        // Dynamically import from the webpack bundle (async, doesn't block the event loop)
+        const ext = await import('../extension.js');
+        State = ext.State;
+        Commands = ext.Commands;
+        ContributionCommands = ext.ContributionCommands;
+        Helper = ext.Helper;
+        Verifier = ext.Verifier;
+        log("webpack bundle loaded");
         // activate extension:
         await TestHelper.startExtension(getTestDataPath(ASSERT_TRUE));
         log("suiteSetup done");
@@ -142,51 +157,16 @@ suite("Extension", () => {
         log("Tear down test suite");
         await TestHelper.stopExtension();
     });
-    
+
     test("Recognize Gobra files", async () => {
         const document = await openFile(ASSERT_TRUE);
         assert.strictEqual(document.languageId, "gobra");
     });
-    
+
     test("Recognize Go files", async () => {
         const document = await openFile(FAILING_POST_GO);
         assert.strictEqual(document.languageId, "go");
     });
-
-    test("Check conversion of Gobra Tool Provider URL - regular URL", async function() {
-        // as there shouldn't be any network request involved, we do not need to increase the default timeout
-        const url = "https://gobra-ide.s3.eu-central-1.amazonaws.com/stable/GobraToolsLinux.zip";
-        const parseResult = await Helper.parseGitHubAssetURL(url);
-        assert.strictEqual(parseResult.isGitHubAsset, false);
-        assert.strictEqual(await parseResult.getUrl(), url);
-    })
-
-    test("Check conversion of Gobra Tool Provider URL - latest GitHub asset", async function() {
-        this.timeout(URL_CONVERSION_TIMEOUT_MS);
-        const url = "github.com/viperproject/gobra-ide/releases/latest?asset-name=GobraToolsLinux.zip";
-        const parseResult = await Helper.parseGitHubAssetURL(url);
-        // this should return the actual URL to the asset
-        assert.strictEqual(parseResult.isGitHubAsset, true);
-        assert.notStrictEqual(await parseResult.getUrl(), url);
-    })
-
-    test("Check conversion of Gobra Tool Provider URL - latest pre-release GitHub asset", async function() {
-        this.timeout(URL_CONVERSION_TIMEOUT_MS);
-        const url = "github.com/viperproject/gobra-ide/releases/latest?asset-name=GobraToolsLinux.zip&include-prereleases";
-        const parseResult = await Helper.parseGitHubAssetURL(url);
-        // this should return the actual URL to the asset
-        assert.strictEqual(parseResult.isGitHubAsset, true);
-        assert.notStrictEqual(await parseResult.getUrl(), url);
-    })
-
-    test("Check conversion of Gobra Tool Provider URL - latest tagged GitHub asset", async function() {
-        this.timeout(URL_CONVERSION_TIMEOUT_MS);
-        const url = "github.com/viperproject/gobra-ide/releases/tags/v1.0-alpha.2?asset-name=GobraToolsLinux.zip";
-        const parseResult = await Helper.parseGitHubAssetURL(url);
-        // this should return the actual URL to the asset
-        assert.strictEqual(parseResult.isGitHubAsset, true);
-        assert.notStrictEqual(await parseResult.getUrl(), url);
-    })
 
     test("Verify simple correct program", async function() {
         this.timeout(GOBRA_VERIFICATION_TIMEOUT_MS);
@@ -194,7 +174,7 @@ suite("Extension", () => {
         const diagnostics = vscode.languages.getDiagnostics(document.uri);
         assert.strictEqual(diagnostics.length, 0);
     });
-    
+
     test("Verify simple incorrect program", async function() {
         this.timeout(GOBRA_VERIFICATION_TIMEOUT_MS);
         const document = await openAndVerifyFile(ASSERT_FALSE);
@@ -216,7 +196,7 @@ suite("Extension", () => {
             "The 'false' expression in the postcondition was not reported."
         );
     });
-    
+
     test("Underline the 'false' in the failing postcondition of a go program", async function() {
         this.timeout(GOBRA_VERIFICATION_TIMEOUT_MS);
         const document = await openAndVerifyFile(FAILING_POST_GO);
@@ -248,7 +228,7 @@ suite("Extension", () => {
     test("Verifying basic programs as a package fails because of differing package names", async function() {
         this.timeout(GOBRA_VERIFICATION_TIMEOUT_MS);
         // note: we have to consider the diagnostics of all gobra and go files because we do not want
-        // to rely on a particular behavior of Gobra. Gobra will report an error in files with 
+        // to rely on a particular behavior of Gobra. Gobra will report an error in files with
         // differing package name. However, the file in which the error occurs depends on the order
         // in which Gobra visits the files.
         const filePaths = await getGobraFilesInDataPath();
@@ -274,13 +254,31 @@ suite("Extension", () => {
         assert.ok(newErrorDiagnostics.length >= 1);
     });
 
+    test("Stopping a verification leaves the extension usable", async function() {
+        this.timeout(GOBRA_VERIFICATION_TIMEOUT_MS);
+        await closeAllFiles();
+        await openFile(DECREASES); // comparatively slow file such that the stop likely lands mid-verification
+        // start a verification and immediately stop it. Depending on the timing, the stop lands
+        // before the request is sent, mid-verification, or after completion -- all must be fine:
+        const verification = vscode.commands.executeCommand(ContributionCommands.verify);
+        await vscode.commands.executeCommand(ContributionCommands.stopVerification);
+        await Promise.resolve(verification).then(
+            () => log("the stop landed before the start or after completion"),
+            (e) => log(`the verification settled after stopping: ${e}`));
+        // regardless of the interleaving, a subsequent verification must complete normally:
+        const document = await openAndVerifyFile(ASSERT_TRUE);
+        const errorDiagnostics = vscode.languages.getDiagnostics(document.uri)
+            .filter(diag => diag.severity === vscode.DiagnosticSeverity.Error);
+        assert.strictEqual(errorDiagnostics.length, 0);
+    });
+
     test("Verifying a package consisting of two files succeeds", async function() {
         this.timeout(GOBRA_VERIFICATION_TIMEOUT_MS);
         const document = await openAndVerifyPackage(PKG_FILE_1, true);
         const diagnostics = vscode.languages.getDiagnostics(document.uri);
         assert.strictEqual(diagnostics.length, 0);
     });
-    
+
     test("Show version information", async function() {
         const popupText = await vscode.commands.executeCommand<string>(ContributionCommands.showVersionInformation);
         const extensionVersion: string = State.context.extension.packageJSON.version;
@@ -294,18 +292,6 @@ suite("Extension", () => {
             `popup text '${popupText}' does not contain the Gobra IDE server version and commit`);
         assert.ok(/Gobra: \S+ \([0-9a-f]{40}/.test(popupText),
             `popup text '${popupText}' does not contain the Gobra version and commit`);
-    });
-
-    test("Update Gobra tools", async function() {
-        // execute this test as the last one as the IDE has to be restarted afterwards
-        this.timeout(GOBRA_TOOL_UPDATE_TIMEOUT_MS);
-        log("start updating Gobra tools");
-        // the following command directly invokes the update function (without going via the VSCode ecosystem).
-        // this is in particular useful for debugging / reproducing / understanding an issue as the error / exception 
-        // will be visible in the output and will not be swallowed by VSCode.
-        // await Verifier.updateGobraTools(State.context, true);
-        await vscode.commands.executeCommand("gobra.updateGobraTools");
-        log("done updating Gobra tools");
     });
 
 });

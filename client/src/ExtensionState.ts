@@ -4,16 +4,16 @@
 //
 // Copyright (c) 2011-2020 ETH Zurich.
 
-import { LanguageClient, LanguageClientOptions, ServerOptions, StreamInfo } from 'vscode-languageclient';
+import { LanguageClient, LanguageClientOptions, ServerOptions, StreamInfo } from 'vscode-languageclient/node';
 import * as vscode from 'vscode';
 import * as net from 'net';
 import * as child_process from "child_process";
 import * as readline from 'readline';
-import { FileData, IsolationData, VerifierConfig } from "./MessagePayloads";
-import { Helper, FileSchemes } from "./Helper";
-import { IdeEvents } from "./IdeEvents";
-import { Verifier } from "./VerificationService";
-import { CodePreviewProvider } from "./CodePreviewProvider";
+import { FileData, IsolationData, VerifierConfig } from "./MessagePayloads.js";
+import { Helper, FileSchemes, Commands, Texts } from "./Helper.js";
+import { IdeEvents } from "./IdeEvents.js";
+import { Verifier } from "./VerificationService.js";
+import { CodePreviewProvider } from "./CodePreviewProvider.js";
 import { Location } from 'vs-verification-toolbox';
 import { URI } from 'vscode-uri';
 
@@ -21,13 +21,13 @@ import { URI } from 'vscode-uri';
 export class State {
   public static client: LanguageClient;
   public static context: vscode.ExtensionContext;
-  public static updatingGobraTools: boolean;
 
   public static viperPreviewProvider: CodePreviewProvider;
   public static internalPreviewProvider: CodePreviewProvider;
 
-  /** currently running verifications which are identified by the list of fileUris that are stringified*/
-  private static runningVerifications: Set<string>;
+  /** currently running verifications, mapping the stringified list of fileUris to the token
+    * source with which the corresponding `gobraServer/verify` request can be cancelled */
+  private static runningVerifications: Map<string, vscode.CancellationTokenSource>;
   // tracks the verification requests which were made when a verification was already running.
   private static verificationRequests: Map<string, IdeEvents>;
 
@@ -37,13 +37,18 @@ export class State {
   public static verifierConfig: VerifierConfig;
 
   public static isFileInvolvedInRunningVerification(fileUri: URI): Boolean {
-    for(let runningVerification of State.runningVerifications) {
-      const decodedFileUris = JSON.parse(runningVerification) as string[];
+    return State.getRunningVerificationInvolving(fileUri) != null;
+  }
+
+  /** returns the running verification involving `fileUri`, if any */
+  public static getRunningVerificationInvolving(fileUri: URI): { fileUris: URI[], tokenSource: vscode.CancellationTokenSource } | undefined {
+    for (const [encodedFileUris, tokenSource] of State.runningVerifications) {
+      const decodedFileUris = JSON.parse(encodedFileUris) as string[];
       if (decodedFileUris.some(f => f == fileUri.toString())) {
-        return true;
+        return { fileUris: decodedFileUris.map(uri => URI.parse(uri)), tokenSource };
       }
     }
-    return false;
+    return undefined;
   }
 
   private static encodeUris(fileUris: URI[]): string {
@@ -82,14 +87,16 @@ export class State {
     set.delete(State.encodeUri(fileUri));
   }
 
-  public static addRunningVerification(fileUris: URI[]) {
-    State.addUris(State.runningVerifications, fileUris);
+  public static addRunningVerification(fileUris: URI[], tokenSource: vscode.CancellationTokenSource) {
+    State.runningVerifications.set(State.encodeUris(fileUris), tokenSource);
   }
   public static containsRunningVerification(fileUris: URI[]): Boolean {
-    return State.containsUris(State.runningVerifications, fileUris);
+    return State.runningVerifications.has(State.encodeUris(fileUris));
   }
   public static removeRunningVerification(fileUris: URI[]) {
-    State.removeUris(State.runningVerifications, fileUris);
+    const encodedFileUris = State.encodeUris(fileUris);
+    State.runningVerifications.get(encodedFileUris)?.dispose();
+    State.runningVerifications.delete(encodedFileUris);
   }
 
   public static addRunningGoifications(fileUri: URI) {
@@ -138,11 +145,9 @@ export class State {
 
 
   // creates the language client and starts the server
-  public static startLanguageServer(context: vscode.ExtensionContext, fileSystemWatcher: vscode.FileSystemWatcher, location: Location): Promise<void> {
+  public static async startLanguageServer(context: vscode.ExtensionContext, fileSystemWatcher: vscode.FileSystemWatcher, location: Location): Promise<void> {
 
-    this.updatingGobraTools = false;
-
-    this.runningVerifications = new Set<string>();
+    this.runningVerifications = new Map<string, vscode.CancellationTokenSource>();
     this.verificationRequests = new Map<string, IdeEvents>();
 
     this.runningGoifications = new Set<string>();
@@ -178,6 +183,10 @@ export class State {
       documentSelector: [{ scheme: 'file', language: 'gobra' }, { scheme: 'file', language: 'go' }],
       synchronize: {
           fileEvents: fileSystemWatcher
+      },
+      // the server rejects the initialize request if it implements a different protocol version:
+      initializationOptions: {
+        protocolVersion: Commands.protocolVersion
       }
     }
 
@@ -185,14 +194,30 @@ export class State {
     // client and server
     this.client = new LanguageClient('gobraServer', 'Gobra IDE - Server Communication', serverOptions, clientOptions);
 
-    // Start the client together with the server.
-    const disposable = this.client.start();
-    // Push the disposable to the context's subscriptions so that the
+    // Push the client to the context's subscriptions so that the
     // client can be deactivated on extension deactivation
-    context.subscriptions.push(disposable);
+    context.subscriptions.push(this.client);
     this.context = context;
-    
-    return State.client.onReady();
+
+    // Start the client together with the server.
+    // In v9, start() returns a Promise that resolves when the client is ready.
+    // Note that starting fails if the server rejects the initialize request, e.g., because the
+    // server implements a different protocol version than this client:
+    await this.client.start();
+
+    // check that the server implements the same protocol version as this client. While the server
+    // rejects the initialize request of clients implementing a different protocol version, this
+    // check catches servers that predate the version handshake (they accept the initialize request
+    // of any client and do not advertise a protocol version) as well as any future server that
+    // considers itself compatible with this client while this client does not:
+    const experimental: { protocolVersion?: number } | undefined = this.client.initializeResult?.capabilities?.experimental;
+    const serverProtocolVersion = experimental?.protocolVersion;
+    if (serverProtocolVersion !== Commands.protocolVersion) {
+      const msg = Texts.incompatibleServer(serverProtocolVersion);
+      vscode.window.showErrorMessage(msg);
+      await this.client.stop();
+      throw new Error(msg);
+    }
   }
 
   // creates a server for the given server binary

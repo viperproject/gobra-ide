@@ -5,15 +5,21 @@
 // Copyright (c) 2011-2020 ETH Zurich.
 
 import * as vscode from 'vscode';
-import { URI, Utils } from 'vscode-uri';
-import * as fs from 'fs';
+import { URI } from 'vscode-uri';
 
-import { State } from './ExtensionState';
-import { Verifier } from './VerificationService';
-import { FileData, VerifierConfig } from './MessagePayloads';
-import { ContributionCommands, Helper } from './Helper';
-import * as Notifier from './Notifier';
+import { State } from './ExtensionState.js';
+import { Verifier } from './VerificationService.js';
+import { FileData, VerifierConfig } from './MessagePayloads.js';
+import { Helper } from './Helper.js';
+import { locateGobraTools } from './GobraTools.js';
 import { Location } from 'vs-verification-toolbox';
+
+// Re-export internal modules so that tests can import them from the webpack bundle,
+// ensuring tests share the same module instances as the running extension.
+export { State } from './ExtensionState.js';
+export { Helper, Commands, ContributionCommands } from './Helper.js';
+export { Verifier } from './VerificationService.js';
+export { OverallVerificationResult } from './MessagePayloads.js';
 
 
 let fileSystemWatcher: vscode.FileSystemWatcher;
@@ -49,33 +55,12 @@ export function activate(context: vscode.ExtensionContext): Thenable<any> {
 			}
 			const verifierConfig = new VerifierConfig([fileData], [], z3Path.path, boogiePath.path);
 			Verifier.initialize(context, verifierConfig, fileUri);
-			Notifier.notifyExtensionActivation();
+			Helper.log("The extension is now active.");
 		}
 	}
 
-	// start of in a clean state by wiping Gobra Tools if this was requested via
-	// environment variables. In particular, this is used for the extension tests.
-	if (Helper.cleanInstall()) {
-		const packageJson = context.extension.packageJSON;
-		const packageId = `${packageJson.publisher}.${packageJson.name}`;
-		const gobraToolsPath = Utils.joinPath(context.globalStorageUri, packageId).fsPath;
-		if (fs.existsSync(gobraToolsPath)) {
-			Helper.log(`cleanInstall has been requested and gobra tools already exist --> delete them`);
-			// wipe gobraToolsPath if it exists:
-			fs.rmdirSync(gobraToolsPath, { recursive: true });
-		} else {
-			Helper.log(`cleanInstall has been requested but gobra tools do not exist yet --> NOP`);
-		}
-	}
-
-	// register the command to update the Gobra tools before starting the server such that the
-	// command is available even if starting the server fails, e.g., because the installed Gobra
-	// tools are incompatible with this extension. Otherwise, users would have no way to recover
-	// by updating the Gobra tools from within the IDE:
-	Helper.registerCommand(ContributionCommands.updateGobraTools, () => Verifier.updateGobraTools(context, true), context);
-
-	// install gobra tools
-	return Verifier.updateGobraTools(context, false)
+	// locate the gobra tools (they are bundled with the extension unless the build version 'External' is selected)
+	return locateGobraTools(context)
 		.then(startServer)
 		.then(initVerifier(fileUri));
 }

@@ -19,7 +19,7 @@
 // OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 import * as path from 'path';
-import * as Mocha from 'mocha';
+import Mocha from 'mocha';
 import { glob } from 'glob';
 
 export async function run(): Promise<void> {
@@ -30,7 +30,7 @@ export async function run(): Promise<void> {
     color: true,
   });
 
-  const testsRoot = path.resolve(__dirname, '..');
+  const testsRoot = path.resolve(import.meta.dirname, '..');
 
   const files: Array<string> = await glob(
     "**/*.evaluate.js",

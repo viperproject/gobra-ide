@@ -6,7 +6,7 @@
 
 import * as vscode from "vscode";
 import { URI } from "vscode-uri";
-import { Texts, Color, Helper } from "./Helper";
+import { Texts, Color, Helper } from "./Helper.js";
 
 
 export class ProgressBar {

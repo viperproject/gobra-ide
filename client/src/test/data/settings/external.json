@@ -1,0 +1,6 @@
+{
+    "gobraSettings.buildVersion": "External",
+    "gobraDependencies.gobraToolsPaths.gobraToolsBasePath.windows": "$builtinGobraTools$",
+    "gobraDependencies.gobraToolsPaths.gobraToolsBasePath.linux": "$builtinGobraTools$",
+    "gobraDependencies.gobraToolsPaths.gobraToolsBasePath.mac": "$builtinGobraTools$"
+}
