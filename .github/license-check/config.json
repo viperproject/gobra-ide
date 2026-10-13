@@ -64,6 +64,7 @@
             "server/project/target/**",
             "server/target/**",
             "**/vscode-version",
+            "**/viper-tools-version",
             "**/*.json",
             "**/README.md",
             "**/LICENSE"
