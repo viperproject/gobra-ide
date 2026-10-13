@@ -33,17 +33,13 @@ const boogieMacARMDownloadUrl = (version: string) => `https://github.com/viperpr
 
 const z3VersionFile = 'z3-version';
 const z3OutputDir = path.resolve(outputDir, 'z3');
-const z3LinuxDownloadUrl = (version: string) => `https://github.com/Z3Prover/z3/releases/download/z3-${version}/z3-${version}-x64-ubuntu-16.04.zip`;
+// Z3's release assets are named after the platform on which they have been built. Since this
+// platform changes between Z3 releases, the following URLs have to be adapted whenever `z3-version`
+// changes:
+const z3LinuxDownloadUrl = (version: string) => `https://github.com/Z3Prover/z3/releases/download/z3-${version}/z3-${version}-x64-glibc-2.39.zip`;
 const z3WindowsDownloadUrl = (version: string) => `https://github.com/Z3Prover/z3/releases/download/z3-${version}/z3-${version}-x64-win.zip`;
-const z3MacDownloadUrl = (version: string) => `https://github.com/Z3Prover/z3/releases/download/z3-${version}/z3-${version}-x64-osx-10.14.6.zip`;
-const z3MacARMDownloadUrl = (version: string) => {
-  // The non-'4.8.7' URL will only work for '4.9.0' and above (such a version would break the above two URLs though, since they now build for `osx-10.16` and `glibc-2.35`)
-  if (version == '4.8.7') {
-    return 'https://github.com/viperproject/boogie-builder/raw/master/prebuilt_z3/z3-4.8.7-arm64-osx.zip';
-  } else {
-    return `https://github.com/Z3Prover/z3/releases/download/z3-${version}/z3-${version}-arm64-osx-11.zip`;
-  }
-}
+const z3MacDownloadUrl = (version: string) => `https://github.com/Z3Prover/z3/releases/download/z3-${version}/z3-${version}-x64-osx-15.7.3.zip`;
+const z3MacARMDownloadUrl = (version: string) => `https://github.com/Z3Prover/z3/releases/download/z3-${version}/z3-${version}-arm64-osx-15.7.3.zip`;
 
 const serverJarSourcePath = path.resolve(import.meta.dirname, '..', 'server', 'target', 'scala-2.13', 'server.jar');
 const serverOutputDir = path.resolve(outputDir, 'server');

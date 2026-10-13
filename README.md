@@ -44,6 +44,9 @@ Gobra Tools collectively represent the client's dependecies.
 In particular, Gobra Tools consist of the server (called Gobra Server), Z3, and Boogie.
 The Gobra Tools are bundled with the extension, i.e., no additional installation step is necessary.
 The versions of Z3 and Boogie that get bundled are pinned in `client/z3-version` and `client/boogie-version`, and the bundled Gobra Server is built from the sources in this repository.
+We bundle the Z3 version against which Gobra is tested.
+Note that the bundled Z3 requires macOS 15 or newer resp. a Linux distribution with glibc 2.38 or newer (e.g. Ubuntu 24.04).
+On older systems, use the build version `External` (see below) with a Z3 executable that runs on your system.
 
 Gobra-IDE supports two modes to locate the Gobra Tools, which can be configured by setting `gobraSettings.buildVersion` in the extension's settings to `BuiltIn` (default) or `External`.
 
@@ -120,7 +123,7 @@ openjdk version "23.0.1" 2024-10-15
 Checking Z3...
 Gobra IDE: Running '<extension installation directory>/dependencies/GobraTools/z3/bin/z3 --version'
 ┌──── Begin stdout ────┐
-Z3 version 4.8.6 - 64 bit
+Z3 version 4.16.0 - 64 bit
 
 └──── End stdout ──────┘
 ┌──── Begin stderr ────┐
