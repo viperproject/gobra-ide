@@ -66,6 +66,7 @@ jobs:
           echo "Silicon: commit $(git -C gobra-ide/server/gobra/viperserver/silicon rev-parse HEAD)" >> versions.txt
           echo "Carbon: commit $(git -C gobra-ide/server/gobra/viperserver/carbon rev-parse HEAD)" >> versions.txt
           echo "Silver: commit ${{ env.SILICON_SILVER_REF }}" >> versions.txt
+          echo "Viper Tools (Z3 and Boogie): release $(cat gobra-ide/client/viper-tools-version)" >> versions.txt
         # first line overwrites versions.txt in case it already exists, all other append to the file
       - name: Upload version file
         uses: actions/upload-artifact@v7
@@ -131,8 +132,17 @@ jobs:
         with:
           name: server.jar
 
+      - name: Checkout Gobra-IDE
+        uses: actions/checkout@v7
+        with:
+          path: gobra-ide
+          # we do not need any submodules here as we only read `client/viper-tools-version`
+
+      # `client/viper-tools-version` pins the Viper-IDE release whose Viper Tools provide Z3 and Boogie.
+      # This should be the Viper release that Gobra uses such that we ship the Z3 version against which
+      # Gobra is tested:
       - name: Download Viper Tools
-        run: wget --no-verbose https://viper.ethz.ch/downloads/${{ matrix.viper-tools-platform }}.zip --output-document=${{ matrix.viper-tools-platform }}.zip
+        run: wget --no-verbose https://github.com/viperproject/viper-ide/releases/download/$(cat gobra-ide/client/viper-tools-version)/${{ matrix.viper-tools-platform }}.zip --output-document=${{ matrix.viper-tools-platform }}.zip
       - name: Unzip Viper Tools
         run: unzip ${{ matrix.viper-tools-platform }}.zip -d ${{ matrix.viper-tools-platform }}
 

@@ -42,6 +42,10 @@ Note: `npm` / node has to be installed.
 ## Configuring Gobra Tools
 Gobra Tools collectively represent the client's dependecies.
 In particular, Gobra Tools consist of the server (called Gobra Server), Z3, and Boogie.
+The Gobra Tools contain Z3 and Boogie from the Viper Tools of the Viper release pinned in `client/viper-tools-version`.
+This should be the Viper release that Gobra uses such that the Gobra Tools contain the Z3 version against which Gobra is tested.
+Note that this Z3 requires macOS 15 or newer resp. a Linux distribution with glibc 2.38 or newer (e.g. Ubuntu 24.04).
+On older systems, use the build version `Local` (see below) with a Z3 executable that runs on your system.
 Gobra-IDE supports three modes to fetch the Gobra Tools, which can be configured by setting `gobraSettings.buildVersion` in the extension's settings to `Stable` (default), `Nightly` or `Local`.
 
 ### Build versions `Stable` and `Nightly`
@@ -129,7 +133,7 @@ openjdk version "23.0.1" 2024-10-15
 Checking Z3...
 Gobra IDE: Running '/Users/arquintlinard/Library/Application Support/Code/User/globalStorage/viper-admin.gobra-ide/Stable/GobraTools/z3/bin/z3 --version'
 ┌──── Begin stdout ────┐
-Z3 version 4.8.6 - 64 bit
+Z3 version 4.16.0 - 64 bit
 
 └──── End stdout ──────┘
 ┌──── Begin stderr ────┐
