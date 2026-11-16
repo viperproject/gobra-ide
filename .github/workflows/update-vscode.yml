@@ -13,7 +13,7 @@ on:
     - cron:  '0 7 1,15 * *'
 
 jobs:
-  # Update the version of rustc, open a PR and assign a developer.
+  # Update the version of VS Code used by the tests and open a PR.
   update:
     runs-on: ubuntu-latest
     steps:
@@ -21,13 +21,23 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Update VS Code version used by the tests
+        # `bash` (instead of the default shell) sets `pipefail`, i.e., a failing `curl` fails this step:
+        shell: bash
         run: |
           TEST_VSCODE_VERSION="$(cat client/src/test/data/vscode-version)"
           echo "The current version of VS Code used in tests is $TEST_VSCODE_VERSION"
+          # we query the same API that `@vscode/test-electron` uses to resolve the latest stable version, i.e.,
+          # the version is guaranteed to be downloadable by the tests. Unlike GitHub's API, this API is not
+          # rate-limited for unauthenticated requests:
           LATEST_VSCODE_VERSION="$(
-            curl -s https://api.github.com/repos/microsoft/vscode/releases/latest | jq -r '.tag_name'
+            curl --silent --show-error --fail 'https://update.code.visualstudio.com/api/releases/stable?released=true' | jq -r '.[0]'
           )"
           echo "The latest version of VS Code is $LATEST_VSCODE_VERSION"
+          # fail instead of opening a PR if we did not obtain a valid version:
+          if [[ ! "$LATEST_VSCODE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::'$LATEST_VSCODE_VERSION' is not a valid VS Code version"
+            exit 1
+          fi
           echo "$LATEST_VSCODE_VERSION" > client/src/test/data/vscode-version
           echo "TEST_VSCODE_VERSION=$TEST_VSCODE_VERSION" >> $GITHUB_ENV
           echo "LATEST_VSCODE_VERSION=$LATEST_VSCODE_VERSION" >> $GITHUB_ENV
